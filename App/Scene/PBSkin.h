@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) simd_float3 rampGlassColor;
 /// Names in GameData/Materials: the MatCap for hardware, and for ramp floors.
 @property (nonatomic, copy, readonly) NSString *hardwareMatcap, *rampMatcap;
+/// How soft the ramp's reflections are, as a mip bias, and how strong its highlights, 0 to 1.
+@property (nonatomic, readonly) float rampBlur, rampGloss;
 
 + (nullable instancetype)skinNamed:(NSString *)identifier bundle:(NSBundle *)bundle;
 + (NSArray<NSString *> *)availableSkinsInBundle:(NSBundle *)bundle;

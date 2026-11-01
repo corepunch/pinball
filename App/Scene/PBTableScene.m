@@ -37,6 +37,8 @@ static NSString *const kPBMatcapModifier =
     @"#pragma arguments\n"
     @"texture2d<float> pbMatcap;\n"
     @"float4x4 pbRoom;\n"
+    @"float pbBlur;\n"
+    @"float pbGloss;\n"
     @"#pragma body\n"
     @"constexpr sampler pbSampler(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);\n"
     @"float3 pbN = (scn_frame.inverseViewTransform * float4(normalize(_surface.normal), 0.0)).xyz;\n"
@@ -45,12 +47,12 @@ static NSString *const kPBMatcapModifier =
     @"float2 pbUV = float2(pbN.x, -pbN.y) * 0.492 + 0.5;\n"
     // Deep shadows and clipped peaks: a metal's highlights go past its own colour, toward white,
     // and over 1 they feed the bloom.
-    @"float3 pbRoomColor = pbMatcap.sample(pbSampler, pbUV).rgb;\n"
+    @"float3 pbRoomColor = pbMatcap.sample(pbSampler, pbUV, bias(pbBlur)).rgb;\n"
     @"float pbLight = dot(pbRoomColor, float3(0.2126, 0.7152, 0.0722));\n"
-    @"float pbCap = smoothstep(0.04, 0.86, pbLight);\n"
+    @"float pbCap = smoothstep(0.04, 0.86, pbLight) * (0.5 + 0.5 * pbGloss);\n"
     @"float3 pbHue = pbRoomColor / max(pbLight, 0.02);\n"
     @"float3 pbTint = _surface.diffuse.rgb;\n"
-    @"_surface.diffuse.rgb = pbTint * pbHue * (0.06 + 1.1 * pbCap) + mix(pbTint * pbHue, float3(1.0), 0.45) * 1.4 * pow(pbCap, 5.0);\n";
+    @"_surface.diffuse.rgb = pbTint * pbHue * (0.06 + 1.1 * pbCap) + mix(pbTint * pbHue, float3(1.0), 0.45) * 1.4 * pbGloss * pow(pbCap, 5.0);\n";
 
 /// Chrome ball that mirrors the playfield it actually sits over. A reflection ray that
 /// hits the table is traced into the playfield texture, so the reflection moves correctly
@@ -229,6 +231,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     capture.mipFilter = SCNFilterModeLinear;
     [material setValue:capture forKey:@"pbMatcap"];
     [material setValue:[NSValue valueWithSCNMatrix4:SCNMatrix4Identity] forKey:@"pbRoom"];
+    [material setValue:@0.0f forKey:@"pbBlur"];
+    [material setValue:@1.0f forKey:@"pbGloss"];
     if (!_matcapMaterials) _matcapMaterials = [NSMutableArray array];
     [_matcapMaterials addObject:material];
     return material;
@@ -320,6 +324,9 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         CGImageRelease(amberImage);
         // Solid sheet metal unless the skin makes it glass.
         SCNMaterial *rampFloor = [self matcapNamed:_skin.rampMatcap color:_skin.rampGlassColor];
+        // Satin: blurred reflections and hardly any peak, leaving the shine to the brass trim.
+        [rampFloor setValue:@(_skin.rampBlur) forKey:@"pbBlur"];
+        [rampFloor setValue:@(_skin.rampGloss) forKey:@"pbGloss"];
         if (_skin.rampOpacity < 1) {
             rampFloor.transparency = _skin.rampOpacity;
             rampFloor.writesToDepthBuffer = NO;

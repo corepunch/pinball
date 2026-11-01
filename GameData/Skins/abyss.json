@@ -237,7 +237,9 @@
       0.96
     ],
     "matcap": "courtyard",
-    "rampMatcap": "sunrise"
+    "rampMatcap": "sunrise",
+    "rampBlur": 2.5,
+    "rampGloss": 0.1
   },
   "modelKit": "premium",
   "slingLens": [

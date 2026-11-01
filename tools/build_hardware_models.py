@@ -605,7 +605,7 @@ for table_index, table in enumerate(TABLES):
         right = crown + wall
         section = right + floor + [(-x, z) for x, z in right[::-1]]
         n_crown, n_wall, n_floor = len(crown) - 1, len(wall), len(floor) + 1
-        roles = ['accent'] * n_crown + ['metal'] * n_wall + ['ramp_floor'] * n_floor + ['metal'] * n_wall + ['accent'] * n_crown
+        roles = ['accent'] * n_crown + ['ramp_floor'] * (n_wall + n_floor + n_wall) + ['accent'] * n_crown
         sweep('Channel', path, section, 'accent', band_roles=roles, sharp=89)
 
         def clamp(i, label, along=.008, tall=.0075):

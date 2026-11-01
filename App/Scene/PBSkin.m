@@ -80,6 +80,8 @@ static simd_float3 PBColor(NSArray *rgb, simd_float3 fallback) {
         _rampGlassColor = PBColor(materials[@"rampGlass"], _accentColor);
         _hardwareMatcap = [materials[@"matcap"] copy] ?: @"courtyard";
         _rampMatcap = [materials[@"rampMatcap"] copy] ?: @"studio";
+        _rampBlur = materials[@"rampBlur"] ? [materials[@"rampBlur"] floatValue] : 2.5f;
+        _rampGloss = materials[@"rampGloss"] ? [materials[@"rampGloss"] floatValue] : 0.1f;
         _modelKit = [_palette[@"modelKit"] copy];
         _cache = [NSMutableDictionary dictionary];
         _sources = [NSMutableDictionary dictionary];

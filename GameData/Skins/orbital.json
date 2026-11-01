@@ -237,7 +237,9 @@
       0.94
     ],
     "matcap": "courtyard",
-    "rampMatcap": "studio"
+    "rampMatcap": "studio",
+    "rampBlur": 2.5,
+    "rampGloss": 0.1
   },
   "modelKit": "premium",
   "slingLens": [

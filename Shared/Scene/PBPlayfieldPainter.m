@@ -42,7 +42,14 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
     CGContextRef c = PBCreateContext(kPlayfieldWidth, height);
     CGRect full = CGRectMake(0, 0, kPlayfieldWidth, height);
 
-    CGContextDrawImage(c, full, [skin imageForSlot:@"playfield"]);
+    if ([skin hasImageForSlot:@"apron"]) {
+        // Independent art zones keep the apron aligned for any table proportions.
+        CGFloat apron = table.apronY * scale;
+        CGContextDrawImage(c, CGRectMake(0, apron, kPlayfieldWidth, height - apron), [skin imageForSlot:@"playfield"]);
+        CGContextDrawImage(c, CGRectMake(0, 0, kPlayfieldWidth, apron), [skin imageForSlot:@"apron"]);
+    } else {
+        CGContextDrawImage(c, full, [skin imageForSlot:@"playfield"]);
+    }
 
     // Fine grain restores surface detail at phone resolution, where the art is upscaled.
     CGContextSaveGState(c);

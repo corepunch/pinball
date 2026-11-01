@@ -3,14 +3,23 @@
 3D pinball in Objective-C and SceneKit, for iPhone with a Mac preview in a window the size of an
 iPhone screen. Straight-down camera, table fills the screen.
 
-Tables are JSON and skins are one JPEG, so another table costs kilobytes and another skin under 1 MB.
-All meshes are generated in code and all sound is synthesized.
+Tables are JSON; skins contain a hardware atlas, palette, and optionally a separate playfield painting.
+Table geometry is generated from JSON, with optional Blender-authored hardware kits. All sound is synthesized.
+
+The default **Orbital** skin pairs illustrated space art with ivory/vermilion enamel and champagne trim.
+**Abyss** uses deep-sea illustration, seafoam enamel and brass. Both include authored idle/hit bumper caps,
+layered bumper skirts, plastic edge trim, fasteners, and ramp rails. Classic and Neon remain available.
+The selected visual reference is saved in `Art/References/premium-pinball-target.png`; the editable
+Blender master and rebuild instructions are in `Art/Models/` and [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
 
 ```bash
 open Pinball.xcodeproj
 ```
 
 Schemes: `Pinball-iOS`, `Pinball-macOS`, `PinballCoreTests`.
+
+App folders live directly at the repository root: `Shared/`, `iOS/`, `macOS/`, and `GameData/`.
+`Art/` holds source artwork and models; `Tests/` and `tools/` hold verification and asset tooling.
 
 ## Controls
 
@@ -23,6 +32,11 @@ Schemes: `Pinball-iOS`, `Pinball-macOS`, `PinballCoreTests`.
 | Next skin | Three-finger tap | `S` |
 
 Launch arguments: `-PBAutopilot 1` plays itself, `-PBSkin classic`, `-PBTable aurora`, `-PBStats 1`.
+Use `-PBSkin orbital` or `-PBSkin abyss` to preview either new set directly.
+
+On iPhone, tilting the phone moves the table light and reflection environment, shifting highlights
+and real shadows across the hardware. The initial grip is calibrated when the app becomes active;
+motion is smoothed and limited so the table stays readable. Deliberate shoves still trigger nudges.
 
 ## Architecture
 
@@ -34,7 +48,8 @@ Shared/Core    PBTableDefinition  typed model of a table's JSON
 Shared/Scene   PBTableScene       builds the SceneKit graph, mirrors game state each frame
                PBGeometry         procedural meshes
                PBPlayfieldPainter composites art with crisp lamps, wires, contact shadows
-               PBSkin             slices the atlas
+               PBSkin             loads per-skin layouts, sources, materials and atlas states
+               PBModelLibrary     loads Blender mesh kits and isolates animated instances
                PBDotMatrix        the score display
 Shared/Audio   PBSoundEngine      synthesized sound
 Shared/App     PBGameController   the frame loop, shared by both platforms

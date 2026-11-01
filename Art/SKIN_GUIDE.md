@@ -1,4 +1,53 @@
-# Painting a skin with ChatGPT
+# Skin artwork and materials
+
+## Orbital and Abyss
+
+Four art directions were explored in `Art/Concepts/premium-directions.png`. Orbital was selected for
+its Space Cadet-inspired navy/ivory/vermilion space illustration; Abyss for its distinct petrol/brass
+deep-sea illustration. The images are original artwork generated with the **built-in ImageGen tool**.
+Exact prompts are preserved in `Art/Prompts/`, and lossless source PNGs in `Art/Masters/`.
+
+Each set has a separate tall playfield painting and a compact hardware atlas. The atlas contains both
+authored bumper states, plastics, trim, flipper surface, ramp, target faces, reflection environment,
+all sixteen lamp glyphs, display bezel, and fine grain. All hardware and glyphs for a set were generated
+together in one ImageGen call. The idle/hit bumper images are used directly; no state art is synthesized
+or recoloured. Lamp glyphs act as masks for simulated lamp illumination.
+
+Runtime artwork lives in `GameData/Skins/{orbital,abyss}{,-playfield}.jpg`, about 1.5 MB per set.
+The matching JSON defines the palette, material values, and `atlasLayout`. Coordinates are measured
+against the actual authored PNGs, including small deviations from the nominal regular grid.
+`canvas` declares the atlas coordinate system; each slot has a `rect` and optional `bleed`. Slots may
+declare their own `file` and `canvas`, which is how separate playfield sources work. The `apron` slot
+is composited at the table's actual apron boundary instead of stretching the scoreboard zone.
+The `inserts` slot is a 4×4 glyph sheet with optional `cellBleed` to exclude its dividers.
+
+Material controls under `materials` are `metalness`, `roughness`, `playfieldReflectivity`, `bloom`,
+and `rampOpacity`. Palette `accent` controls decorative metal; `flipperRubber` controls bat sleeves.
+Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
+reflections. `modelKit: "premium"` selects the Blender-authored domed bumper, insert socket, and ramp
+channel meshes; see [MODEL_GUIDE.md](MODEL_GUIDE.md). New decorative meshes do not alter collision
+geometry or scoring.
+
+To regenerate the compressed runtime JPEGs from the preserved masters, run:
+
+```bash
+tools/export_premium_art.sh
+```
+
+To validate every skin source and atlas crop and render real SceneKit previews (requires macOS with
+Metal GPU access):
+
+```bash
+xcodebuild -project Pinball.xcodeproj -scheme Pinball-macOS -configuration Debug build
+tools/render_preview.sh "$PWD/Build/Products/Debug/Pinball.app" "$PWD/Art/Previews" orbital
+tools/render_preview.sh "$PWD/Build/Products/Debug/Pinball.app" "$PWD/Art/Previews" abyss
+```
+
+Omit the last argument to render all skins. These are actual game scene renders, not concept mockups.
+Run `-PBSkin orbital` or `-PBSkin abyss` to choose a set directly, or press **S** in the Mac preview /
+tap with three fingers on iPhone to cycle. Orbital is Aurora's default; saved skin preferences persist.
+
+## Painting a legacy single-atlas skin with ChatGPT
 
 One skin is one image. Attach `Art/Templates/aurora/layout_for_imagegen.png`, paste the prompt
 below with your theme, and ask for a **portrait 2:3** image (1024x1536 or larger).

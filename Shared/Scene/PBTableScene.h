@@ -24,6 +24,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// Call once per frame after the game has updated, on the render thread.
 - (void)syncWithGame:(PBGame *)game elapsed:(double)elapsed;
 
+/// Relative device attitude (x right, y screen-up, z out of screen). Render thread only.
+/// Moves illumination/reflections while the camera, table and physics stay fixed.
+- (void)updateLightingForAttitude:(simd_quatf)attitude elapsed:(double)elapsed;
+
 @end
 
 NS_ASSUME_NONNULL_END

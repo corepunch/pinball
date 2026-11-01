@@ -14,7 +14,7 @@ import json, math, pathlib, random, sys
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-RES = ROOT / "Pinball" / "GameData"
+RES = ROOT / "GameData"
 LAYOUT = json.loads((RES / "atlas_layout.json").read_text())
 CANVAS = tuple(LAYOUT["canvas"])
 SLOTS = LAYOUT["slots"]

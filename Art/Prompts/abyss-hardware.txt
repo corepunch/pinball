@@ -1,0 +1,25 @@
+Use case: stylized-concept
+Asset type: PRODUCTION GAME TEXTURE ATLAS, square 2048x2048. Strict perfectly regular FOUR columns by FOUR rows, each cell exactly one quarter of width and height. No gutters, no labels, no outer margin. All sixteen cells fill their allotted square completely. Orthographic straight-down surface artwork, not perspective objects. Cells must NOT merge.
+Premium tactile pre-rendered Space Cadet-era pinball materials: enamel, chrome, fine engraving, cream polymer. Sharp controlled lighting, fine authored specular edges, no noise grunge.
+ROW 1 left to right:
+1: perfectly centred circular pop bumper CAP top surface filling entire square, ivory and deep seafoam radial enamel wedges, fine antique brass concentric edging and a small central dark warm amber jewel. IDLE state, jewel unlit. Corners dark petrol.
+2: exact SAME cap with exact same geometry, markings, centred scale, but jewel illuminated brilliant warm amber and inner ring softly glowing. This is authored HIT state; all cap artwork otherwise identical.
+3: full-bleed petrol glossy plastic printed surface with sweeping ivory/copper stripes and fine gold nautical motifs; NO triangle silhouette, fills whole square.
+4: full-bleed petrol plastic surface with fine gold nautical charts and ivory small compass motifs, NO silhouette.
+ROW 2:
+1: seamless almost black petrol powder-coated metal tile with subtle horizontal fine grain. No bolts frames or symbols.
+2: seamless dark petrol cabinet lacquer tile with understated fine gold grain, no borders no motifs.
+3: full-bleed ivory flipper surface material, fine long copper stripe horizontally through middle and fine gold parallel pinstripes, no capsule silhouette, no text.
+4: full-bleed dark desaturated teal ramp surface with elegant upward cream and gold chevrons, vertically repeating, no frame.
+ROW 3:
+1: square copper enamel target face, bevelled gold trim and white nautilus emblem.
+2: square ivory enamel target face gold trim and copper arrow-up emblem.
+3: square petrol enamel spinner face gold trim and ivory compass emblem.
+4: square midnight petrol gate plate with gold small horizontal stripe and two tiny rivets.
+ROW 4:
+1: chrome REFLECTION MAP square: abstract bright overhead cream studio softboxes on upper half and deep petrol dark lower half, no objects.
+2: a miniature exact FOUR by FOUR icon grid within this ONE cell: pure white symbols on pure black backgrounds, sixteen equal cells, in reading order chevron, star, 2X, 3X, 5X, diamond, lightning bolt, up arrow, dot, ring, horizontal bar, hexagon, shield, crown, gem, sunburst. Simple solid clear symbols. All icons together in this atlas. No grid lines.
+3: full square dark petrol metallic bezel material with fine gold horizontal pinstripes near top and bottom. No display no numbers no lettering.
+4: full-bleed seamless neutral mid-grey fine satin grain almost featureless.
+No other text than 2X 3X 5X icons. Exact 4x4 major grid paramount.
+Theme ABYSS: submarine expedition, deep petrol seafoam enamel, warm burnished brass, ivory, copper. All sixteen cells form one cohesive premium hardware set. Identical regular grid spacing each cell exactly 25% width and 25% height; even the final row same height as all other rows.

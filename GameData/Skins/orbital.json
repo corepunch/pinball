@@ -1,0 +1,250 @@
+{
+  "id": "orbital",
+  "name": "Orbital",
+  "atlasLayout": {
+    "canvas": [
+      1254,
+      1254
+    ],
+    "bleed": 5,
+    "slots": {
+      "bumper_cap": {
+        "rect": [
+          4,
+          1,
+          300,
+          300
+        ],
+        "bleed": 0
+      },
+      "bumper_cap_lit": {
+        "rect": [
+          318,
+          1,
+          300,
+          300
+        ],
+        "bleed": 0
+      },
+      "slingshot": {
+        "rect": [
+          627,
+          0,
+          314,
+          303
+        ]
+      },
+      "plastic": {
+        "rect": [
+          941,
+          0,
+          313,
+          303
+        ]
+      },
+      "wall_top": {
+        "rect": [
+          0,
+          303,
+          313,
+          305
+        ]
+      },
+      "side_rail": {
+        "rect": [
+          313,
+          303,
+          314,
+          305
+        ]
+      },
+      "flipper": {
+        "rect": [
+          627,
+          303,
+          314,
+          305
+        ]
+      },
+      "ramp": {
+        "rect": [
+          941,
+          303,
+          313,
+          305
+        ]
+      },
+      "drop_target": {
+        "rect": [
+          0,
+          608,
+          313,
+          287
+        ]
+      },
+      "standup": {
+        "rect": [
+          313,
+          608,
+          314,
+          287
+        ]
+      },
+      "spinner": {
+        "rect": [
+          627,
+          608,
+          314,
+          287
+        ]
+      },
+      "gate": {
+        "rect": [
+          941,
+          608,
+          313,
+          287
+        ]
+      },
+      "environment": {
+        "rect": [
+          0,
+          895,
+          313,
+          359
+        ]
+      },
+      "inserts": {
+        "rect": [
+          314,
+          896,
+          312,
+          320
+        ],
+        "cellBleed": 3
+      },
+      "dmd_bezel": {
+        "rect": [
+          627,
+          895,
+          314,
+          359
+        ]
+      },
+      "detail": {
+        "rect": [
+          941,
+          895,
+          313,
+          359
+        ]
+      },
+      "playfield": {
+        "rect": [
+          0,
+          0,
+          851,
+          1556
+        ],
+        "file": "orbital-playfield.jpg",
+        "canvas": [
+          851,
+          1848
+        ],
+        "bleed": 0
+      },
+      "apron": {
+        "rect": [
+          0,
+          1580,
+          851,
+          268
+        ],
+        "file": "orbital-playfield.jpg",
+        "canvas": [
+          851,
+          1848
+        ],
+        "bleed": 0
+      }
+    }
+  },
+  "lamps": {
+    "cyan": [
+      0.22,
+      0.83,
+      0.95
+    ],
+    "white": [
+      1,
+      0.92,
+      0.72
+    ],
+    "amber": [
+      1,
+      0.65,
+      0.16
+    ],
+    "magenta": [
+      0.96,
+      0.27,
+      0.38
+    ],
+    "green": [
+      0.3,
+      0.9,
+      0.6
+    ],
+    "red": [
+      1,
+      0.2,
+      0.12
+    ],
+    "bumper": [
+      0.18,
+      0.78,
+      1
+    ]
+  },
+  "rubber": [
+    0.94,
+    0.89,
+    0.75
+  ],
+  "metal": [
+    0.78,
+    0.81,
+    0.83
+  ],
+  "accent": [
+    0.84,
+    0.65,
+    0.32
+  ],
+  "flipperRubber": [
+    0.58,
+    0.055,
+    0.04
+  ],
+  "ambient": 0.82,
+  "key": [
+    1,
+    0.94,
+    0.82
+  ],
+  "keyIntensity": 1050,
+  "dmd": [
+    1,
+    0.55,
+    0.13
+  ],
+  "plasticOpacity": 0.96,
+  "materials": {
+    "metalness": 0.88,
+    "roughness": 0.34,
+    "playfieldReflectivity": 0.15,
+    "bloom": 0.36,
+    "rampOpacity": 0.74
+  },
+  "modelKit": "premium"
+}

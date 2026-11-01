@@ -21,11 +21,15 @@ static NSString *const kHighScoreKeyPrefix = @"PBHighScore.";
     NSTimeInterval _lastTime;
     NSArray<NSString *> *_skins;
     NSString *_skinName;
+    NSLock *_lightingInputLock;
+    simd_quatf _lightingAttitude;
 }
 
 - (instancetype)initWithView:(SCNView *)view {
     if ((self = [super init])) {
         _view = view;
+        _lightingInputLock = [NSLock new];
+        _lightingAttitude = simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f);
         NSBundle *bundle = NSBundle.mainBundle;
         NSString *tableName = [NSUserDefaults.standardUserDefaults stringForKey:@"PBTable"] ?: [PBTableDefinition availableTablesInBundle:bundle].firstObject;
         NSError *error;
@@ -57,10 +61,12 @@ static NSString *const kHighScoreKeyPrefix = @"PBHighScore.";
 
 - (void)loadSkin:(NSString *)name {
     PBSkin *skin = [PBSkin skinNamed:name bundle:NSBundle.mainBundle] ?: [PBSkin skinNamed:_table.defaultSkin bundle:NSBundle.mainBundle];
+    NSAssert(skin, @"No valid skin available for %@", _table.identifier);
+    _skinName = skin.identifier;
     PBTableScene *scene = [[PBTableScene alloc] initWithTable:_table skin:skin];
-    [_game addObserver:scene];
     // The render thread reads _tableScene; the transaction lock keeps the swap atomic.
     [SCNTransaction lock];
+    [_game addObserver:scene];
     _tableScene = scene;
     SCNView *view = _view;
     view.scene = scene.scene;
@@ -70,6 +76,7 @@ static NSString *const kHighScoreKeyPrefix = @"PBHighScore.";
 }
 
 - (void)selectNextSkin {
+    if (!_skins.count) return;
     NSUInteger index = [_skins indexOfObject:_skinName];
     _skinName = _skins[index == NSNotFound ? 0 : (index + 1) % _skins.count];
     [NSUserDefaults.standardUserDefaults setObject:_skinName forKey:kSkinDefaultsKey];
@@ -81,12 +88,24 @@ static NSString *const kHighScoreKeyPrefix = @"PBHighScore.";
     if (size.width > 0) [_tableScene fitCameraToAspect:size.height / size.width];
 }
 
+- (void)setLightingAttitude:(simd_quatf)attitude {
+    float lengthSquared = simd_length_squared(attitude.vector);
+    if (!isfinite(lengthSquared) || lengthSquared < 1e-6f) return;
+    [_lightingInputLock lock];
+    _lightingAttitude = simd_normalize(attitude);
+    [_lightingInputLock unlock];
+}
+
 #pragma mark - SCNSceneRendererDelegate
 
 - (void)renderer:(id<SCNSceneRenderer>)renderer updateAtTime:(NSTimeInterval)time {
     double elapsed = _lastTime > 0 ? time - _lastTime : 1.0 / 60.0;
     _lastTime = time;
+    [_lightingInputLock lock];
+    simd_quatf attitude = _lightingAttitude;
+    [_lightingInputLock unlock];
     [SCNTransaction lock];
+    [_tableScene updateLightingForAttitude:attitude elapsed:elapsed];
     [_game update:elapsed];
     [_tableScene syncWithGame:_game elapsed:elapsed];
     [SCNTransaction unlock];

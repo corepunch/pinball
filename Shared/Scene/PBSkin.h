@@ -1,8 +1,7 @@
 //
 //  PBSkin.h
-//  One skin is two files: GameData/Skins/<id>.jpg (the painted atlas) and <id>.json
-//  (palette). This class slices the atlas by GameData/atlas_layout.json, the same
-//  layout file the Python tool draws its guides from.
+//  A skin contains a hardware atlas, palette, optional slot layout and separate
+//  playfield art. Legacy single-atlas skins still use GameData/atlas_layout.json.
 //
 
 #import <Foundation/Foundation.h>
@@ -14,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface PBSkin : NSObject
 
 @property (nonatomic, copy, readonly) NSString *identifier;
+@property (nonatomic, strong, readonly) NSBundle *resourceBundle;
+@property (nonatomic, copy, readonly, nullable) NSString *modelKit;
 @property (nonatomic, readonly) simd_float3 rubberColor;
 @property (nonatomic, readonly) simd_float3 metalColor;
 @property (nonatomic, readonly) simd_float3 keyColor;
@@ -21,12 +22,20 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) float keyIntensity;
 @property (nonatomic, readonly) float ambient;
 @property (nonatomic, readonly) float plasticOpacity;
+@property (nonatomic, readonly) simd_float3 accentColor;
+@property (nonatomic, readonly) simd_float3 flipperRubberColor;
+@property (nonatomic, readonly) float hardwareMetalness;
+@property (nonatomic, readonly) float hardwareRoughness;
+@property (nonatomic, readonly) float playfieldReflectivity;
+@property (nonatomic, readonly) float bloomIntensity;
+@property (nonatomic, readonly) float rampOpacity;
 
 + (nullable instancetype)skinNamed:(NSString *)identifier bundle:(NSBundle *)bundle;
 + (NSArray<NSString *> *)availableSkinsInBundle:(NSBundle *)bundle;
 
 /// A slot cropped from the atlas with its bleed margin removed. Cached; owned by the skin.
 - (CGImageRef)imageForSlot:(NSString *)slot CF_RETURNS_NOT_RETAINED;
+- (BOOL)hasImageForSlot:(NSString *)slot;
 /// One cell of the 4x4 lamp icon sheet.
 - (CGImageRef)insertIcon:(NSInteger)index CF_RETURNS_NOT_RETAINED;
 - (simd_float3)lampColor:(NSString *)name;

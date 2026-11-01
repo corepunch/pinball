@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// Call whenever the view's size changes.
 - (void)viewDidResize;
 - (void)selectNextSkin;
+/// Device attitude relative to the player's neutral grip; safe from any thread.
+- (void)setLightingAttitude:(simd_quatf)attitude;
 
 @end
 

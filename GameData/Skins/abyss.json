@@ -1,0 +1,250 @@
+{
+  "id": "abyss",
+  "name": "Abyss",
+  "atlasLayout": {
+    "canvas": [
+      1254,
+      1254
+    ],
+    "bleed": 5,
+    "slots": {
+      "bumper_cap": {
+        "rect": [
+          3,
+          3,
+          306,
+          306
+        ],
+        "bleed": 0
+      },
+      "bumper_cap_lit": {
+        "rect": [
+          317,
+          3,
+          306,
+          306
+        ],
+        "bleed": 0
+      },
+      "slingshot": {
+        "rect": [
+          627,
+          0,
+          314,
+          313
+        ]
+      },
+      "plastic": {
+        "rect": [
+          941,
+          0,
+          313,
+          313
+        ]
+      },
+      "wall_top": {
+        "rect": [
+          0,
+          313,
+          313,
+          315
+        ]
+      },
+      "side_rail": {
+        "rect": [
+          313,
+          313,
+          314,
+          315
+        ]
+      },
+      "flipper": {
+        "rect": [
+          627,
+          313,
+          314,
+          315
+        ]
+      },
+      "ramp": {
+        "rect": [
+          941,
+          313,
+          313,
+          315
+        ]
+      },
+      "drop_target": {
+        "rect": [
+          0,
+          628,
+          313,
+          293
+        ]
+      },
+      "standup": {
+        "rect": [
+          313,
+          628,
+          314,
+          293
+        ]
+      },
+      "spinner": {
+        "rect": [
+          627,
+          628,
+          314,
+          293
+        ]
+      },
+      "gate": {
+        "rect": [
+          941,
+          628,
+          313,
+          293
+        ]
+      },
+      "environment": {
+        "rect": [
+          0,
+          921,
+          313,
+          333
+        ]
+      },
+      "inserts": {
+        "rect": [
+          314,
+          922,
+          313,
+          306
+        ],
+        "cellBleed": 3
+      },
+      "dmd_bezel": {
+        "rect": [
+          627,
+          921,
+          314,
+          333
+        ]
+      },
+      "detail": {
+        "rect": [
+          941,
+          921,
+          313,
+          333
+        ]
+      },
+      "playfield": {
+        "rect": [
+          0,
+          0,
+          851,
+          1556
+        ],
+        "file": "abyss-playfield.jpg",
+        "canvas": [
+          851,
+          1848
+        ],
+        "bleed": 0
+      },
+      "apron": {
+        "rect": [
+          0,
+          1580,
+          851,
+          268
+        ],
+        "file": "abyss-playfield.jpg",
+        "canvas": [
+          851,
+          1848
+        ],
+        "bleed": 0
+      }
+    }
+  },
+  "lamps": {
+    "cyan": [
+      0.25,
+      0.8,
+      0.72
+    ],
+    "white": [
+      1,
+      0.92,
+      0.72
+    ],
+    "amber": [
+      1,
+      0.65,
+      0.16
+    ],
+    "magenta": [
+      0.92,
+      0.47,
+      0.29
+    ],
+    "green": [
+      0.3,
+      0.9,
+      0.6
+    ],
+    "red": [
+      1,
+      0.2,
+      0.12
+    ],
+    "bumper": [
+      1,
+      0.55,
+      0.13
+    ]
+  },
+  "rubber": [
+    0.94,
+    0.89,
+    0.75
+  ],
+  "metal": [
+    0.72,
+    0.58,
+    0.32
+  ],
+  "accent": [
+    0.8,
+    0.59,
+    0.27
+  ],
+  "flipperRubber": [
+    0.045,
+    0.28,
+    0.25
+  ],
+  "ambient": 0.82,
+  "key": [
+    1,
+    0.94,
+    0.82
+  ],
+  "keyIntensity": 1050,
+  "dmd": [
+    1,
+    0.55,
+    0.13
+  ],
+  "plasticOpacity": 0.96,
+  "materials": {
+    "metalness": 0.88,
+    "roughness": 0.34,
+    "playfieldReflectivity": 0.15,
+    "bloom": 0.36,
+    "rampOpacity": 0.74
+  },
+  "modelKit": "premium"
+}

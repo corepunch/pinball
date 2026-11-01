@@ -1,0 +1,24 @@
+Use case: stylized-concept
+Asset type: PRODUCTION GAME TEXTURE ATLAS, square 2048x2048. Strict perfectly regular FOUR columns by FOUR rows, each cell exactly one quarter of width and height. No gutters, no labels, no outer margin. All sixteen cells fill their allotted square completely. Orthographic straight-down surface artwork, not perspective objects. Cells must NOT merge.
+Premium tactile pre-rendered Space Cadet-era pinball materials: enamel, chrome, fine engraving, cream polymer. Sharp controlled lighting, fine authored specular edges, no noise grunge.
+ROW 1 left to right:
+1: perfectly centred circular pop bumper CAP top surface filling entire square, ivory and vermilion radial enamel wedges, fine champagne gold concentric edging and a small central dark cyan jewel. IDLE state, jewel unlit. Corners dark navy.
+2: exact SAME cap with exact same geometry, markings, centred scale, but jewel illuminated brilliant cyan and inner ring softly glowing. This is authored HIT state; all cap artwork otherwise identical.
+3: full-bleed navy glossy plastic printed surface with sweeping ivory/vermilion stripes and fine gold astronomical motifs; NO triangle silhouette, fills whole square.
+4: full-bleed navy plastic surface with fine gold star charts and ivory small orbital motifs, NO silhouette.
+ROW 2:
+1: seamless almost black navy powder-coated metal tile with subtle horizontal fine grain. No bolts frames or symbols.
+2: seamless dark navy cabinet lacquer tile with understated fine gold grain, no borders no motifs.
+3: full-bleed ivory flipper surface material, fine long vermilion stripe horizontally through middle and fine gold parallel pinstripes, no capsule silhouette, no text.
+4: full-bleed dark desaturated teal ramp surface with elegant upward cream and gold chevrons, vertically repeating, no frame.
+ROW 3:
+1: square vermilion enamel target face, bevelled gold trim and white star emblem.
+2: square ivory enamel target face gold trim and vermilion arrow-up emblem.
+3: square navy enamel spinner face gold trim and ivory orbital emblem.
+4: square midnight navy gate plate with gold small horizontal stripe and two tiny rivets.
+ROW 4:
+1: chrome REFLECTION MAP square: abstract bright overhead cream studio softboxes on upper half and deep navy dark lower half, no objects.
+2: a miniature exact FOUR by FOUR icon grid within this ONE cell: pure white symbols on pure black backgrounds, sixteen equal cells, in reading order chevron, star, 2X, 3X, 5X, diamond, lightning bolt, up arrow, dot, ring, horizontal bar, hexagon, shield, crown, gem, sunburst. Simple solid clear symbols. All icons together in this atlas. No grid lines.
+3: full square dark navy metallic bezel material with fine gold horizontal pinstripes near top and bottom. No display no numbers no lettering.
+4: full-bleed seamless neutral mid-grey fine satin grain almost featureless.
+No other text than 2X 3X 5X icons. Exact 4x4 major grid paramount.

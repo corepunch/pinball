@@ -2,7 +2,7 @@
   "id": "aurora",
   "name": "AURORA",
   "size": [1.0, 2.168],
-  "defaultSkin": "neon",
+  "defaultSkin": "orbital",
   "physics": {
     "gravity": 2.6,
     "rampGravity": 5.0,

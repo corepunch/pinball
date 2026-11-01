@@ -17,6 +17,7 @@ static const float kNudgeImpulse = 0.42f;
     PBGameController *_controller;
     NSMutableSet<UITouch *> *_leftTouches, *_rightTouches;
     CMMotionManager *_motion;
+    CMAttitude *_lightingReference;
     NSTimeInterval _lastNudge;
     UIImpactFeedbackGenerator *_flipperHaptic, *_impactHaptic;
 }
@@ -44,7 +45,30 @@ static const float kNudgeImpulse = 0.42f;
     nextSkin.cancelsTouchesInView = NO;
     [self.view addGestureRecognizer:nextSkin];
 
-    [self startMotionNudges];
+    NSNotificationCenter *notifications = NSNotificationCenter.defaultCenter;
+    [notifications addObserver:self selector:@selector(applicationDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
+    [notifications addObserver:self selector:@selector(applicationWillResignActive:) name:UIApplicationWillResignActiveNotification object:nil];
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self startMotion];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    [self stopMotion];
+}
+
+- (void)applicationDidBecomeActive:(NSNotification *)notification {
+    if (self.isViewLoaded && self.view.window) [self startMotion];
+}
+
+- (void)applicationWillResignActive:(NSNotification *)notification { [self stopMotion]; }
+
+- (void)dealloc {
+    [_motion stopDeviceMotionUpdates];
+    [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
 - (void)viewDidLayoutSubviews {
@@ -82,19 +106,37 @@ static const float kNudgeImpulse = 0.42f;
     [self touchesEnded:touches withEvent:event];
 }
 
-#pragma mark - Nudge
+#pragma mark - Motion lighting and nudge
 
-- (void)startMotionNudges {
-    _motion = [CMMotionManager new];
-    if (!_motion.deviceMotionAvailable) return;
+- (void)startMotion {
+    if (UIApplication.sharedApplication.applicationState != UIApplicationStateActive) return;
+    if (!_motion) _motion = [CMMotionManager new];
+    if (!_motion.deviceMotionAvailable || _motion.deviceMotionActive) return;
+    _lightingReference = nil;
+    _lastNudge = NSProcessInfo.processInfo.systemUptime;
     _motion.deviceMotionUpdateInterval = 1.0 / 60.0;
     __weak typeof(self) weakSelf = self;
-    [_motion startDeviceMotionUpdatesToQueue:NSOperationQueue.mainQueue withHandler:^(CMDeviceMotion *motion, NSError *error) {
-        [weakSelf handleMotion:motion];
+    [_motion startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryZVertical
+                                               toQueue:NSOperationQueue.mainQueue withHandler:^(CMDeviceMotion *motion, NSError *error) {
+        if (motion && !error) [weakSelf handleMotion:motion];
     }];
 }
 
+- (void)stopMotion {
+    [_motion stopDeviceMotionUpdates];
+    _lightingReference = nil;
+    [_controller setLightingAttitude:simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f)];
+}
+
 - (void)handleMotion:(CMDeviceMotion *)motion {
+    if (!_motion.deviceMotionActive || UIApplication.sharedApplication.applicationState != UIApplicationStateActive) return;
+    // Recalibrate to the player's natural grip whenever the view/app becomes active.
+    if (!_lightingReference) _lightingReference = [motion.attitude copy];
+    CMAttitude *relative = [motion.attitude copy];
+    [relative multiplyByInverseOfAttitude:_lightingReference];
+    CMQuaternion q = relative.quaternion;
+    [_controller setLightingAttitude:simd_quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w)];
+
     CMAcceleration a = motion.userAcceleration;
     double magnitude = sqrt(a.x * a.x + a.y * a.y);
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;

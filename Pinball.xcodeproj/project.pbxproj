@@ -12,36 +12,36 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		152334A6A39876BCCCA20528 /* GameData */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GameData; path = Pinball/GameData; sourceTree = "<group>"; };
+		152334A6A39876BCCCA20528 /* GameData */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GameData; path = GameData; sourceTree = "<group>"; };
 		00A224569790C2C7DCE923C8 /* Pinball.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0348BC8AF721A9CC9D80091 /* Pinball.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0229E2DDF9CC94FC38CB5901 /* PinballCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PinballCoreTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CB7B0B76498788E719B59D9D /* Pinball/Shared */ = {
+		B46A6AFB1DC88CE23F6E63F1 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Pinball/Shared;
+			path = Shared;
 			sourceTree = "<group>";
 		};
-		BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */ = {
+		DEEC99ABDE76982368AAF040 /* Shared/Core */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Pinball/Shared/Core;
-			sourceTree = "<group>";
-		};
-		96732AE231EEA8E205809224 /* Pinball/iOS */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Pinball/iOS;
-			sourceTree = "<group>";
-		};
-		7B46074D0475A1081CB562ED /* Pinball/macOS */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Pinball/macOS;
+			path = Shared/Core;
 			sourceTree = "<group>";
 		};
 		74C0354F987B4FC0FDE2C044 /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		89B4F50B692E984409887F82 /* iOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		0F073129014B4D6C7D19BB5E /* macOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = macOS;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -50,11 +50,11 @@
 		518DA81DB9B99529C0C0AEBE = {
 			isa = PBXGroup;
 			children = (
-				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
-				BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */,
-				96732AE231EEA8E205809224 /* Pinball/iOS */,
-				7B46074D0475A1081CB562ED /* Pinball/macOS */,
+				B46A6AFB1DC88CE23F6E63F1 /* Shared */,
+				DEEC99ABDE76982368AAF040 /* Shared/Core */,
 				74C0354F987B4FC0FDE2C044 /* Tests */,
+				89B4F50B692E984409887F82 /* iOS */,
+				0F073129014B4D6C7D19BB5E /* macOS */,
 				152334A6A39876BCCCA20528 /* Resources */,
 				547D009064F7C3F13BEF3460 /* Products */,
 			);
@@ -85,8 +85,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
-				96732AE231EEA8E205809224 /* Pinball/iOS */,
+				B46A6AFB1DC88CE23F6E63F1 /* Shared */,
+				89B4F50B692E984409887F82 /* iOS */,
 			);
 			name = Pinball-iOS;
 			productName = Pinball-iOS;
@@ -105,8 +105,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
-				7B46074D0475A1081CB562ED /* Pinball/macOS */,
+				B46A6AFB1DC88CE23F6E63F1 /* Shared */,
+				0F073129014B4D6C7D19BB5E /* macOS */,
 			);
 			name = Pinball-macOS;
 			productName = Pinball-macOS;
@@ -125,7 +125,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */,
+				DEEC99ABDE76982368AAF040 /* Shared/Core */,
 				74C0354F987B4FC0FDE2C044 /* Tests */,
 			);
 			name = PinballCoreTests;
@@ -294,7 +294,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Pinball/Shared/Core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Shared/Core";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.tests;
 				PRODUCT_NAME = PinballCoreTests;
@@ -307,7 +307,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Pinball/Shared/Core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Shared/Core";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.tests;
 				PRODUCT_NAME = PinballCoreTests;

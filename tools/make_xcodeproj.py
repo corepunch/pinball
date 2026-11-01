@@ -18,7 +18,7 @@ def sync_group(path):
 
 TARGETS = [
     dict(name="Pinball-iOS", product="Pinball.app", type="com.apple.product-type.application",
-         groups=["Pinball/Shared", "Pinball/iOS"], resources=True,
+         groups=["Shared", "iOS"], resources=True,
          settings={
              "SDKROOT": "iphoneos", "TARGETED_DEVICE_FAMILY": "1", "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
              "PRODUCT_NAME": "Pinball", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball",
@@ -33,7 +33,7 @@ TARGETS = [
              "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
          }),
     dict(name="Pinball-macOS", product="Pinball.app", type="com.apple.product-type.application",
-         groups=["Pinball/Shared", "Pinball/macOS"], resources=True,
+         groups=["Shared", "macOS"], resources=True,
          settings={
              "SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0",
              "PRODUCT_NAME": "Pinball", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball.preview",
@@ -44,12 +44,12 @@ TARGETS = [
              "CODE_SIGN_IDENTITY": '"-"',
          }),
     dict(name="PinballCoreTests", product="PinballCoreTests.xctest", type="com.apple.product-type.bundle.unit-test",
-         groups=["Pinball/Shared/Core", "Tests"], resources=False,
+         groups=["Shared/Core", "Tests"], resources=False,
          settings={
              "SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0",
              "PRODUCT_NAME": "PinballCoreTests", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball.tests",
              "GENERATE_INFOPLIST_FILE": "YES", "CODE_SIGN_IDENTITY": '"-"',
-             "HEADER_SEARCH_PATHS": '"$(SRCROOT)/Pinball/Shared/Core"',
+             "HEADER_SEARCH_PATHS": '"$(SRCROOT)/Shared/Core"',
          }),
 ]
 
@@ -162,7 +162,7 @@ pbx = f"""// !$*UTF8*$!
 {objs['buildfiles']}/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-\t\t{resources_ref} /* GameData */ = {{isa = PBXFileReference; lastKnownFileType = folder; name = GameData; path = Pinball/GameData; sourceTree = "<group>"; }};
+\t\t{resources_ref} /* GameData */ = {{isa = PBXFileReference; lastKnownFileType = folder; name = GameData; path = GameData; sourceTree = "<group>"; }};
 {objs['products']}/* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

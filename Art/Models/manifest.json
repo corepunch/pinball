@@ -1,0 +1,26 @@
+{
+  "generator": "tools/build_hardware_models.py",
+  "transport": "Blender MCP",
+  "assets": {
+    "bumper-base": {
+      "objects": 26,
+      "triangles": 10660,
+      "bytes": 861314
+    },
+    "bumper-cap": {
+      "objects": 6,
+      "triangles": 7708,
+      "bytes": 592150
+    },
+    "insert-bezel": {
+      "objects": 3,
+      "triangles": 3200,
+      "bytes": 245136
+    },
+    "aurora-ramp": {
+      "objects": 14,
+      "triangles": 3504,
+      "bytes": 286121
+    }
+  }
+}

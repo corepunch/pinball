@@ -32,7 +32,7 @@
 
 - (PBTableDefinition *)loadTable:(NSString *)name {
     NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent]
-                      stringByAppendingFormat:@"/../Pinball/GameData/Tables/%@.json", name];
+                      stringByAppendingFormat:@"/../GameData/Tables/%@.json", name];
     NSError *error;
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSData dataWithContentsOfFile:path] error:&error];
     XCTAssertNotNil(table, @"%@", error);

@@ -104,6 +104,7 @@ static const double kRampComboSeconds = 8.0;
 - (void)dealloc { free(_lampModes); }
 
 - (PBLampMode)modeForLamp:(NSInteger)lampIndex { return _lampModes[lampIndex]; }
+- (BOOL)isMemberLit:(NSString *)member { return [_groupByMember[member].lit containsObject:member]; }
 
 #pragma mark - Game flow
 

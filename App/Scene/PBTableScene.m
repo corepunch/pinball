@@ -181,6 +181,8 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
     float _plungerRodBase;
     NSMutableArray<SCNLight *> *_bumperLights;
     NSMutableArray<SCNLight *> *_slingLights;
+    NSArray<SCNMaterial *> *_slingLenses;
+    NSMutableArray<SCNMaterial *> *_standupLenses;
     NSMutableArray<SCNMaterial *> *_glowMaterials;
     NSData *_glowBlock;
     NSMutableDictionary<NSString *, SCNMaterial *> *_litMaterials;
@@ -396,8 +398,16 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         CGImageRef lensImage = [PBPlayfieldPainter newLensWithColor:_skin.slingLensColor];
         SCNMaterial *slingLens = [self pbrWithDiffuse:(__bridge id)lensImage metalness:0 roughness:0.16];
         slingLens.emission.contents = (__bridge id)lensImage;
-        slingLens.emission.intensity = 0.3;
+        slingLens.emission.intensity = 0.15;
         CGImageRelease(lensImage);
+        // Dark glass, as an unlit lamp is, until the ball hits it.
+        SCNMaterial *targetLens = [slingLens copy];
+        targetLens.name = @"target_lens";
+        targetLens.diffuse.intensity = 0.16;
+        targetLens.roughness.contents = @0.55;
+        targetLens.emission.intensity = 0;
+        // One each, as a hit lights only the bouncer that was hit.
+        _slingLenses = @[ [slingLens copy], [slingLens copy] ];
         CGImageRef amberImage = [PBPlayfieldPainter newLensWithColor:[_skin lampColor:@"amber"]];
         SCNMaterial *amberLens = [self pbrWithDiffuse:(__bridge id)amberImage metalness:0 roughness:0.16];
         amberLens.emission.contents = (__bridge id)amberImage;
@@ -492,7 +502,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             @"dark": dark, @"channel_liner": liner, @"plate_frame": plateFrame, @"channel_floor": floor, @"channel_entry": entry, @"channel_aluminum": aluminum,
             @"channel_shell": channelShell, @"channel_arrow": channelArrow,
             @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial,
-            @"glow_amber": amber, @"jewel": jewel, @"skirt_lamp": skirtLamp, @"black_rubber": [self blackRubber], @"amber_lens": amberLens, @"sling_lens": slingLens, @"ramp_floor": rampFloor, @"enamel": enamel,
+            @"glow_amber": amber, @"jewel": jewel, @"skirt_lamp": skirtLamp, @"black_rubber": [self blackRubber], @"amber_lens": amberLens, @"sling_lens": slingLens, @"sling_lens_0": _slingLenses[0], @"sling_lens_1": _slingLenses[1], @"target_lens": targetLens, @"ramp_floor": rampFloor, @"enamel": enamel,
             @"cap_art": [self printedMaterial:@"bumper_cap"],
             @"lens": lens,
             @"glow": glow, @"wall_art": wallArt, @"block_art": blockArt, @"flipper_art": bat,
@@ -632,7 +642,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
     SCNLight *ambient = [SCNLight light];
     ambient.type = SCNLightTypeAmbient;
-    ambient.intensity = 420.0f * _skin.ambient;
+    // Low against the key: a shadow shows only as dark as the ambient light leaves it, and shows the parts' height.
+    ambient.intensity = 240.0f * _skin.ambient;
     ambient.color = [self color:simd_make_float3(0.92f, 0.92f, 1.0f)];
     SCNNode *ambientNode = [SCNNode node];
     ambientNode.light = ambient;
@@ -640,7 +651,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
     SCNLight *key = [SCNLight light];
     key.type = SCNLightTypeSpot;
-    key.intensity = _skin.keyIntensity * 0.45f;
+    key.intensity = _skin.keyIntensity * 0.72f;
     key.color = [self color:_skin.keyColor];
     key.spotInnerAngle = 50;
     key.spotOuterAngle = 86;
@@ -649,7 +660,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     key.castsShadow = YES;
     key.shadowMapSize = CGSizeMake(2048, 2048);
     key.shadowSampleCount = 8;
-    key.shadowRadius = 2.5;
+    key.shadowRadius = 1.8;
     key.shadowColor = [self color:simd_make_float3(0.0f, 0.0f, 0.0f)];
     key.shadowBias = 2.0;
     key.zNear = 1.0;
@@ -1127,7 +1138,23 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return model;
 }
 
+/// A round target. Its lens is its own, to light on its own.
+- (SCNNode *)addStandupFrom:(simd_float2)a to:(simd_float2)b {
+    SCNNode *model = [_models nodeNamed:@"spot-target"];
+    if (!model) return nil;
+    [model enumerateChildNodesUsingBlock:^(SCNNode *child, BOOL *stop) { child.geometry = [child.geometry copy]; }];
+    SCNMaterial *lens = [_modelMaterials[@"target_lens"] copy];
+    [self skinModel:model overrides:@{ @"target_lens": lens }];
+    [_standupLenses addObject:lens];
+    float scale = simd_distance(a, b) * 0.5f + 0.003f;
+    model.scale = SCNVector3Make(scale, scale, scale);
+    model.position = [self at:(a + b) * 0.5f height:0];
+    [_root addChildNode:model];
+    return model;
+}
+
 - (void)buildTargets {
+    _standupLenses = [NSMutableArray array];
     SCNMaterial *drop = [self printedMaterial:@"drop_target"];
     SCNMaterial *standup = [self printedMaterial:@"standup"];
 
@@ -1140,8 +1167,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     _standupNodes = [NSMutableArray array];
     SCNMaterial *metal = [self metal];
     for (PBEdgeDef *def in _table.standups) {
-        // Round, so it reads from above: a long thin box only ever shows a squashed face.
-        SCNNode *round = [self addModel:@"spot-target" at:(def.a + def.b) * 0.5f height:0 scale:simd_distance(def.a, def.b) * 0.5f + 0.003f];
+        SCNNode *round = [self addStandupFrom:def.a to:def.b];
         [_standupNodes addObject:round ?: [self addTargetFrom:def.a to:def.b art:standup]];
     }
 
@@ -1536,11 +1562,19 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         bumper.cap.position = [self at:_table.bumpers[i].position height:-0.002f * flash];
     }
 
-    for (NSUInteger i = 0; i < _slingBands.count; i++) {
+    for (NSUInteger i = 0; i < _table.slingshots.count; i++) {
         float t = [world slingFlash:(NSInteger)i];
         float kick = expf(-t * 18.0f);
-        _slingBands[i].scale = SCNVector3Make(1.0f, 1.0f + kick * 0.6f, 1.0f);
+        if (i < _slingBands.count) _slingBands[i].scale = SCNVector3Make(1.0f, 1.0f + kick * 0.6f, 1.0f);
         _slingLights[i].intensity = kick * 70.0f;
+        if (i < _slingLenses.count) _slingLenses[i].emission.intensity = 0.15 + expf(-t * 6.0f) * 1.8;
+    }
+    for (NSUInteger i = 0; i < _standupLenses.count; i++) {
+        // Quick on, slower off, then a low glow while it stays made.
+        float hit = expf(-[world standupFlash:(NSInteger)i] * 5.0f);
+        float level = MAX(hit, [game.rules isMemberLit:_table.standups[i].identifier] ? 0.3f : 0.0f);
+        _standupLenses[i].diffuse.intensity = 0.16 + level * 0.84;
+        _standupLenses[i].emission.intensity = level * 1.5;
     }
 
     float pull = world.plungerPull;
@@ -1620,9 +1654,14 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         add(bumper.position, bumper.radius * 1.9f, 0.36f, [_skin lampColor:@"bumper"], 0.85f + flash * 2.2f);
     }
     for (NSUInteger i = 0; i < _table.slingshots.count; i++) {
-        float kick = expf(-[world slingFlash:(NSInteger)i] * 18.0f);
+        float kick = expf(-[world slingFlash:(NSInteger)i] * 6.0f);
         PBEdgeDef *sling = _table.slingshots[i];
-        add((sling.a + sling.b) * 0.5f, 0.03f, 0.26f, _skin.slingLensColor, 0.6f + kick * 2.6f);
+        add((sling.a + sling.b) * 0.5f, 0.03f, 0.26f, _skin.slingLensColor, 0.3f + kick * 2.6f);
+    }
+    for (NSUInteger i = 0; i < _table.standups.count; i++) {
+        float hit = expf(-[world standupFlash:(NSInteger)i] * 5.0f);
+        PBEdgeDef *standup = _table.standups[i];
+        if (hit > 0.05f) add((standup.a + standup.b) * 0.5f, 0.05f, 0.2f, _skin.slingLensColor, hit * 1.6f);
     }
     // The lit arrows inlaid in each ramp's floor, near both of its ends.
     for (PBRampDef *ramp in _table.ramps) {

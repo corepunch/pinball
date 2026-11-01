@@ -39,9 +39,9 @@
     },
     "spot-target": {
       "objects": 1,
-      "triangles": 448,
+      "triangles": 384,
       "radius": 1.0,
-      "bytes": 32104
+      "bytes": 28711
     },
     "rollover-plate": {
       "objects": 1,
@@ -117,30 +117,30 @@
     },
     "aurora-walls": {
       "objects": 1,
-      "triangles": 1192,
+      "triangles": 1444,
       "radius": 1.2343,
-      "bytes": 92457
+      "bytes": 111290
     },
     "aurora-plastics": {
       "objects": 1,
       "triangles": 1422,
       "radius": 0.9178,
-      "bytes": 109835
+      "bytes": 110266
     },
     "aurora-rampL": {
       "objects": 1,
-      "triangles": 4084,
-      "radius": 1.0036,
-      "bytes": 363989,
+      "triangles": 3900,
+      "radius": 1.0093,
+      "bytes": 347456,
       "section": "Brushed aluminum channel with round gold rails",
       "arrow_count": 2,
       "arrow_spacing": 0.08
     },
     "aurora-rampR": {
       "objects": 1,
-      "triangles": 4314,
-      "radius": 0.9489,
-      "bytes": 378965,
+      "triangles": 4406,
+      "radius": 0.9407,
+      "bytes": 387090,
       "section": "Brushed aluminum channel with round gold rails",
       "arrow_count": 2,
       "arrow_spacing": 0.08
@@ -153,30 +153,30 @@
     },
     "meridian-walls": {
       "objects": 1,
-      "triangles": 1192,
+      "triangles": 1444,
       "radius": 1.2343,
-      "bytes": 92403
+      "bytes": 111014
     },
     "meridian-plastics": {
       "objects": 1,
       "triangles": 1422,
       "radius": 0.9178,
-      "bytes": 109900
+      "bytes": 110326
     },
     "meridian-rampL": {
       "objects": 1,
-      "triangles": 4820,
-      "radius": 1.0035,
-      "bytes": 427959,
+      "triangles": 4728,
+      "radius": 1.0093,
+      "bytes": 419696,
       "section": "Brushed aluminum channel with round gold rails",
       "arrow_count": 2,
       "arrow_spacing": 0.08
     },
     "meridian-rampR": {
       "objects": 1,
-      "triangles": 3900,
-      "radius": 0.9889,
-      "bytes": 343947,
+      "triangles": 3946,
+      "radius": 0.9854,
+      "bytes": 348027,
       "section": "Brushed aluminum channel with round gold rails",
       "arrow_count": 2,
       "arrow_spacing": 0.08

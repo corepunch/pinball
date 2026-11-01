@@ -13,6 +13,7 @@ import mesher  # noqa: E402
 import prefabs  # noqa: E402
 import table_xml  # noqa: E402
 import compile_scenes  # noqa: E402
+import check_spacing  # noqa: E402
 
 
 def built(xml, names=None):
@@ -57,4 +58,21 @@ for path in sorted((ROOT / 'Scenes').glob('*.xml')):
     compiled = compile_scenes.table_json(table)
     shipped = json.loads((ROOT / f"GameData/Tables/{table['id']}.json").read_text())
     assert json.dumps(compiled, sort_keys=True) == json.dumps(shipped, sort_keys=True), f"{path.stem}: run `make scenes`: GameData/Tables is out of date"
+    # Nothing crowds anything else on the phone's screen, and the checker can see crowding.
+    assert not (crowded := check_spacing.problems(compiled)), f'{path.stem}: run tools/scene/check_spacing.py: {crowded}'
+    # Every rollover bar sits the same distance from the lamp that owns it.
+    lamps = {lamp['bar']: lamp for lamp in compiled['lamps'] if 'bar' in lamp}
+    for rollover in compiled['rollovers']:
+        assert rollover['id'] in lamps, f"{path.stem}/{rollover['id']}: a rollover belongs to a lamp"
+        assert rollover['x'] == lamps[rollover['id']]['x'] and abs(lamps[rollover['id']]['y'] - rollover['y'] - compile_scenes.BAR_BELOW_LAMP) < 1e-6, f"{path.stem}/{rollover['id']}: bar out of place"
+loose = {'id': 't', 'lamps': [], 'rollovers': [{'id': 'r', 'r': .03}]}
+try:
+    compile_scenes.place_bars(loose)
+    raise AssertionError('a rollover with no lamp and no position must fail')
+except ValueError:
+    pass
+near = [check_spacing.Part(name, 'part').disc(x, 1, .03) for name, x in (('a', 0), ('b', .065), ('c', .2))]
+assert check_spacing.gap(near[0], near[1]) * check_spacing.POINTS < check_spacing.MIN_GAP <= check_spacing.gap(near[0], near[2]) * check_spacing.POINTS, 'spacing measures clear board'
+raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
+assert check_spacing.gap(near[0], raised) > .03, 'spacing is measured through the camera: height moves a part up the screen'
 print('SCENES PASSED')

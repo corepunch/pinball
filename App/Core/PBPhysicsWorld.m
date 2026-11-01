@@ -129,6 +129,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     float *_dropDrop;          // 0 up ... 1 down, for animation.
     float *_bumperFlash;
     float *_slingFlash;
+    float *_standupFlash;
     float *_gateAngles;
 
     PBEvent _events[kMaxEvents];
@@ -180,7 +181,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     free(_flippers); free(_spinners);
     for (NSInteger i = 0; i < _rampCount; i++) { free(_ramps[i].points); free(_ramps[i].distances); }
     free(_ramps); free(_saucers); free(_kickbacks); free(_magnets); free(_rollovers);
-    free(_rolloverInside); free(_dropDrop); free(_bumperFlash); free(_slingFlash); free(_gateAngles);
+    free(_rolloverInside); free(_dropDrop); free(_bumperFlash); free(_slingFlash); free(_standupFlash); free(_gateAngles);
 }
 
 - (NSInteger)ballCapacity { return kMaxBalls; }
@@ -372,9 +373,11 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     _dropDrop = calloc(MAX(t.dropTargets.count, 1u), sizeof(float));
     _bumperFlash = calloc(MAX(t.bumpers.count, 1u), sizeof(float));
     _slingFlash = calloc(MAX(t.slingshots.count, 1u), sizeof(float));
+    _standupFlash = calloc(MAX(t.standups.count, 1u), sizeof(float));
     _gateAngles = calloc(MAX(t.gates.count, 1u), sizeof(float));
     for (NSUInteger i = 0; i < t.bumpers.count; i++) _bumperFlash[i] = 10.0f;
     for (NSUInteger i = 0; i < t.slingshots.count; i++) _slingFlash[i] = 10.0f;
+    for (NSUInteger i = 0; i < t.standups.count; i++) _standupFlash[i] = 10.0f;
 }
 
 - (void)spawnCaptiveBalls {
@@ -530,6 +533,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 - (float)dropTargetDrop:(NSInteger)index { return _dropDrop[index]; }
 - (float)bumperFlash:(NSInteger)index { return _bumperFlash[index]; }
 - (float)slingFlash:(NSInteger)index { return _slingFlash[index]; }
+- (float)standupFlash:(NSInteger)index { return _standupFlash[index]; }
 
 #pragma mark - Events
 
@@ -577,6 +581,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     }
     for (NSUInteger i = 0; i < t.bumpers.count; i++) _bumperFlash[i] += dt;
     for (NSUInteger i = 0; i < t.slingshots.count; i++) _slingFlash[i] += dt;
+    for (NSUInteger i = 0; i < t.standups.count; i++) _standupFlash[i] += dt;
     for (NSUInteger i = 0; i < t.gates.count; i++) _gateAngles[i] *= (1.0f - 5.0f * dt);
 
     for (NSInteger i = 0; i < kMaxBalls; i++) {
@@ -818,6 +823,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     float vn = simd_dot(ball->velocity, normal);
     if (vn >= 0.0f) return;
     float impact = -vn;
+    BOOL falling = ball->velocity.y < 0.0f;
 
     ball->velocity -= normal * vn * (1.0f + c->bounce);
     // Tangential friction scales with impact, so a ball rolling along a guide keeps its speed.
@@ -837,7 +843,8 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
             }
             break;
         case PBColliderSling:
-            if (impact > kSlingThreshold && _activeCooldown[colliderIndex] <= 0.0f) {
+            // A ball falling onto the top tip doesn't fire it: it would be thrown straight back where it came from.
+            if (impact > kSlingThreshold && !(falling && q.y >= MAX(c->a.y, c->b.y)) && _activeCooldown[colliderIndex] <= 0.0f) {
                 _activeCooldown[colliderIndex] = kActiveCooldown;
                 ball->velocity += normal * kSlingSpeed;
                 _slingFlash[c->element] = 0;
@@ -853,6 +860,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         case PBColliderStandup:
             if (_activeCooldown[colliderIndex] <= 0.0f) {
                 _activeCooldown[colliderIndex] = kActiveCooldown;
+                _standupFlash[c->element] = 0;
                 [self emit:PBEventStandup element:c->element ball:index magnitude:impact at:ball->position];
                 activeHit = YES;
             }

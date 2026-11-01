@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Spot parts that look crowded on the phone, with no Xcode or Blender needed:
+
+    python3 tools/scene/check_spacing.py [--list N] [--svg DIR]
+
+Measures what the player sees, not the table's floor plan: everything is projected through the
+game's 30 degree camera, so a raised ramp is checked where it appears. Gaps are in points on a
+393 point wide phone. Run by `make test`; exits 1 if a pair is too close or a row is off centre.
+"""
+import argparse
+import math
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shim import ROOT  # noqa: E402
+import compile_scenes  # noqa: E402
+import table_xml  # noqa: E402
+
+TILT = math.radians(30)  # PBTableCameraTilt
+POINTS = 393  # A table's width on the phone.
+MIN_GAP = 5  # Points of clear board between two parts. Below this they read as touching.
+MAX_OFF_CENTRE = 5  # Points of difference between the margins either side of a centred row.
+
+# Parts built as one assembly: they touch on purpose, so gaps inside a group are not measured.
+ASSEMBLIES = (
+    {'dropHousing', 'drop1', 'drop2', 'drop3'},
+    {'captiveHousing', 'captiveTarget', 'captive'},
+    {'scoopHood', 'scoop'},
+    {'flipperL', 'inlaneL', 'plasticSlingL'},
+    {'flipperR', 'inlaneR', 'plasticSlingR'},
+    {'rampL', 'lampRampL'},
+    {'rampR', 'lampRampR'},
+    # Corner flashers stand high over the cabinet's edge.
+    {'outer', 'flashTL', 'flashTR'},
+)
+# Rows that should sit midway between whatever is either side of them.
+CENTRED_ROWS = {'top lanes': {'laneA', 'laneB', 'laneC', 'lampLaneA', 'lampLaneB', 'lampLaneC', 'laneSep1', 'laneSep2'}}
+
+
+def project(x, y, z=0.0):
+    return x, y * math.cos(TILT) + z * math.sin(TILT)
+
+
+class Part:
+    """What a part covers on screen: rounded segments and, for a ramp, its mesh's triangles."""
+
+    def __init__(self, name, kind):
+        self.name, self.kind = name, kind
+        self.capsules, self.triangles = [], []
+        self.owns = None
+
+    def line(self, points, radius, z0=0.0, z1=None):
+        """A rounded line, swept from its height z0 to z1: tall parts cover more of the screen."""
+        for z in (z0,) if z1 is None else (z0, z1):
+            flat = [project(*p, z) for p in points]
+            self.capsules += [(a, b, radius) for a, b in zip(flat, flat[1:] or flat)]
+        if z1 is not None:
+            self.capsules += [(project(*p, z0), project(*p, z1), radius) for p in points]
+        return self
+
+    def disc(self, x, y, radius, z0=0.0, z1=None):
+        return self.line([(x, y)], radius, z0, z1)
+
+    def bounds(self):
+        xs = [v for a, b, r in self.capsules for v in (a[0] - r, b[0] - r, a[0] + r, b[0] + r)] + [p[0] for t in self.triangles for p in t]
+        ys = [v for a, b, r in self.capsules for v in (a[1] - r, b[1] - r, a[1] + r, b[1] + r)] + [p[1] for t in self.triangles for p in t]
+        return min(xs), min(ys), max(xs), max(ys)
+
+
+def point_to_segment(p, a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    length = dx * dx + dy * dy
+    t = max(0, min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / length)) if length else 0
+    return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+
+
+def segments_distance(a, b, c, d):
+    def side(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    if side(a, b, c) * side(a, b, d) < 0 and side(c, d, a) * side(c, d, b) < 0:
+        return 0.0
+    return min(point_to_segment(a, c, d), point_to_segment(b, c, d), point_to_segment(c, a, b), point_to_segment(d, a, b))
+
+
+def inside_triangle(p, t):
+    signs = [(t[(i + 1) % 3][0] - t[i][0]) * (p[1] - t[i][1]) - (t[(i + 1) % 3][1] - t[i][1]) * (p[0] - t[i][0]) for i in range(3)]
+    return all(s >= 0 for s in signs) or all(s <= 0 for s in signs)
+
+
+def capsule_to_triangles(capsule, triangles, limit):
+    a, b, radius = capsule
+    x0, x1 = min(a[0], b[0]) - radius - limit, max(a[0], b[0]) + radius + limit
+    y0, y1 = min(a[1], b[1]) - radius - limit, max(a[1], b[1]) + radius + limit
+    best = limit
+    for t in triangles:
+        if max(p[0] for p in t) < x0 or min(p[0] for p in t) > x1 or max(p[1] for p in t) < y0 or min(p[1] for p in t) > y1:
+            continue
+        if inside_triangle(a, t) or inside_triangle(b, t):
+            return -radius
+        best = min(best, *(segments_distance(a, b, t[i], t[(i + 1) % 3]) - radius for i in range(3)))
+    return best
+
+
+def gap(p, q, limit=.08):
+    """Clear board between two parts, in table units. Below zero they overlap on screen."""
+    px0, py0, px1, py1 = p.bounds()
+    qx0, qy0, qx1, qy1 = q.bounds()
+    if px0 - qx1 > limit or qx0 - px1 > limit or py0 - qy1 > limit or qy0 - py1 > limit:
+        return limit
+    best = limit
+    for a, b, r in p.capsules:
+        for c, d, s in q.capsules:
+            best = min(best, segments_distance(a, b, c, d) - r - s)
+    for capsule in p.capsules:
+        best = min(best, capsule_to_triangles(capsule, q.triangles, best))
+    for capsule in q.capsules:
+        best = min(best, capsule_to_triangles(capsule, p.triangles, best))
+    return best
+
+
+def parts_of(table):
+    """Every visible part, sized as PBTableScene places the kit's models."""
+    parts = []
+
+    def add(name, kind='part'):
+        parts.append(Part(name, kind))
+        return parts[-1]
+    for wall in table['walls']:
+        points = compile_scenes.expand_points(wall['points'])
+        if wall['style'] in ('wall', 'rail', 'rubber'):
+            add(wall['id'], 'wall').line(points, wall['radius'], 0, wall['height'])
+        elif wall['style'] == 'plastic':
+            add(wall['id']).line(points + points[:1], .0042, 0, wall['height'])
+        elif wall['id'] == 'outer':
+            add(wall['id'], 'wall').line(points, wall['radius'])
+    for plastic in table['plastics']:
+        points = compile_scenes.expand_points(plastic['points'])
+        add(plastic['id']).line(points + points[:1], .002, 0, .037)
+    for flipper in table['flippers']:
+        tip = (flipper['pivot'][0] + flipper['length'] * math.cos(math.radians(flipper['restAngle'])),
+               flipper['pivot'][1] + flipper['length'] * math.sin(math.radians(flipper['restAngle'])))
+        add(flipper['id']).line([tuple(flipper['pivot']), tip], (flipper['baseRadius'] + flipper['tipRadius']) * .5, 0, .03)
+    for bumper in table['bumpers']:
+        add(bumper['id']).disc(bumper['x'], bumper['y'], bumper['r'], bumper['r'] * .98, bumper['r'] * 1.15)
+    for edge in table['standups']:
+        a, b = edge['a'], edge['b']
+        radius = math.dist(a, b) * .5 + .003
+        add(edge['id']).disc((a[0] + b[0]) * .5, (a[1] + b[1]) * .5, radius, 0, radius * .32)
+    for edge in table['dropTargets']:
+        add(edge['id']).line([tuple(edge['a']), tuple(edge['b'])], .008, 0, .03)
+    for edge in table['spinners']:
+        add(edge['id'], 'span').line([tuple(edge['a']), tuple(edge['b'])], .006, .062)
+    for edge in table['gates']:
+        add(edge['id'], 'span').line([tuple(edge['a']), tuple(edge['b'])], .004, .02)
+    for rollover in table['rollovers']:
+        if rollover.get('plate'):
+            add(rollover['id']).line([(rollover['x'], rollover['y'] - .0162), (rollover['x'], rollover['y'] + .0162)], .0138)
+    for saucer in table['saucers']:
+        add(saucer['id']).disc(saucer['x'], saucer['y'], saucer['r'] * 1.12)
+    for kick in table['kickbacks']:
+        add(kick['id']).disc(kick['x'], kick['y'] - .035, .022, 0, .022)
+    for ball in table['captiveBalls']:
+        add(ball['id']).disc(ball['x'], ball['y'], table['physics']['ballRadius'], .03)
+    for lamp in table['lamps']:
+        add(lamp['id']).disc(lamp['x'], lamp['y'], lamp['size'] * (1.068 if lamp.get('shape') == 'arrow' else 1.1))
+        parts[-1].owns = lamp.get('bar')
+    for flasher in table['flashers']:
+        add(flasher['id']).disc(flasher['x'], flasher['y'], .034 * 1.05, .11, .15)
+    offset = (table['size'][0] * .5, table['size'][1] * .5)
+    centred = lambda x, y: (x - offset[0], y - offset[1])
+    for ramp in table['ramps']:
+        mesh = compile_scenes.ramp_part(table, ramp, centred)
+        flat = [project(v[0] + offset[0], v[1] + offset[1], v[2]) for v in mesh.vertices]
+        part = add(ramp['id'], 'ramp')
+        for face in mesh.faces:
+            part.triangles += [(flat[face[0]], flat[face[i]], flat[face[i + 1]]) for i in range(1, len(face) - 1)]
+    return parts
+
+
+def assembled(a, b):
+    return a.owns == b.name or b.owns == a.name or any(a.name in group and b.name in group for group in ASSEMBLIES)
+
+
+def measured(a, b):
+    """A pair worth measuring. Walls meet each other and carry gates and spinners on purpose,
+    and a ramp may cross a wall, as it floats above the board."""
+    kinds = {a.kind, b.kind}
+    return not (assembled(a, b) or kinds <= {'ramp'} or kinds <= {'span', 'wall'})
+
+
+def problems(table, parts=None):
+    parts = parts if parts is not None else parts_of(table)
+    found = []
+    for i, a in enumerate(parts):
+        for b in parts[i + 1:]:
+            if not measured(a, b):
+                continue
+            clear = gap(a, b) * POINTS
+            if clear < MIN_GAP and not ({a.kind, b.kind} == {'wall', 'ramp'} and clear < 0):
+                found.append((clear, a.name, b.name))
+    for row, names in CENTRED_ROWS.items():
+        members = [p for p in parts if p.name in names]
+        if not members:
+            continue
+        x0, y0, x1, y1 = min(p.bounds()[0] for p in members), min(p.bounds()[1] for p in members), max(p.bounds()[2] for p in members), max(p.bounds()[3] for p in members)
+        left, right = margins(parts, names, x0, y0, x1, y1)
+        if abs(left - right) * POINTS > MAX_OFF_CENTRE:
+            found.append((None, row, f'{left * POINTS:.0f} pt clear on the left, {right * POINTS:.0f} pt on the right'))
+    return sorted(found, key=lambda f: (f[0] is None, f[0] if f[0] is not None else 0))
+
+
+def margins(parts, names, x0, y0, x1, y1):
+    """Board clear either side of a row, along the band of the screen it sits in. Scanned, as a
+    ramp's nearest edge may be a triangle with no corner in the band."""
+    left, right = x0, 1 - x1
+    for part in parts:
+        if part.name in names or part.kind == 'span':
+            continue
+        for a, b, r in part.capsules:
+            for t in range(11):
+                x, y = a[0] + (b[0] - a[0]) * t * .1, a[1] + (b[1] - a[1]) * t * .1
+                if y0 - r <= y <= y1 + r and part.kind != 'wall':
+                    left = min(left, x0 - x - r) if x < x0 else left
+                    right = min(right, x - r - x1) if x > x1 else right
+        for triangle in part.triangles:
+            for a, b in zip(triangle, triangle[1:] + triangle[:1]):
+                if max(a[1], b[1]) < y0 or min(a[1], b[1]) > y1:
+                    continue
+                for t in range(5):
+                    x, y = a[0] + (b[0] - a[0]) * t * .25, a[1] + (b[1] - a[1]) * t * .25
+                    if y0 <= y <= y1:
+                        left = min(left, x0 - x) if x < x0 else left
+                        right = min(right, x - x1) if x > x1 else right
+    return left, right
+
+
+def write_svg(table, parts, found, path):
+    """The measured shapes, with offenders in red, to compare against a screenshot."""
+    scale, height = 600, math.cos(TILT) * table['size'][1] * 600 + 60
+    named = {n for f in found if f[0] is not None for n in f[1:]}
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {scale} {height:.0f}"><rect width="100%" height="100%" fill="#111"/>']
+    for part in parts:
+        colour = '#f44' if part.name in named else '#8cf' if part.kind != 'ramp' else '#667'
+        for t in part.triangles:
+            points = ' '.join(f'{p[0] * scale:.1f},{height - p[1] * scale:.1f}' for p in t)
+            out.append(f'<polygon points="{points}" fill="{colour}"/>')
+        for a, b, r in part.capsules:
+            out.append(f'<line x1="{a[0] * scale:.1f}" y1="{height - a[1] * scale:.1f}" x2="{b[0] * scale:.1f}" y2="{height - b[1] * scale:.1f}" stroke="{colour}" stroke-opacity=".7" stroke-linecap="round" stroke-width="{2 * r * scale:.1f}"/>')
+    path.write_text('\n'.join(out) + '</svg>\n')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--list', type=int, default=0, metavar='N', help='Also print the N tightest pairs that pass')
+    parser.add_argument('--svg', type=Path, help='Write what was measured to DIR/<table>.svg')
+    args = parser.parse_args()
+    failed = False
+    for path in sorted((ROOT / 'Scenes').glob('*.xml')):
+        if path.stem == 'kit':
+            continue
+        table = compile_scenes.table_json(table_xml.read(path))
+        parts = parts_of(table)
+        found = problems(table, parts)
+        failed = failed or bool(found)
+        print(f"{table['id']}: {len(found)} problem(s) across {len(parts)} parts (minimum gap {MIN_GAP} pt)")
+        for clear, a, b in found:
+            print(f'  {a}: {b}' if clear is None else f'  {clear:6.1f} pt  {a} / {b}' + ('  (overlap)' if clear < 0 else ''))
+        if args.list:
+            pairs = [(gap(a, b) * POINTS, a.name, b.name) for i, a in enumerate(parts) for b in parts[i + 1:] if measured(a, b)]
+            for clear, a, b in sorted(p for p in pairs if p[0] >= MIN_GAP)[:args.list]:
+                print(f'  ok {clear:6.1f} pt  {a} / {b}')
+        if args.svg:
+            args.svg.mkdir(parents=True, exist_ok=True)
+            write_svg(table, parts, found, args.svg / f"{table['id']}.svg")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == '__main__':
+    main()

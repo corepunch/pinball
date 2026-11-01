@@ -36,10 +36,10 @@
  <prefab id="slingshot">
   <let name="BAND" value=".03"/>
   <let name="LIP" value=".037"/>
-  <polygon points="{outline}" role="sling_lens" sharp="50"><fillet radius=".014"/><sweep section="0,0 0,.006 .0015,.0085"/></polygon>
+  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius=".014"/><sweep section="0,0 0,.006 .0015,.0085"/></polygon>
   <polygon points="{outline}" role="enamel" sharp="50"><inset amount=".002"/><fillet radius=".012"/><sweep section="0,.007 0,{BAND}"/></polygon>
-  <polygon points="{outline}" role="sling_lens" sharp="50"><fillet radius=".014"/><sweep section=".002,{BAND} 0,{BAND+.002} 0,{LIP-.0025} .0025,{LIP}"/></polygon>
-  <polygon points="{outline}" role="sling_lens" z="{LIP}"><inset amount=".0025"/><fillet radius=".0115"/></polygon>
+  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius=".014"/><sweep section=".002,{BAND} 0,{BAND+.002} 0,{LIP-.0025} .0025,{LIP}"/></polygon>
+  <polygon points="{outline}" role="{lens}" z="{LIP}"><inset amount=".0025"/><fillet radius=".0115"/></polygon>
   <polygon points="{outline}" role="enamel" sharp="80"><inset amount=".0065"/><fillet radius=".0075"/><sweep section="0,{LIP+.0002} .0042,{LIP+.0002}"/></polygon>
   <each-corner points="{outline}" inset=".0175">
    <lathe role="metal" segments="14" sharp="70" points=".0058,{LIP} .0058,{LIP+.0012} .0042,{LIP+.0026} .001,{LIP+.0032}"/>
@@ -84,9 +84,10 @@
  </prefab>
 
  <!-- A stand-up target: a domed lens in a broad gold ring. -->
+ <!-- A round target: lying flat like the lamps, a low bezel round a shallow lens. -->
  <prefab id="spot-target">
-  <lathe role="sling_lens" segments="32" sharp="80" planar="2" points=".74,.62 .56,.74 .3,.82 .001,.85"/>
-  <lathe role="accent" segments="32" sharp="50" points="1,0 1,.42 .92,.6 .76,.66 .7,.6"/>
+  <lathe role="accent" segments="32" sharp="50" points="1,0 1,.2 .94,.27 .84,.26"/>
+  <lathe role="target_lens" segments="32" sharp="80" planar="2" points=".85,.22 .6,.28 .3,.31 .001,.32"/>
  </prefab>
 
  <!-- A rollover switch's plate: three rounded rectangles lying flat, matte, for the ball to roll over. -->

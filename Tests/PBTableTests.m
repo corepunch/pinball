@@ -90,8 +90,29 @@
         NSInteger ball = [world spawnBallAtPlunger];
         simd_float2 start = simd_make_float2([drop[1] floatValue], [drop[2] floatValue]);
         [world placeBall:ball at:start velocity:simd_make_float2(0, 0)];
-        for (int i = 0; i < 180 && world.balls[ball].state == PBBallFree; i++) [world advanceBy:1.0 / 60.0];
-        XCTAssertLessThan(world.balls[ball].position.y, 0.9, @"%@: the ball must roll on past the housing", drop[0]);
+        // The lowest it reached: once past, it may be anywhere, even bouncing back up an orbit.
+        float lowest = start.y;
+        for (int i = 0; i < 180 && world.balls[ball].state == PBBallFree; i++) {
+            [world advanceBy:1.0 / 60.0];
+            lowest = MIN(lowest, world.balls[ball].position.y);
+        }
+        XCTAssertLessThan(lowest, 0.9, @"%@: the ball must roll on past the housing", drop[0]);
+    }
+}
+
+- (void)testASlingshotsTopTipDoesNotFire {
+    // A tip that fired threw a ball back up through the orbit gate that had just dropped it there, for ever.
+    for (NSString *name in @[ @"aurora", @"meridian" ]) {
+        PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:name] options:0 error:NULL] error:NULL];
+        PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+        NSInteger ball = [world spawnBallAtPlunger];
+        PBEdgeDef *sling = table.slingshots[1];
+        [world placeBall:ball at:sling.b + simd_make_float2(0.012f, 0.06f) velocity:simd_make_float2(0, -1.5f)];
+        for (int i = 0; i < 10; i++) [world advanceBy:1.0 / 60.0];
+        XCTAssertGreaterThan([world slingFlash:1], 1.0f, @"%@: landing on the tip must not fire it", name);
+        [world placeBall:ball at:(sling.a + sling.b) * 0.5f + simd_make_float2(-0.06f, 0.03f) velocity:simd_make_float2(1.5f, -0.6f)];
+        for (int i = 0; i < 10; i++) [world advanceBy:1.0 / 60.0];
+        XCTAssertLessThan([world slingFlash:1], 1.0f, @"%@: the face must still fire", name);
     }
 }
 

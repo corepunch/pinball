@@ -26,9 +26,10 @@ ROLES = {
     'channel_arrow': (1, .12, .025, 1), 'metal': (.56, .61, .65, 1), 'accent': (.72, .48, .19, 1), 'dark': (.012, .019, .027, 1),
     'rubber': (.62, .58, .47, 1), 'black_rubber': (.012, .012, .014, 1), 'skirt_lamp': (1, .2, .08, 1), 'cap_art': (.7, .2, .12, 1), 'enamel': (.86, .78, .6, 1),
     'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1), 'glow_amber': (1, .65, .16, 1), 'jewel': (.2, .8, 1, 1), 'ramp_floor': (.58, .62, .66, 1),
-    'sling_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1), 'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
+    'sling_lens': (1, .25, .1, 1), 'sling_lens_0': (1, .25, .1, 1), 'sling_lens_1': (1, .25, .1, 1), 'target_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1), 'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
     'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
 }
+BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
 
 
 # ------------------------------------------------------------------------------- Table
@@ -62,9 +63,24 @@ def spec_for(ramp):
     return spec
 
 
+def place_bars(table):
+    """A lamp's `bar` names the rollover it owns: the switch goes on the bar, a fixed distance below the lamp."""
+    rollovers = {r['id']: r for r in table['rollovers']}
+    for lamp in table['lamps']:
+        if 'bar' in lamp:
+            if lamp['bar'] not in rollovers:
+                raise ValueError(f"{table['id']}/{lamp['id']}: no rollover named {lamp['bar']}")
+            rollovers[lamp['bar']].update(x=lamp['x'], y=round(lamp['y'] - BAR_BELOW_LAMP, 6), plate=True)
+    for rollover in table['rollovers']:
+        if 'x' not in rollover:
+            raise ValueError(f"{table['id']}/{rollover['id']}: needs a lamp with bar=\"{rollover['id']}\", or its own x and y")
+        rollover.setdefault('plate', False)
+
+
 def table_json(scene):
-    """The scene's layout plus what its ramps generate: funnel walls and entrance lamps."""
+    """The scene's layout plus what it generates: rollover bars, and the ramps' funnel walls and entrance lamps."""
     table = json.loads(json.dumps(scene))
+    place_bars(table)
     for ramp in table['ramps']:
         ramp['plasticUntil'] = len(ramp['points']) - 1
         spec = spec_for(ramp)
@@ -105,14 +121,15 @@ def outline_text(points):
 def plastics_part(table, centred, builder):
     """Each raised shape on the table, as a kit prefab over its outline."""
     data = mesher.MeshData()
-    shapes = [(p['id'], expand_points(p['points']), 'slingshot') for p in table['plastics']]
-    shapes += [(w['id'], expand_points(w['points']), 'docking-pod' if w['id'] == 'captiveHousing' else 'housing') for w in table['walls'] if w['style'] == 'plastic']
-    for name, path, prefab in shapes:
+    # Each bouncer gets its own lens, in the order of the table's slingshots, to light when it is hit.
+    shapes = [(p['id'], expand_points(p['points']), 'slingshot', f'sling_lens_{i}') for i, p in enumerate(table['plastics'])]
+    shapes += [(w['id'], expand_points(w['points']), 'docking-pod' if w['id'] == 'captiveHousing' else 'housing', None) for w in table['walls'] if w['style'] == 'plastic']
+    for name, path, prefab, lens in shapes:
         outline = mesher.ccw([centred(*p) for p in path])
         x0, x1 = min(p[0] for p in outline), max(p[0] for p in outline)
         y0, y1 = min(p[1] for p in outline), max(p[1] for p in outline)
         names = {'outline': outline_text(outline), 'tray': outline_text([(x0, y0), (x1, y0), (x1, y1 - .025), (x0, y1 - .025)]),
-                 'height': next((w['height'] for w in table['walls'] if w['id'] == name), .006)}
+                 'height': next((w['height'] for w in table['walls'] if w['id'] == name), .006), 'lens': lens}
         built = builder.build(prefab, names)
         data.add(built.vertices, built.faces, built.roles, built.uvs, 0)
         data.sharp[-len(built.faces):] = built.sharp

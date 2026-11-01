@@ -10,8 +10,8 @@ DEVICE   ?=
 TEAM     ?=
 SIMULATOR ?= iPhone 17
 
-DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
-SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
+DEVICE_APP    = Build/Device/Build/Products/$(CONFIG)-iphoneos/Pinball.app
+SIMULATOR_APP = Build/Sim/Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
 .PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews
@@ -80,3 +80,7 @@ test:
 
 previews:
 	tools/render_preview.sh "$(CURDIR)/Art/Previews"
+
+.PHONY: game-center-check
+game-center-check:
+	python3 tools/check_game_center.py

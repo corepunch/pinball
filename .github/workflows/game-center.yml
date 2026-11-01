@@ -1,0 +1,25 @@
+name: Game Center checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make game-center-check
+  apple-build-and-tests:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - run: make test
+      - name: Compile GameKit coordinator for iPhone
+        run: >-
+          xcodebuild -project Pinball.xcodeproj -scheme Pinball -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath Build/CI CODE_SIGNING_ALLOWED=NO build

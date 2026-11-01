@@ -40,7 +40,7 @@ typedef struct {
     PBEventKind kind;
     int16_t element;     // Index into the array for that kind on PBTableDefinition.
     int16_t ball;
-    float magnitude;     // Impact speed, where that means anything.
+    float magnitude;     // Impact speed; plunger release uses applied pull (0...1).
     simd_float2 position;
 } PBEvent;
 

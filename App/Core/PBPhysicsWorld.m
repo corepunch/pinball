@@ -11,6 +11,8 @@ static const float kRollingDrag = 0.045f;
 static const NSInteger kMaxBalls = 8;
 static const float kCellSize = 0.05f;
 static const NSInteger kMaxEvents = 256;
+// Ignore only the tiny impulses from gravity pressing a resting ball into a surface.
+static const float kMinBounceImpact = 0.02f;
 
 static const float kFlipperAcceleration = 900.0f;
 static const float kFlipperMaxSpeed = 30.0f;
@@ -743,16 +745,21 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         if (!c->enabled || !(c->layers & ball->layers)) continue;
         [self resolveBall:index against:c colliderIndex:_cellItems[i]];
     }
-    [self collidePlunger:ball];
+    [self collidePlunger:index];
 }
 
-- (void)collidePlunger:(PBBall *)ball {
+- (void)collidePlunger:(NSInteger)index {
+    PBBall *ball = &_balls[index];
     if (![self isBallInLane:ball]) return;
     float floorY = _plungerY + _ballRadius;
     if (ball->position.y < floorY) {
         ball->position.y = floorY;
+        float impact = -ball->velocity.y;
         if (ball->velocity.y < 0.0f) ball->velocity.y *= -0.2f;
         if (fabsf(ball->velocity.y) < 0.05f) ball->velocity.y = 0;
+        if (impact > 0.0f && ball->velocity.y > 0.0f) {
+            [self emit:PBEventWallHit element:-1 ball:index magnitude:impact at:ball->position];
+        }
     }
 }
 
@@ -785,6 +792,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     simd_float2 tangent = ball->velocity - normal * simd_dot(ball->velocity, normal);
     ball->velocity -= tangent * MIN(0.04f, impact * 0.02f);
 
+    BOOL activeHit = NO;
     switch (c->kind) {
         case PBColliderBumper:
             if (_activeCooldown[colliderIndex] <= 0.0f) {
@@ -793,6 +801,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 ball->velocity += normal * MAX(0.0f, kBumperSpeed - out);
                 _bumperFlash[c->element] = 0;
                 [self emit:PBEventBumper element:c->element ball:index magnitude:impact at:ball->position];
+                activeHit = YES;
             }
             break;
         case PBColliderSling:
@@ -801,21 +810,28 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 ball->velocity += normal * kSlingSpeed;
                 _slingFlash[c->element] = 0;
                 [self emit:PBEventSling element:c->element ball:index magnitude:impact at:ball->position];
+                activeHit = YES;
             }
             break;
         case PBColliderDrop:
             c->enabled = NO;
             [self emit:PBEventDropTarget element:c->element ball:index magnitude:impact at:ball->position];
+            activeHit = YES;
             break;
         case PBColliderStandup:
             if (_activeCooldown[colliderIndex] <= 0.0f) {
                 _activeCooldown[colliderIndex] = kActiveCooldown;
                 [self emit:PBEventStandup element:c->element ball:index magnitude:impact at:ball->position];
+                activeHit = YES;
             }
             break;
         default:
-            if (impact > 0.25f) [self emit:PBEventWallHit element:-1 ball:index magnitude:impact at:ball->position];
             break;
+    }
+    // A passive rebound still happens when an element is cooling down or a sling
+    // is hit too gently to fire. Report it once, without duplicating active hits.
+    if (!activeHit && impact > kMinBounceImpact) {
+        [self emit:PBEventWallHit element:-1 ball:index magnitude:impact at:ball->position];
     }
 }
 
@@ -847,7 +863,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
             BOOL moving = fabsf(f->velocity) > 1.0f;
             float bounce = moving ? kFlipperMovingBounce : kFlipperRestBounce;
             ball->velocity -= normal * vn * (1.0f + bounce);
-            if (-vn > 0.4f) [self emit:PBEventWallHit element:-1 ball:index magnitude:-vn at:ball->position];
+            if (-vn > kMinBounceImpact) [self emit:PBEventWallHit element:-1 ball:index magnitude:-vn at:ball->position];
         }
         ball->stuckTime = f->pressed ? 0.0f : ball->stuckTime;
     }
@@ -938,7 +954,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 simd_float2 impulse = normal * vn * 0.5f * (1.0f + 0.85f);
                 a->velocity -= impulse;
                 b->velocity += impulse;
-                [self emit:PBEventWallHit element:-1 ball:i magnitude:-vn at:a->position];
+                if (-vn > kMinBounceImpact) [self emit:PBEventWallHit element:-1 ball:i magnitude:-vn at:a->position];
             }
         }
     }

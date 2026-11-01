@@ -65,6 +65,9 @@ Settings persist between launches. App inactivity pauses a live run and returns 
 the player explicitly resumes. Results remain visible until choosing replay or the main menu. Autopilot
 previews bypass the interface. See [Art/UI_GUIDE.md](Art/UI_GUIDE.md) for artwork, layout, and verification.
 
+Haptics follow ball bounces, with stronger pulses for active elements and launch feedback scaled to
+the plunger pull. Tiny resting contacts stay quiet. Haptics can be disabled in Settings.
+
 ## Game Center
 
 The app initializes GameKit once its window appears. The custom SCORES button opens

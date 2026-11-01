@@ -37,8 +37,9 @@ static const float kNudgeImpulse = 0.42f;
     [_controller addGameObserver:self];
 
     _flipperHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleRigid];
-    _impactHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+    _impactHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
     [_flipperHaptic prepare];
+    [_impactHaptic prepare];
 
     UITapGestureRecognizer *nextSkin = [[UITapGestureRecognizer alloc] initWithTarget:_controller action:@selector(selectNextSkin)];
     nextSkin.numberOfTouchesRequired = 3;
@@ -187,14 +188,43 @@ static const float kNudgeImpulse = 0.42f;
 
 - (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
     PBEventKind kind = event->kind;
-    if (kind != PBEventFlipperUp && kind != PBEventBumper && kind != PBEventSling && kind != PBEventDrain) return;
+    CGFloat intensity;
+    switch (kind) {
+        case PBEventFlipperUp:
+            intensity = 1.0;
+            break;
+        case PBEventWallHit:
+            intensity = 0.15 + 0.30 * MIN(1.0f, event->magnitude / 3.0f);
+            break;
+        case PBEventBumper:
+        case PBEventSling:
+        case PBEventDropTarget:
+        case PBEventStandup:
+        case PBEventSaucerCapture:
+        case PBEventSaucerEject:
+        case PBEventKickback:
+            intensity = 0.65 + 0.35 * MIN(1.0f, event->magnitude / 3.0f);
+            break;
+        case PBEventPlungerRelease:
+            if (event->magnitude <= 0.0f) return;
+            // Plunger magnitude is already the applied pull, normalized to 0...1.
+            intensity = 0.15 + 0.85 * MIN(1.0f, event->magnitude);
+            break;
+        case PBEventDrain:
+            intensity = 0.65;
+            break;
+        default:
+            return;
+    }
+    // Copy values before dispatch: the event belongs to the physics queue.
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self->_controller.hapticsEnabled) return;
+        if (!self->_controller.hapticsEnabled || self->_controller.isPaused) return;
         if (kind == PBEventFlipperUp) {
-            [self->_flipperHaptic impactOccurred];
+            [self->_flipperHaptic impactOccurredWithIntensity:intensity];
             [self->_flipperHaptic prepare];
         } else {
-            [self->_impactHaptic impactOccurred];
+            [self->_impactHaptic impactOccurredWithIntensity:intensity];
+            [self->_impactHaptic prepare];
         }
     });
 }

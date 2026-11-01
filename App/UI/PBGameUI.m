@@ -466,7 +466,7 @@ static const NSInteger kLevelsPerPage = 12;
     PBUIKey *sound = [self key:@"secondary" title:_soundEnabled ? @"ON" : @"OFF"
                        action:PBUISound x:106 y:110 width:108 parent:_menu];
     sound.selected = _soundEnabled; [sound refresh];
-    [self settingLabel:@"HAPTICS" detail:@"Feel the flippers & bumpers" y:20];
+    [self settingLabel:@"HAPTICS" detail:@"Feel every bounce & launch" y:20];
     PBUIKey *haptics = [self key:@"secondary" title:_hapticsEnabled ? @"ON" : @"OFF"
                          action:PBUIHaptics x:106 y:20 width:108 parent:_menu];
     haptics.selected = _hapticsEnabled;

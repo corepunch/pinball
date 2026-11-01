@@ -17,6 +17,17 @@ open Pinball.xcodeproj
 
 Schemes: `Pinball` (iPhone app) and `PinballCoreTests` (headless tests on Mac).
 
+Or from the command line, where `make help` lists everything:
+
+```bash
+make iphone-deploy
+```
+
+That builds a signed Release app, installs it on the only connected iPhone, and launches it. Set
+`DEVICE=<name or identifier>` when several are connected (`make list-devices`), `TEAM=<id>` to override the
+team taken from your Apple Development certificate, and `CONFIG=Debug` for a debug build.
+`make simulator-run` does the same in the Simulator, and `make test` runs the headless tests.
+
 `App/` contains all application source and the asset catalog, with modules for simulation,
 rendering, audio, interface, and Game Center. Tests and standalone preview tools compile the
 modules they need directly from `App/`. `GameData/` holds runtime resources. There is no Mac app target.

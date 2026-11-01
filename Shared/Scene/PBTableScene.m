@@ -7,8 +7,8 @@
 #import "PBGeometry.h"
 #import "PBPlayfieldPainter.h"
 #import "PBModelLibrary.h"
+#import "PBLayoutValidator.h"
 
-static const CGFloat kFieldOfView = 44.0;
 static const float kLightingMaxTilt = 0.60f;  // Radians; keep the light above the table.
 static const float kLightingResponse = 0.10f; // Seconds; suppress hand tremor without lag.
 
@@ -99,6 +99,7 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
     CGFloat _baseCameraHeight;
     SCNNode *_lightingRig;
     simd_quatf _lightingRotation;
+    BOOL _plasticsModelled;
 
     NSMutableArray<SCNNode *> *_ballNodes;
     NSMutableArray<SCNNode *> *_flipperNodes;
@@ -151,6 +152,7 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
         [self buildRamps];
         [self buildLamps];
         [self buildFlashers];
+        [self buildDecor];
         [self buildPlunger];
         [self buildApron];
         [self buildBalls];
@@ -220,30 +222,80 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return material;
 }
 
+/// A clear moulded part: SceneKit draws it after the opaque table, without writing depth.
+- (SCNMaterial *)clearMaterial:(simd_float3)color opacity:(CGFloat)opacity shininess:(CGFloat)shininess {
+    SCNMaterial *material = [SCNMaterial material];
+    material.lightingModelName = SCNLightingModelBlinn;
+    material.diffuse.contents = [self color:color];
+    material.specular.contents = [self color:simd_make_float3(0.9f, 0.9f, 0.9f)];
+    material.shininess = shininess;
+    material.transparency = opacity;
+    material.writesToDepthBuffer = NO;
+    material.doubleSided = YES;
+    return material;
+}
+
 /// Blender exports semantic material names so a single mesh kit serves every skin.
-- (void)skinModel:(SCNNode *)root capMaterial:(SCNMaterial *)capMaterial {
+- (void)skinModel:(SCNNode *)root overrides:(NSDictionary<NSString *, SCNMaterial *> *)overrides {
     if (!_modelMaterials) {
+        SCNMaterial *glow = [SCNMaterial material];
+        glow.lightingModelName = SCNLightingModelConstant;
+        glow.diffuse.contents = [self color:[_skin lampColor:@"bumper"]];
+        glow.diffuse.intensity = 1.6;
+        // Lenses only add a highlight. Any diffuse would mist over the coloured insert below.
+        SCNMaterial *lens = [self clearMaterial:simd_make_float3(0.0f, 0.0f, 0.0f) opacity:1.0 shininess:110];
+        lens.blendMode = SCNBlendModeAdd;
+        lens.specular.contents = [self color:simd_make_float3(0.55f, 0.55f, 0.55f)];
+        SCNMaterial *wallArt = [self printedMaterial:@"wall_top"];
+        wallArt.diffuse.wrapS = SCNWrapModeRepeat;
+        wallArt.diffuse.wrapT = SCNWrapModeRepeat;
+        SCNMaterial *blockArt = [self printedMaterial:@"plastic"];
+        SCNMaterial *plasticArt = [self printedMaterial:@"slingshot"];
+        SCNMaterial *bat = [self printedMaterial:@"flipper"];
+        for (SCNMaterial *clamped in @[ blockArt, plasticArt, bat ]) {
+            clamped.diffuse.wrapS = SCNWrapModeClamp;
+            clamped.diffuse.wrapT = SCNWrapModeClamp;
+        }
         _modelMaterials = @{
             @"metal": [self metal], @"accent": [self accentMetal], @"rubber": [self rubber],
-            @"channel": [self pbrWithDiffuse:[self color:_skin.metalColor * 0.22f] metalness:1.0 roughness:0.4],
             @"dark": [self pbrWithDiffuse:[self color:simd_make_float3(0.018f, 0.024f, 0.032f)] metalness:0 roughness:0.65],
+            @"flipper_rubber": [self pbrWithDiffuse:[self color:_skin.flipperRubberColor] metalness:0 roughness:0.55],
             @"cap_art": [self printedMaterial:@"bumper_cap"],
-            @"ramp_art": [self printedMaterial:@"ramp"]
+            @"glass": [self clearMaterial:_skin.rampGlassColor opacity:_skin.rampOpacity shininess:90],
+            @"lens": lens,
+            @"glow": glow, @"wall_art": wallArt, @"block_art": blockArt, @"plastic_art": plasticArt, @"flipper_art": bat,
+            @"target_art": [self printedMaterial:@"drop_target"],
         };
-        SCNMaterial *rampArt = _modelMaterials[@"ramp_art"];
-        rampArt.diffuse.wrapS = SCNWrapModeRepeat;
-        rampArt.diffuse.wrapT = SCNWrapModeRepeat;
     }
     [root enumerateChildNodesUsingBlock:^(SCNNode *child, BOOL *stop) {
         if (!child.geometry) return;
         NSMutableArray *mapped = [NSMutableArray array];
         for (SCNMaterial *material in child.geometry.materials) {
-            SCNMaterial *replacement = [material.name isEqualToString:@"cap_art"] && capMaterial ? capMaterial : self->_modelMaterials[material.name];
-            [mapped addObject:replacement ?: material];
+            [mapped addObject:overrides[material.name] ?: self->_modelMaterials[material.name] ?: material];
             if ([material.name isEqualToString:@"cap_art"]) child.geometry.name = @"cap_art";
         }
         child.geometry.materials = mapped;
     }];
+}
+
+/// A kit part scaled and placed on the table, or nil when the skin has no such model.
+- (SCNNode *)addModel:(NSString *)name at:(simd_float2)position height:(float)height scale:(float)scale {
+    SCNNode *model = [_models nodeNamed:name];
+    if (!model) return nil;
+    [self skinModel:model overrides:@{}];
+    model.scale = SCNVector3Make(scale, scale, scale);
+    model.position = [self at:position height:height];
+    [_root addChildNode:model];
+    return model;
+}
+
+/// Table-specific meshes are authored in place, in table coordinates.
+- (BOOL)addTableModel:(NSString *)suffix {
+    SCNNode *model = [_models nodeNamed:[NSString stringWithFormat:@"%@-%@", _table.identifier, suffix]];
+    if (!model) return NO;
+    [self skinModel:model overrides:@{}];
+    [_root addChildNode:model];
+    return YES;
 }
 
 /// An additive, HDR sprite lying on the table: lit lamps, glows. Values above 1 feed the bloom.
@@ -287,7 +339,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 - (void)buildCameraAndLights {
     _camera = [SCNCamera camera];
     _camera.projectionDirection = SCNCameraProjectionDirectionVertical;
-    _camera.fieldOfView = kFieldOfView;
+    _camera.fieldOfView = PBTableCameraFieldOfView;
     _camera.zNear = 0.1;
     _camera.zFar = 20.0;
     _camera.wantsHDR = YES;
@@ -397,7 +449,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
 - (void)fitCameraToAspect:(CGFloat)heightOverWidth {
     CGFloat visibleHeight = MAX((CGFloat)_size.y, (CGFloat)_size.x * heightOverWidth);
-    _baseCameraHeight = visibleHeight * 0.5 / tan(kFieldOfView * M_PI / 360.0);
+    _baseCameraHeight = visibleHeight * 0.5 / tan(PBTableCameraFieldOfView * M_PI / 360.0);
     _cameraNode.position = SCNVector3Make(0, _baseCameraHeight, 0);
 }
 
@@ -428,8 +480,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)buildCabinet {
-    // A raised frame around the arch. Its outer edge runs off-screen, so the playfield
-    // appears to fill the display edge to edge, inside a real cabinet.
+    // The phone's own edge is the table's edge. This frame stands just outside the view, and
+    // only shows on a screen of different proportions, in place of stretched playfield art.
     const float margin = 0.6f;
     PBBezierPath *path = [PBBezierPath bezierPath];
     path.flatness = 0.001;
@@ -438,22 +490,11 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     PBBezierLineTo(path, CGPointMake(_size.x + margin, _size.y + margin));
     PBBezierLineTo(path, CGPointMake(-margin, _size.y + margin));
     [path closePath];
-
-    PBWallDef *outer = nil;
-    for (PBWallDef *wall in _table.walls) if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
-    if (outer) {
-        const simd_float2 *p = outer.points.points;
-        NSInteger n = outer.points.count;
-        [path moveToPoint:CGPointMake(p[0].x + outer.radius, -margin + 0.01)];
-        for (NSInteger i = 0; i < n; i++) {
-            // The outer wall runs counter-clockwise, so outward is to the right of travel.
-            simd_float2 tangent = simd_normalize(p[MIN(i + 1, n - 1)] - p[MAX(i - 1, 0)]);
-            simd_float2 away = simd_make_float2(tangent.y, -tangent.x);
-            PBBezierLineTo(path, CGPointMake(p[i].x + away.x * outer.radius, p[i].y + away.y * outer.radius));
-        }
-        PBBezierLineTo(path, CGPointMake(p[n - 1].x - outer.radius, -margin + 0.01));
-        [path closePath];
-    }
+    [path moveToPoint:CGPointMake(0, 0)];
+    PBBezierLineTo(path, CGPointMake(_size.x, 0));
+    PBBezierLineTo(path, CGPointMake(_size.x, _size.y));
+    PBBezierLineTo(path, CGPointMake(0, _size.y));
+    [path closePath];
 #if TARGET_OS_IPHONE
     path.usesEvenOddFillRule = YES;
 #else
@@ -463,13 +504,15 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNGeometry *frame = [PBGeometry prismWithPath:path height:height chamfer:0.0f];
     SCNMaterial *rail = [self tileMaterial:@"side_rail" metalness:0.0 roughness:0.8];
     rail.lightingModelName = SCNLightingModelLambert;
-    rail.diffuse.intensity = 0.32;
+    rail.diffuse.intensity = 0.62;
     rail.shaderModifiers = @{ SCNShaderModifierEntryPointGeometry:
         @"float4 pbWorld = scn_node.modelTransform * _geometry.position;\n"
         @"_geometry.texcoords[0] = pbWorld.xz * 3.0;\n",
         SCNShaderModifierEntryPointFragment: kPBHDRGuard };
     frame.firstMaterial = rail;
-    [_root addChildNode:[self prismNodeWithGeometry:frame height:height baseHeight:0.0f]];
+    SCNNode *node = [self prismNodeWithGeometry:frame height:height baseHeight:0.0f];
+    node.castsShadow = NO;  // It would throw a band of shadow across the playfield.
+    [_root addChildNode:node];
 }
 
 - (void)buildWalls {
@@ -478,6 +521,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterial *trimMaterial = [self accentMetal];
     SCNMaterial *rubberMaterial = [self rubber];
     SCNMaterial *plasticMaterial = [self tileMaterial:@"wall_top" metalness:0.0 roughness:0.4];
+    BOOL plated = [self addTableModel:@"walls"];
+    // The plastics model carries raised housings as well as the free-floating plastics.
+    BOOL housed = [self addTableModel:@"plastics"];
+    _plasticsModelled = housed;
 
     for (PBWallDef *wall in _table.walls) {
         const simd_float2 *p = wall.points.points;
@@ -487,6 +534,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
                 break;
             case PBWallStyleWall:
             case PBWallStyleRail: {
+                if (plated) break;
                 float halfWidth = MAX(wall.radius, 0.004f);
                 SCNGeometry *geometry = [PBGeometry wallAlongPoints:p count:n closed:wall.closed halfWidth:halfWidth height:wall.height tableSize:_size];
                 [self addNodeWithGeometry:geometry material:wall.style == PBWallStyleRail ? railMaterial : wallMaterial];
@@ -515,6 +563,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
                 break;
             }
             case PBWallStylePlastic: {
+                if (housed) break;
                 PBBezierPath *path = [PBGeometry pathFromPoints:p count:n];
                 SCNGeometry *geometry = [PBGeometry prismWithPath:path height:wall.height chamfer:0.002f];
                 SCNMaterial *art = [self printedMaterial:@"plastic"];
@@ -527,6 +576,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)addPostAt:(simd_float2)position radius:(float)radius height:(float)height metal:(SCNMaterial *)metal rubber:(SCNMaterial *)rubber {
+    if ([self addModel:@"post" at:position height:0 scale:radius]) return;
     SCNCylinder *stem = [SCNCylinder cylinderWithRadius:radius * 0.55f height:height];
     stem.radialSegmentCount = 16;
     SCNNode *stemNode = [self addNodeWithGeometry:stem material:metal];
@@ -575,6 +625,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)buildPlastics {
+    if (_plasticsModelled) return;
     SCNMaterial *art = [self printedMaterial:@"slingshot"];
     art.transparency = _skin.plasticOpacity;
     art.doubleSided = YES;
@@ -633,8 +684,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             view.lit.diffuse.contents = (__bridge id)hitImage;
             view.lit.emission.contents = (__bridge id)hitImage;
             view.lit.emission.intensity = 0.20;
-            [self skinModel:modelBase capMaterial:nil];
-            [self skinModel:modelCap capMaterial:view.idle];
+            [self skinModel:modelBase overrides:@{}];
+            [self skinModel:modelCap overrides:@{ @"cap_art": view.idle }];
             modelBase.scale = modelCap.scale = SCNVector3Make(r, r, r);
             modelBase.position = modelCap.position = [self at:bumper.position height:0];
             modelCap.name = [@"bumper." stringByAppendingString:bumper.identifier];
@@ -714,6 +765,15 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         pivot.position = [self at:def.pivot height:0.0f];
         pivot.eulerAngles = SCNVector3Make(0, def.restAngle, 0);
         [_root addChildNode:pivot];
+        [_flipperNodes addObject:pivot];
+
+        SCNNode *model = [_models nodeNamed:@"flipper"];
+        if (model) {
+            [self skinModel:model overrides:@{}];
+            model.scale = SCNVector3Make(def.length, def.length, def.length);
+            [pivot addChildNode:model];
+            continue;
+        }
 
         SCNGeometry *geometry = [PBGeometry flipperWithLength:def.length baseRadius:def.baseRadius tipRadius:def.tipRadius height:height];
         geometry.materials = @[ bat, side, side, bat, side ];
@@ -748,8 +808,6 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         SCNNode *shaftNode = [SCNNode nodeWithGeometry:shaft];
         shaftNode.position = SCNVector3Make(0, height + 0.006f, 0);
         [pivot addChildNode:shaftNode];
-
-        [_flipperNodes addObject:pivot];
     }
 }
 
@@ -770,6 +828,19 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return pivot;
 }
 
+/// The art goes on a broad top, since the overhead camera never sees a target's face.
+- (SCNNode *)addTargetFrom:(simd_float2)a to:(simd_float2)b art:(SCNMaterial *)art {
+    SCNNode *model = [_models nodeNamed:@"target"];
+    if (!model) return [self addEdgePartFrom:a to:b thickness:0.012f height:0.05f material:art];
+    [self skinModel:model overrides:@{ @"target_art": art }];
+    float width = simd_distance(a, b);
+    model.scale = SCNVector3Make(width, 0.05f, width);
+    model.position = [self at:(a + b) * 0.5f height:0.0f];
+    model.eulerAngles = SCNVector3Make(0, atan2f(b.y - a.y, b.x - a.x), 0);
+    [_root addChildNode:model];
+    return model;
+}
+
 - (void)buildTargets {
     SCNMaterial *drop = [self printedMaterial:@"drop_target"];
     SCNMaterial *standup = [self printedMaterial:@"standup"];
@@ -777,19 +848,20 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     _dropNodes = [NSMutableArray array];
     for (PBEdgeDef *def in _table.dropTargets) {
         simd_float2 inset = simd_normalize(def.b - def.a) * 0.0015f;
-        [_dropNodes addObject:[self addEdgePartFrom:def.a + inset to:def.b - inset thickness:0.012f height:0.05f material:drop]];
+        [_dropNodes addObject:[self addTargetFrom:def.a + inset to:def.b - inset art:drop]];
     }
 
     _standupNodes = [NSMutableArray array];
     SCNMaterial *metal = [self metal];
     for (PBEdgeDef *def in _table.standups) {
-        [_standupNodes addObject:[self addEdgePartFrom:def.a to:def.b thickness:0.012f height:0.05f material:standup]];
+        [_standupNodes addObject:[self addTargetFrom:def.a to:def.b art:standup]];
     }
 
     // Kickback plungers are visible at the bottom of their lanes.
     for (PBSpotDef *kick in _table.kickbacks) {
         SCNCylinder *head = [SCNCylinder cylinderWithRadius:0.016f height:0.02f];
-        SCNNode *node = [self addNodeWithGeometry:head material:metal];
+        // Dull steel: its flat top faces the camera, and polished metal would flare.
+        SCNNode *node = [self addNodeWithGeometry:head material:[self pbrWithDiffuse:[self color:_skin.metalColor * 0.35f] metalness:0.6 roughness:0.6]];
         node.position = [self at:kick.position - simd_make_float2(0.0f, 0.035f) height:0.01f];
     }
 }
@@ -856,7 +928,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         NSString *asset = [NSString stringWithFormat:@"%@-%@", _table.identifier, ramp.identifier];
         SCNNode *channel = [_models nodeNamed:asset];
         if (channel) {
-            [self skinModel:channel capMaterial:nil];
+            [self skinModel:channel overrides:@{}];
             [_root addChildNode:channel];
         } else {
             // Plastic section: see-through, tinted by the skin's ramp art.
@@ -887,6 +959,9 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
         }
 
+        // The model carries its own flanges, clamps and supports.
+        if (channel) continue;
+
         // Metal lip where the ball enters.
         simd_float2 mouthDir = simd_normalize(ramp.mouthB - ramp.mouthA);
         simd_float2 lipA = ramp.mouthA - mouthDir * 0.004f, lipB = ramp.mouthB + mouthDir * 0.004f;
@@ -908,8 +983,11 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             leftPoints[i] = [self at:p.xy + normal * half height:p.z + 0.004f];
             rightPoints[i] = [self at:p.xy - normal * half height:p.z + 0.004f];
         }
-        [self addNodeWithGeometry:[PBGeometry tubeAlongPoints:leftPoints count:wireCount radius:0.0034f sides:8] material:metal];
-        [self addNodeWithGeometry:[PBGeometry tubeAlongPoints:rightPoints count:wireCount radius:0.0034f sides:8] material:metal];
+        // A ramp may be plastic all the way, leaving no wire section to draw.
+        if (wireCount >= 2) {
+            [self addNodeWithGeometry:[PBGeometry tubeAlongPoints:leftPoints count:wireCount radius:0.0034f sides:8] material:metal];
+            [self addNodeWithGeometry:[PBGeometry tubeAlongPoints:rightPoints count:wireCount radius:0.0034f sides:8] material:metal];
+        }
         for (NSInteger i = 4; i < wireCount; i += 8) {
             SCNVector3 mid = SCNVector3Make((leftPoints[i].x + rightPoints[i].x) * 0.5f,
                                           leftPoints[i].y + 0.009f, (leftPoints[i].z + rightPoints[i].z) * 0.5f);
@@ -947,24 +1025,35 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return material;
 }
 
+- (SCNMaterial *)litMaterialForArrowWithColor:(NSString *)colorName {
+    NSString *key = [@"arrow/" stringByAppendingString:colorName];
+    SCNMaterial *material = _litMaterials[key];
+    if (material) return material;
+    CGImageRef image = [PBPlayfieldPainter newLitArrowWithColor:[_skin lampColor:colorName]];
+    material = [self additiveMaterial:image intensity:2.4];
+    CGImageRelease(image);
+    _litMaterials[key] = material;
+    return material;
+}
+
 - (void)buildLamps {
     _lamps = [NSMutableArray array];
     SCNMaterial *rimMaterial = [self accentMetal];
     for (PBLampDef *def in _table.lamps) {
-        SCNNode *socket = [_models nodeNamed:@"insert-bezel"];
+        SCNNode *socket = [self addModel:def.isArrow ? @"insert-arrow" : @"insert-bezel" at:def.position height:0 scale:def.size];
         if (socket) {
-            [self skinModel:socket capMaterial:nil];
-            socket.scale = SCNVector3Make(def.size, def.size, def.size);
-            socket.position = [self at:def.position height:0];
-            [_root addChildNode:socket];
+            socket.eulerAngles = SCNVector3Make(0, def.angle, 0);
         } else {
             SCNTorus *rim = [SCNTorus torusWithRingRadius:def.size + 0.0013f pipeRadius:0.0009f];
             rim.ringSegmentCount = 32;
             rim.pipeSegmentCount = 6;
             [self addNodeWithGeometry:rim material:rimMaterial].position = [self at:def.position height:0.0008f];
         }
-        SCNNode *node = [self spriteOfSize:def.size * 2.0f * 2.4f material:[self litMaterialForIcon:def.icon color:def.color]];
+        SCNMaterial *litMaterial = def.isArrow ? [self litMaterialForArrowWithColor:def.color] : [self litMaterialForIcon:def.icon color:def.color];
+        SCNNode *node = [self spriteOfSize:def.size * 2.0f * 2.4f material:litMaterial];
         node.position = [self at:def.position height:0.0015f];
+        // The sprite lies flat, so its own z runs along the table's up axis.
+        if (def.isArrow) node.eulerAngles = SCNVector3Make(-(float)M_PI_2, def.angle, 0);
         node.opacity = 0;
         node.hidden = YES;
         [_root addChildNode:node];
@@ -976,7 +1065,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
 - (void)buildFlashers {
     _flashers = [NSMutableArray array];
-    const float domeHeight = 0.13f;
+    const float domeHeight = _models ? 0.11f : 0.13f;
     SCNMaterial *metal = [self metal];
     for (PBSpotDef *def in _table.flashers) {
         simd_float3 color = [_skin lampColor:def.color ?: @"white"];
@@ -990,8 +1079,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         SCNNode *domeNode = [self addNodeWithGeometry:domeGeometry material:dome];
         domeNode.position = [self at:def.position height:domeHeight];
 
-        SCNCylinder *foot = [SCNCylinder cylinderWithRadius:0.034f height:0.008f];
-        [self addNodeWithGeometry:foot material:metal].position = [self at:def.position height:domeHeight];
+        if (![self addModel:@"flasher-cage" at:def.position height:domeHeight scale:0.034f]) {
+            SCNCylinder *foot = [SCNCylinder cylinderWithRadius:0.034f height:0.008f];
+            [self addNodeWithGeometry:foot material:metal].position = [self at:def.position height:domeHeight];
+        }
 
         CGImageRef glowImage = [PBPlayfieldPainter newGlowWithColor:color];
         SCNMaterial *glowMaterial = [self additiveMaterial:glowImage intensity:2.2];
@@ -1010,6 +1101,20 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         view.glow = glow;
         view.light = [self addEffectLightAt:def.position height:0.28f color:color range:1.15f];
         [_flashers addObject:view];
+    }
+}
+
+#pragma mark - Decor
+
+- (void)buildDecor {
+    for (PBDecorDef *decor in _table.decor) {
+        SCNNode *model = [_models nodeNamed:decor.model];
+        if (!model) continue;
+        [self skinModel:model overrides:@{}];
+        model.scale = SCNVector3Make(decor.size, decor.size, decor.size);
+        model.position = [self at:decor.position height:decor.base];
+        model.eulerAngles = SCNVector3Make(0, decor.angle, 0);
+        [_root addChildNode:model];
     }
 }
 
@@ -1057,7 +1162,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     art.diffuse.wrapS = SCNWrapModeClamp;
     art.diffuse.wrapT = SCNWrapModeClamp;
     art.shaderModifiers = @{ SCNShaderModifierEntryPointGeometry: PBWorldUVModifier(_size) };
-    SCNMaterial *edge = [self metal];
+    SCNMaterial *edge = [self accentMetal];
     plate.materials = @[ art, edge, edge, edge, edge ];
     [_root addChildNode:[self prismNodeWithGeometry:plate height:height baseHeight:0.0f]];
 
@@ -1068,7 +1173,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     bezel.firstMaterial = [self printedMaterial:@"dmd_bezel"];
     SCNNode *bezelNode = [self addNodeWithGeometry:bezel material:nil];
     bezelNode.position = [self at:centre height:height + 0.003f];
-    for (int side = -1; side <= 1; side += 2) {
+    BOOL framed = [self addTableModel:@"dmd"];
+    for (int side = -1; side <= 1 && !framed; side += 2) {
         SCNBox *trim = [SCNBox boxWithWidth:rect.z + 0.044f height:0.0015f length:0.0015f chamferRadius:0];
         [self addNodeWithGeometry:trim material:[self accentMetal]].position =
             [self at:centre + simd_make_float2(0, side * (rect.w * 0.5f + 0.012f)) height:height + 0.0075f];

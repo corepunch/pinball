@@ -14,6 +14,16 @@ static CGContextRef PBCreateContext(size_t width, size_t height) {
     return context;
 }
 
+/// An equilateral triangle around a centre, apex along angle. Corners are softened by the join.
+static void PBAddArrowPath(CGContextRef c, CGPoint centre, CGFloat radius, CGFloat angle) {
+    for (int i = 0; i < 3; i++) {
+        CGFloat a = angle + (CGFloat)i * 2.0 * M_PI / 3.0;
+        CGFloat x = centre.x + cos(a) * radius, y = centre.y + sin(a) * radius;
+        if (i == 0) CGContextMoveToPoint(c, x, y); else CGContextAddLineToPoint(c, x, y);
+    }
+    CGContextClosePath(c);
+}
+
 static void PBSetFill(CGContextRef c, simd_float3 color, float alpha) {
     CGContextSetRGBFillColor(c, color.x, color.y, color.z, alpha);
 }
@@ -121,10 +131,10 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
 
     // Shooter lane: dark metal channel.
     PBPlungerDef *plunger = table.plunger;
-    CGFloat laneHalf = 0.033;
+    CGFloat laneLeft = plunger.position.x - 0.039;
     CGFloat laneTop = table.gates.count ? table.gates.firstObject.a.y : table.size.y;
-    CGContextSetRGBFillColor(c, 0.03, 0.03, 0.04, 0.82);
-    CGContextFillRect(c, CGRectMake(plunger.position.x - laneHalf, table.drainY - 0.02, laneHalf * 2, laneTop - table.drainY + 0.02));
+    CGContextSetRGBFillColor(c, 0.03, 0.03, 0.04, 0.5);  // The art stays visible, up to the screen edge.
+    CGContextFillRect(c, CGRectMake(laneLeft, table.drainY - 0.02, table.size.x - laneLeft, laneTop - table.drainY + 0.02));
 
     // Saucers: a dark well with a metal lip.
     for (PBSpotDef *saucer in table.saucers) {
@@ -172,15 +182,32 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
         CGFloat r = lamp.size;
         CGRect rect = CGRectMake(lamp.position.x - r, lamp.position.y - r, r * 2, r * 2);
 
+        if (lamp.isArrow) {
+            CGPoint centre = CGPointMake(lamp.position.x, lamp.position.y);
+            CGContextSaveGState(c);
+            PBAddArrowPath(c, centre, r * 0.95, lamp.angle);
+            CGContextClip(c);
+            // Bright at the apex and deep at the base, like a moulded plastic insert.
+            CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+            CGFloat tone[8] = { color.x * 0.72, color.y * 0.72, color.z * 0.72, 1, color.x * 0.2, color.y * 0.2, color.z * 0.2, 1 };
+            CGGradientRef gradient = CGGradientCreateWithColorComponents(space, tone, NULL, 2);
+            CGPoint tip = CGPointMake(centre.x + cos(lamp.angle) * r, centre.y + sin(lamp.angle) * r);
+            CGPoint base = CGPointMake(centre.x - cos(lamp.angle) * r * 0.5, centre.y - sin(lamp.angle) * r * 0.5);
+            CGContextDrawLinearGradient(c, gradient, tip, base, kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
+            CGGradientRelease(gradient);
+            CGColorSpaceRelease(space);
+            CGContextRestoreGState(c);
+            continue;
+        }
         // Dark rim, then the unlit coloured plastic.
         CGContextSetRGBFillColor(c, 0, 0, 0, 0.7);
         CGContextFillEllipseInRect(c, CGRectInset(rect, -0.0035, -0.0035));
-        PBSetFill(c, color * 0.22f, 1.0f);
+        PBSetFill(c, color * 0.34f, 1.0f);
         CGContextFillEllipseInRect(c, rect);
         CGContextSaveGState(c);
         CGContextAddEllipseInRect(c, rect);
         CGContextClip(c);
-        PBDrawTintedIcon(c, [skin insertIcon:lamp.icon], color, CGRectInset(rect, r * 0.08, r * 0.08), 0.55f);
+        PBDrawTintedIcon(c, [skin insertIcon:lamp.icon], color, CGRectInset(rect, r * 0.08, r * 0.08), 0.75f);
         CGContextRestoreGState(c);
     }
 }
@@ -211,6 +238,26 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
     PBDrawTintedIcon(c, icon, simd_make_float3(1.0f, 1.0f, 1.0f), lensRect, 0.9f);
     CGContextRestoreGState(c);
 
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    CGContextRelease(c);
+    return image;
+}
+
++ (CGImageRef)newLitArrowWithColor:(simd_float3)color {
+    size_t size = 128;
+    CGContextRef c = PBCreateContext(size, size);
+    CGContextSetRGBFillColor(c, 0, 0, 0, 1);
+    CGContextFillRect(c, CGRectMake(0, 0, size, size));
+    CGPoint center = CGPointMake(size * 0.5, size * 0.5);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGFloat halo[8] = { color.x * 0.6, color.y * 0.6, color.z * 0.6, 1, 0, 0, 0, 1 };
+    CGGradientRef gradient = CGGradientCreateWithColorComponents(space, halo, NULL, 2);
+    CGContextDrawRadialGradient(c, gradient, center, 0, center, size * 0.5, 0);
+    CGGradientRelease(gradient);
+    CGColorSpaceRelease(space);
+    PBAddArrowPath(c, center, size / 4.8 * 0.95, 0);  // The sprite is 2.4x the lens size, as above.
+    PBSetFill(c, color * 0.9f + 0.1f, 1.0f);
+    CGContextFillPath(c);
     CGImageRef image = CGBitmapContextCreateImage(c);
     CGContextRelease(c);
     return image;

@@ -89,11 +89,25 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy) NSString *color;
 @property (nonatomic) NSInteger icon;
 @property (nonatomic, copy, nullable) NSString *bind;
+@property (nonatomic) BOOL isArrow;      // A triangular insert pointing along angle, not a round one.
+@property (nonatomic) float angle;       // Radians, counter-clockwise from +x.
 @end
 
 @interface PBPlasticDef : PBElementDef
 @property (nonatomic) float height;
 @property (nonatomic, strong) PBPointList *points;
+@end
+
+/// Static dressing: a named model from the skin's kit, with no effect on play.
+@interface PBDecorDef : PBElementDef
+@property (nonatomic, copy) NSString *model;
+@property (nonatomic) simd_float2 position;
+@property (nonatomic) float size;     // Half length, in table widths. Models are built to unit half length.
+@property (nonatomic) float angle;    // Radians, counter-clockwise from +x.
+@property (nonatomic) float base;     // Height of the surface it is mounted on.
+@property (nonatomic) float height;   // Its own height above that surface.
+@property (nonatomic) float radius;   // Footprint: a capsule of this radius...
+@property (nonatomic) float extent;   // ...reaching this far either side of position, along angle.
 @end
 
 @interface PBPlungerDef : NSObject
@@ -160,6 +174,7 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, readonly) NSArray<PBLampDef *> *lamps;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *flashers;
 @property (nonatomic, copy, readonly) NSArray<PBPlasticDef *> *plastics;
+@property (nonatomic, copy, readonly) NSArray<PBDecorDef *> *decor;
 @property (nonatomic, strong, readonly) PBRulesDef *rules;
 
 - (nullable instancetype)initWithJSONData:(NSData *)data error:(NSError **)error;

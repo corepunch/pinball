@@ -74,6 +74,7 @@ static simd_float3 PBColor(NSArray *rgb, simd_float3 fallback) {
         _playfieldReflectivity = materials[@"playfieldReflectivity"] ? [materials[@"playfieldReflectivity"] floatValue] : 0.28f;
         _bloomIntensity = materials[@"bloom"] ? [materials[@"bloom"] floatValue] : 0.9f;
         _rampOpacity = materials[@"rampOpacity"] ? [materials[@"rampOpacity"] floatValue] : 0.55f;
+        _rampGlassColor = PBColor(materials[@"rampGlass"], _accentColor);
         _modelKit = [_palette[@"modelKit"] copy];
         _cache = [NSMutableDictionary dictionary];
         _sources = [NSMutableDictionary dictionary];

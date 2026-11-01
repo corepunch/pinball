@@ -10,69 +10,70 @@
     "drainY": 0.205,
     "plungerSpeed": 4.4
   },
-  "plunger": { "x": 0.956, "y": 0.30, "width": 0.05, "travel": 0.07 },
-  "apron": { "y": 0.225, "height": 0.075, "dmd": [0.2275, 0.055, 0.5, 0.125] },
+  "plunger": { "x": 0.961, "y": 0.30, "width": 0.05, "travel": 0.07 },
+  "apron": { "y": 0.225, "height": 0.075, "dmd": [0.2375, 0.05, 0.48, 0.112] },
 
   "walls": [
-    { "id": "outer", "style": "rail", "height": 0.12, "radius": 0.006, "points": [
-      [0.99, 0.19], { "arc": [0.51, 1.5425, 0.48, 0, 180, 56] }, [0.03, 0.19] ] },
+    { "id": "outer", "style": "none", "height": 0.12, "radius": 0.006, "points": [
+      [1.0, 0.19], { "arc": [0.85, 2.018, 0.15, 0, 90, 16] }, { "arc": [0.15, 2.018, 0.15, 90, 180, 16] }, [0.0, 0.19] ] },
     { "id": "shooterInner", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.922, 0.19], [0.922, 1.50]] },
 
-    { "id": "guideOrbitL", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.155, 0.92], [0.125, 0.92], [0.125, 1.46], [0.145, 1.56]] },
-    { "id": "guideOrbitR", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.80, 0.90], [0.83, 0.92], [0.83, 1.46], [0.81, 1.56]] },
+    { "id": "guideOrbitL", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.155, 0.92], [0.125, 0.92], [0.125, 1.46]] },
+    { "id": "guideOrbitR", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.80, 0.90], [0.83, 0.92], [0.83, 1.46]] },
 
-    { "id": "rampSideL", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.155, 0.92], [0.183, 1.02], [0.188, 1.18]] },
-    { "id": "rampSideR", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.31, 0.90], [0.277, 1.02], [0.282, 1.18]] },
-    { "id": "rampBack", "style": "rail", "height": 0.06, "radius": 0.006, "layers": ["playfield"], "points": [[0.125, 1.30], [0.285, 1.18]] },
+    { "id": "rampSideLL", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.155, 0.92], [0.183, 1.02], [0.188, 1.18]] },
+    { "id": "rampSideLR", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.31, 0.90], [0.277, 1.02], [0.282, 1.18]] },
+    { "id": "rampBackL", "style": "none", "height": 0.06, "radius": 0.006, "layers": ["playfield"], "points": [[0.125, 1.30], [0.285, 1.18]] },
+    { "id": "rampSideRL", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.645, 0.90], [0.678, 1.02], [0.673, 1.18]] },
+    { "id": "rampSideRR", "style": "wall", "height": 0.07, "radius": 0.005, "layers": ["playfield", "ramp"], "points": [[0.80, 0.90], [0.772, 1.02], [0.767, 1.18]] },
+    { "id": "rampBackR", "style": "none", "height": 0.06, "radius": 0.006, "layers": ["playfield"], "points": [[0.83, 1.30], [0.67, 1.18]] },
 
-    { "id": "centerBlock", "style": "plastic", "height": 0.085, "radius": 0.005, "closed": true, "points": [
-      [0.37, 1.13], [0.37, 1.29], [0.47, 1.355], [0.535, 1.40], [0.60, 1.355], [0.60, 1.16],
-      [0.585, 1.16], [0.585, 1.335], [0.515, 1.335], [0.515, 1.16], [0.47, 1.13], [0.47, 1.265],
-      [0.385, 1.265], [0.385, 1.13] ] },
+    { "id": "captiveHousing", "style": "plastic", "height": 0.06, "radius": 0.005, "closed": true, "points": [
+      [0.44, 1.20], [0.44, 1.42], [0.485, 1.445], [0.53, 1.42], [0.53, 1.20],
+      [0.52, 1.20], [0.52, 1.405], [0.45, 1.405], [0.45, 1.20] ] },
 
-    { "id": "dropBack", "style": "wall", "height": 0.08, "radius": 0.006, "points": [[0.625, 1.02], [0.615, 1.075], [0.83, 1.275]] },
+    { "id": "scoopHood", "style": "rail", "height": 0.05, "radius": 0.006, "points": [[0.35, 1.095], [0.38, 1.115], [0.415, 1.095]] },
+    { "id": "dropHousing", "style": "plastic", "height": 0.06, "radius": 0.005, "closed": true, "points": [[0.578, 1.152], [0.664, 1.058], [0.658, 1.19]] },
 
-    { "id": "laneSep0", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.355, 1.805], [0.355, 1.895]] },
-    { "id": "laneSep1", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.45, 1.805], [0.45, 1.915]] },
-    { "id": "laneSep2", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.545, 1.805], [0.545, 1.915]] },
-    { "id": "laneSep3", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.64, 1.805], [0.64, 1.895]] },
+    { "id": "laneSep0", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.355, 1.88], [0.355, 1.965]] },
+    { "id": "laneSep1", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.45, 1.88], [0.45, 1.985]] },
+    { "id": "laneSep2", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.545, 1.88], [0.545, 1.985]] },
+    { "id": "laneSep3", "style": "rubber", "height": 0.05, "radius": 0.008, "points": [[0.64, 1.88], [0.64, 1.965]] },
 
     { "id": "slingBackL", "style": "wall", "height": 0.07, "radius": 0.006, "points": [[0.185, 0.63], [0.185, 0.50], [0.255, 0.46]] },
     { "id": "slingBackR", "style": "wall", "height": 0.07, "radius": 0.006, "points": [[0.77, 0.63], [0.77, 0.50], [0.70, 0.46]] },
 
-    { "id": "separatorL", "style": "wall", "height": 0.07, "radius": 0.006, "points": [[0.105, 0.545], [0.105, 0.43]] },
+    { "id": "separatorL", "style": "wall", "height": 0.07, "radius": 0.006, "points": [[0.085, 0.545], [0.085, 0.436]] },
     { "id": "separatorR", "style": "wall", "height": 0.07, "radius": 0.006, "points": [[0.85, 0.545], [0.85, 0.43]] },
-    { "id": "inlaneL", "style": "rail", "height": 0.05, "radius": 0.006, "points": [[0.105, 0.43], [0.29, 0.372]] },
-    { "id": "inlaneR", "style": "rail", "height": 0.05, "radius": 0.006, "points": [[0.85, 0.43], [0.665, 0.372]] },
+    { "id": "inlaneL", "style": "rail", "height": 0.05, "radius": 0.006, "points": [[0.085, 0.436], [0.275, 0.3765]] },
+    { "id": "inlaneR", "style": "rail", "height": 0.05, "radius": 0.006, "points": [[0.85, 0.43], [0.68, 0.3765]] },
 
-    { "id": "captiveStop", "style": "none", "radius": 0.003, "layers": ["captive"], "points": [[0.515, 1.225], [0.585, 1.225]] }
+    { "id": "captiveStop", "style": "none", "radius": 0.003, "layers": ["captive"], "points": [[0.45, 1.295], [0.52, 1.295]] }
   ],
 
   "posts": [
-    { "id": "postOrbitL", "x": 0.145, "y": 1.56, "r": 0.013 },
-    { "id": "postOrbitR", "x": 0.81, "y": 1.56, "r": 0.013 },
+    { "id": "postOrbitL", "x": 0.125, "y": 1.46, "r": 0.013 },
+    { "id": "postOrbitR", "x": 0.83, "y": 1.46, "r": 0.013 },
     { "id": "postShooter", "x": 0.922, "y": 1.50, "r": 0.010 },
-    { "id": "postSepL", "x": 0.105, "y": 0.545, "r": 0.012 },
+    { "id": "postSepL", "x": 0.085, "y": 0.545, "r": 0.012 },
     { "id": "postSepR", "x": 0.85, "y": 0.545, "r": 0.012 },
-    { "id": "postRampL", "x": 0.155, "y": 0.92, "r": 0.013 },
-    { "id": "postRampR", "x": 0.31, "y": 0.90, "r": 0.013 },
-    { "id": "postBlockL", "x": 0.37, "y": 1.13, "r": 0.010 },
-    { "id": "postBlockM", "x": 0.47, "y": 1.13, "r": 0.010 },
-    { "id": "postBlockR", "x": 0.60, "y": 1.16, "r": 0.010 },
-    { "id": "postDrop", "x": 0.625, "y": 1.02, "r": 0.012 },
-    { "id": "postOrbitR2", "x": 0.80, "y": 0.90, "r": 0.012 }
+    { "id": "postRampLL", "x": 0.155, "y": 0.92, "r": 0.013 },
+    { "id": "postRampLR", "x": 0.31, "y": 0.90, "r": 0.013 },
+    { "id": "postRampRL", "x": 0.645, "y": 0.90, "r": 0.013 },
+    { "id": "postRampRR", "x": 0.80, "y": 0.90, "r": 0.013 },
+    { "id": "postHousingL", "x": 0.44, "y": 1.20, "r": 0.010 },
+    { "id": "postHousingR", "x": 0.53, "y": 1.20, "r": 0.010 }
   ],
 
   "flippers": [
-    { "id": "flipperL", "side": "left",  "pivot": [0.30, 0.345],  "length": 0.150, "baseRadius": 0.019, "tipRadius": 0.012, "restAngle": -25, "activeAngle": 28 },
-    { "id": "flipperR", "side": "right", "pivot": [0.655, 0.345], "length": 0.150, "baseRadius": 0.019, "tipRadius": 0.012, "restAngle": 205, "activeAngle": 152 },
-    { "id": "flipperU", "side": "right", "pivot": [0.812, 1.00],  "length": 0.100, "baseRadius": 0.015, "tipRadius": 0.010, "restAngle": 208, "activeAngle": 155 }
+    { "id": "flipperL", "side": "left",  "pivot": [0.30, 0.345],  "length": 0.150, "baseRadius": 0.024, "tipRadius": 0.0135, "restAngle": -25, "activeAngle": 28 },
+    { "id": "flipperR", "side": "right", "pivot": [0.655, 0.345], "length": 0.150, "baseRadius": 0.024, "tipRadius": 0.0135, "restAngle": 205, "activeAngle": 152 }
   ],
 
   "bumpers": [
-    { "id": "bumperA", "x": 0.36, "y": 1.64, "r": 0.052 },
-    { "id": "bumperB", "x": 0.60, "y": 1.64, "r": 0.052 },
-    { "id": "bumperC", "x": 0.48, "y": 1.485, "r": 0.052 }
+    { "id": "bumperA", "x": 0.485, "y": 1.74, "r": 0.065 },
+    { "id": "bumperB", "x": 0.325, "y": 1.615, "r": 0.065 },
+    { "id": "bumperC", "x": 0.645, "y": 1.615, "r": 0.065 }
   ],
 
   "slingshots": [
@@ -81,46 +82,46 @@
   ],
 
   "dropTargets": [
-    { "id": "drop1", "a": [0.645, 1.065], "b": [0.682, 1.099] },
-    { "id": "drop2", "a": [0.682, 1.099], "b": [0.719, 1.133] },
-    { "id": "drop3", "a": [0.719, 1.133], "b": [0.756, 1.167] }
+    { "id": "drop1", "a": [0.569, 1.144], "b": [0.598, 1.113] },
+    { "id": "drop2", "a": [0.598, 1.113], "b": [0.627, 1.081] },
+    { "id": "drop3", "a": [0.627, 1.081], "b": [0.655, 1.05] }
   ],
 
   "standups": [
-    { "id": "standL1", "a": [0.033, 0.76], "b": [0.033, 0.70] },
-    { "id": "standL2", "a": [0.033, 0.86], "b": [0.033, 0.80] },
+    { "id": "standL1", "a": [0.022, 0.76], "b": [0.022, 0.70] },
+    { "id": "standL2", "a": [0.022, 0.86], "b": [0.022, 0.80] },
     { "id": "standR1", "a": [0.918, 0.70], "b": [0.918, 0.76] },
     { "id": "standR2", "a": [0.918, 0.80], "b": [0.918, 0.86] },
-    { "id": "captiveTarget", "a": [0.585, 1.33], "b": [0.515, 1.33] }
+    { "id": "captiveTarget", "a": [0.52, 1.40], "b": [0.45, 1.40] }
   ],
 
   "rollovers": [
-    { "id": "laneA", "x": 0.4025, "y": 1.835, "r": 0.03 },
-    { "id": "laneB", "x": 0.4975, "y": 1.835, "r": 0.03 },
-    { "id": "laneC", "x": 0.5925, "y": 1.835, "r": 0.03 },
+    { "id": "laneA", "x": 0.4025, "y": 1.91, "r": 0.03 },
+    { "id": "laneB", "x": 0.4975, "y": 1.91, "r": 0.03 },
+    { "id": "laneC", "x": 0.5925, "y": 1.91, "r": 0.03 },
     { "id": "orbitR", "x": 0.8775, "y": 1.20, "r": 0.03 },
-    { "id": "inlaneLeft", "x": 0.145, "y": 0.47, "r": 0.025 },
+    { "id": "inlaneLeft", "x": 0.135, "y": 0.47, "r": 0.025 },
     { "id": "inlaneRight", "x": 0.81, "y": 0.47, "r": 0.025 },
-    { "id": "outlaneLeft", "x": 0.0675, "y": 0.47, "r": 0.025 },
+    { "id": "outlaneLeft", "x": 0.043, "y": 0.47, "r": 0.025 },
     { "id": "outlaneRight", "x": 0.8875, "y": 0.47, "r": 0.025 }
   ],
 
   "spinners": [
-    { "id": "spinnerL", "a": [0.03, 1.16], "b": [0.125, 1.16] }
+    { "id": "spinnerL", "a": [0.02, 1.16], "b": [0.125, 1.16] }
   ],
 
   "saucers": [
-    { "id": "scoop", "x": 0.4275, "y": 1.215, "r": 0.03, "ejectDirection": [-0.30, -1.0], "ejectSpeed": 2.6, "captureSpeed": 2.4 }
+    { "id": "scoop", "x": 0.38, "y": 1.05, "r": 0.03, "ejectDirection": [-0.10, -1.0], "ejectSpeed": 2.6, "captureSpeed": 2.4 }
   ],
 
   "gates": [
-    { "id": "shooterGate", "a": [0.922, 1.50], "b": [0.99, 1.555], "passDirection": [0.0, 1.0] },
-    { "id": "orbitGateL", "a": [0.033, 0.90], "b": [0.12, 0.80], "passDirection": [0.0, 1.0] },
+    { "id": "shooterGate", "a": [0.922, 1.50], "b": [1.0, 1.563], "passDirection": [0.0, 1.0] },
+    { "id": "orbitGateL", "a": [0.0, 0.938], "b": [0.12, 0.80], "passDirection": [0.0, 1.0] },
     { "id": "orbitGateR", "a": [0.916, 0.90], "b": [0.835, 0.80], "passDirection": [0.0, 1.0] }
   ],
 
   "kickbacks": [
-    { "id": "kickbackL", "x": 0.0675, "y": 0.33, "r": 0.03, "speed": 4.2 }
+    { "id": "kickbackL", "x": 0.043, "y": 0.33, "r": 0.03, "speed": 4.2 }
   ],
 
   "magnets": [
@@ -128,78 +129,110 @@
   ],
 
   "captiveBalls": [
-    { "id": "captive", "x": 0.55, "y": 1.26 }
+    { "id": "captive", "x": 0.485, "y": 1.33 }
   ],
 
   "ramps": [
     {
-      "id": "ramp",
+      "id": "rampL",
       "width": 0.074,
       "mouth": [[0.188, 1.02], [0.272, 1.02]],
       "points": [
-        [0.23, 1.02, 0.0], [0.235, 1.18, 0.075], [0.255, 1.36, 0.135], [0.30, 1.62, 0.19],
-        [0.40, 1.765, 0.205], [0.56, 1.735, 0.2], [0.70, 1.62, 0.19], [0.775, 1.40, 0.15],
-        [0.79, 1.20, 0.12], [0.80, 1.00, 0.10], [0.808, 0.80, 0.08], [0.812, 0.64, 0.055], [0.814, 0.56, 0.04]
+        [0.23, 1.02, 0.0], [0.235, 1.18, 0.075], [0.225, 1.36, 0.125], [0.19, 1.55, 0.15],
+        [0.115, 1.72, 0.155], [0.10, 1.84, 0.15], [0.15, 1.94, 0.13], [0.30, 1.97, 0.10]
       ],
-      "plasticUntil": 8
+      "plasticUntil": 7
+    },
+    {
+      "id": "rampR",
+      "width": 0.074,
+      "mouth": [[0.683, 1.02], [0.767, 1.02]],
+      "points": [
+        [0.725, 1.02, 0.0], [0.72, 1.18, 0.075], [0.735, 1.36, 0.125], [0.77, 1.55, 0.15],
+        [0.855, 1.72, 0.155], [0.87, 1.84, 0.15], [0.82, 1.94, 0.13], [0.70, 1.97, 0.10]
+      ],
+      "plasticUntil": 7
     }
   ],
 
   "lamps": [
-    { "id": "lampLaneA", "x": 0.4025, "y": 1.895, "size": 0.021, "color": "cyan", "icon": 0 },
-    { "id": "lampLaneB", "x": 0.4975, "y": 1.895, "size": 0.021, "color": "cyan", "icon": 0 },
-    { "id": "lampLaneC", "x": 0.5925, "y": 1.895, "size": 0.021, "color": "cyan", "icon": 0 },
+    { "id": "lampLaneA", "x": 0.4025, "y": 1.97, "size": 0.021, "color": "cyan", "icon": 0 },
+    { "id": "lampLaneB", "x": 0.4975, "y": 1.97, "size": 0.021, "color": "cyan", "icon": 0 },
+    { "id": "lampLaneC", "x": 0.5925, "y": 1.97, "size": 0.021, "color": "cyan", "icon": 0 },
 
-    { "id": "lampShootAgain", "x": 0.4775, "y": 0.42, "size": 0.032, "color": "white", "icon": 1, "bind": "shootAgain" },
+    { "id": "lampShootAgain", "x": 0.4775, "y": 0.452, "size": 0.03, "color": "white", "icon": 1, "bind": "shootAgain" },
     { "id": "lampBonus2", "x": 0.385, "y": 0.525, "size": 0.026, "color": "amber", "icon": 2, "bind": "bonusX2" },
     { "id": "lampBonus3", "x": 0.4775, "y": 0.565, "size": 0.026, "color": "amber", "icon": 3, "bind": "bonusX3" },
     { "id": "lampBonus5", "x": 0.57, "y": 0.525, "size": 0.026, "color": "amber", "icon": 4, "bind": "bonusX5" },
 
-    { "id": "lampJackpot", "x": 0.4775, "y": 0.695, "size": 0.05, "color": "magenta", "icon": 5, "bind": "jackpot" },
+    { "id": "lampJackpot", "x": 0.4775, "y": 0.675, "size": 0.05, "color": "magenta", "icon": 5, "bind": "jackpot" },
     { "id": "lampMagnet", "x": 0.4775, "y": 0.84, "size": 0.036, "color": "cyan", "icon": 6, "bind": "magnet" },
 
-    { "id": "lampLock", "x": 0.4275, "y": 1.07, "size": 0.03, "color": "green", "icon": 7, "bind": "lockLit" },
-    { "id": "lampLock1", "x": 0.385, "y": 0.985, "size": 0.021, "color": "green", "icon": 8, "bind": "lock1" },
-    { "id": "lampLock2", "x": 0.47, "y": 0.985, "size": 0.021, "color": "green", "icon": 8, "bind": "lock2" },
+    { "id": "lampRing1", "x": 0.4775, "y": 0.9350, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring1" },
+    { "id": "lampRing2", "x": 0.5250, "y": 0.9223, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring2" },
+    { "id": "lampRing3", "x": 0.5598, "y": 0.8875, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring3" },
+    { "id": "lampRing4", "x": 0.5725, "y": 0.8400, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring4" },
+    { "id": "lampRing5", "x": 0.5598, "y": 0.7925, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring5" },
+    { "id": "lampRing6", "x": 0.5250, "y": 0.7577, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring6" },
+    { "id": "lampRing7", "x": 0.4775, "y": 0.7450, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring7" },
+    { "id": "lampRing8", "x": 0.4300, "y": 0.7577, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring8" },
+    { "id": "lampRing9", "x": 0.3952, "y": 0.7925, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring9" },
+    { "id": "lampRing10", "x": 0.3825, "y": 0.8400, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring10" },
+    { "id": "lampRing11", "x": 0.3952, "y": 0.8875, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring11" },
+    { "id": "lampRing12", "x": 0.4300, "y": 0.9223, "size": 0.0105, "color": "amber", "icon": 8, "bind": "ring12" },
 
-    { "id": "lampRamp", "x": 0.23, "y": 0.955, "size": 0.03, "color": "magenta", "icon": 7, "bind": "rampHot" },
+    { "id": "lampLock", "x": 0.38, "y": 0.965, "size": 0.022, "color": "green", "icon": 7, "bind": "lockLit", "shape": "arrow", "angle": 90 },
+    { "id": "lampLock1", "x": 0.33, "y": 0.965, "size": 0.021, "color": "green", "icon": 8, "bind": "lock1" },
+    { "id": "lampLock2", "x": 0.435, "y": 0.965, "size": 0.021, "color": "green", "icon": 8, "bind": "lock2" },
+
+    { "id": "lampRamp", "x": 0.23, "y": 0.975, "size": 0.03, "color": "magenta", "icon": 7, "bind": "rampHot", "shape": "arrow", "angle": 90 },
+    { "id": "lampRampR", "x": 0.725, "y": 0.975, "size": 0.03, "color": "magenta", "icon": 7, "bind": "rampHot", "shape": "arrow", "angle": 90 },
     { "id": "lampRamp1", "x": 0.33, "y": 0.70, "size": 0.021, "color": "magenta", "icon": 8, "bind": "ramp1" },
     { "id": "lampRamp2", "x": 0.30, "y": 0.77, "size": 0.021, "color": "magenta", "icon": 8, "bind": "ramp2" },
     { "id": "lampRamp3", "x": 0.27, "y": 0.84, "size": 0.021, "color": "magenta", "icon": 8, "bind": "ramp3" },
-    { "id": "lampExtraBall", "x": 0.625, "y": 0.70, "size": 0.032, "color": "amber", "icon": 9, "bind": "extraBall" },
+    { "id": "lampExtraBall", "x": 0.625, "y": 0.70, "size": 0.032, "color": "amber", "icon": 9, "bind": "extraBall", "shape": "arrow", "angle": 60 },
 
-    { "id": "lampOrbitL", "x": 0.0775, "y": 0.985, "size": 0.026, "color": "cyan", "icon": 7, "bind": "orbitHot" },
-    { "id": "lampOrbitR", "x": 0.8775, "y": 1.04, "size": 0.026, "color": "cyan", "icon": 7, "bind": "orbitHot" },
+    { "id": "lampOrbitL", "x": 0.0775, "y": 0.985, "size": 0.026, "color": "cyan", "icon": 7, "bind": "orbitHot", "shape": "arrow", "angle": 90 },
+    { "id": "lampOrbitR", "x": 0.8775, "y": 1.04, "size": 0.026, "color": "cyan", "icon": 7, "bind": "orbitHot", "shape": "arrow", "angle": 90 },
 
-    { "id": "lampDrop1", "x": 0.625, "y": 0.965, "size": 0.021, "color": "red", "icon": 10 },
-    { "id": "lampDrop2", "x": 0.665, "y": 0.995, "size": 0.021, "color": "red", "icon": 10 },
-    { "id": "lampDrop3", "x": 0.705, "y": 1.025, "size": 0.021, "color": "red", "icon": 10 },
+    { "id": "lampDrop1", "x": 0.55, "y": 1.098, "size": 0.0185, "color": "red", "icon": 10 },
+    { "id": "lampDrop2", "x": 0.579, "y": 1.067, "size": 0.0185, "color": "red", "icon": 10 },
+    { "id": "lampDrop3", "x": 0.608, "y": 1.035, "size": 0.0185, "color": "red", "icon": 10 },
 
-    { "id": "lampCaptive", "x": 0.55, "y": 1.10, "size": 0.026, "color": "white", "icon": 7, "bind": "captiveHot" },
+    { "id": "lampCaptive", "x": 0.485, "y": 1.12, "size": 0.026, "color": "white", "icon": 7, "bind": "captiveHot", "shape": "arrow", "angle": 90 },
 
-    { "id": "lampStandL1", "x": 0.075, "y": 0.73, "size": 0.021, "color": "green", "icon": 11 },
-    { "id": "lampStandL2", "x": 0.075, "y": 0.83, "size": 0.021, "color": "green", "icon": 11 },
-    { "id": "lampStandR1", "x": 0.88, "y": 0.73, "size": 0.021, "color": "amber", "icon": 11 },
-    { "id": "lampStandR2", "x": 0.88, "y": 0.83, "size": 0.021, "color": "amber", "icon": 11 },
+    { "id": "lampStandL1", "x": 0.075, "y": 0.72, "size": 0.021, "color": "green", "icon": 11 },
+    { "id": "lampStandL2", "x": 0.075, "y": 0.79, "size": 0.021, "color": "green", "icon": 11 },
+    { "id": "lampStandR1", "x": 0.88, "y": 0.72, "size": 0.021, "color": "amber", "icon": 11 },
+    { "id": "lampStandR2", "x": 0.88, "y": 0.79, "size": 0.021, "color": "amber", "icon": 11 },
 
-    { "id": "lampKickback", "x": 0.0675, "y": 0.40, "size": 0.024, "color": "green", "icon": 12, "bind": "kickback" },
-    { "id": "lampSpecial", "x": 0.8875, "y": 0.40, "size": 0.024, "color": "red", "icon": 13, "bind": "special" },
-    { "id": "lampInlaneL", "x": 0.145, "y": 0.535, "size": 0.018, "color": "white", "icon": 8 },
+    { "id": "lampKickback", "x": 0.043, "y": 0.40, "size": 0.022, "color": "green", "icon": 12, "bind": "kickback" },
+    { "id": "lampSpecial", "x": 0.886, "y": 0.40, "size": 0.022, "color": "red", "icon": 13, "bind": "special" },
+    { "id": "lampInlaneL", "x": 0.135, "y": 0.535, "size": 0.018, "color": "white", "icon": 8 },
     { "id": "lampInlaneR", "x": 0.81, "y": 0.535, "size": 0.018, "color": "white", "icon": 8 },
-    { "id": "lampSkill", "x": 0.955, "y": 0.70, "size": 0.018, "color": "white", "icon": 7, "bind": "skillShot" }
+    { "id": "lampSkill", "x": 0.957, "y": 0.7, "size": 0.014, "color": "white", "icon": 7, "bind": "skillShot" }
   ],
 
   "flashers": [
-    { "id": "flashTL", "x": 0.085, "y": 1.965, "color": "magenta" },
-    { "id": "flashTR", "x": 0.915, "y": 1.965, "color": "cyan" },
-    { "id": "flashDrops", "x": 0.74, "y": 1.30, "color": "amber" }
+    { "id": "flashTL", "x": 0.095, "y": 2.06, "color": "magenta" },
+    { "id": "flashTR", "x": 0.905, "y": 2.06, "color": "cyan" },
+    { "id": "flashDrops", "x": 0.60, "y": 1.29, "color": "amber" }
   ],
 
   "plastics": [
-    { "id": "plasticSlingL", "height": 0.095, "points": [[0.185, 0.645], [0.178, 0.50], [0.262, 0.452]] },
-    { "id": "plasticSlingR", "height": 0.095, "points": [[0.77, 0.645], [0.777, 0.50], [0.693, 0.452]] },
-    { "id": "plasticOrbitL", "height": 0.105, "points": [[0.11, 1.30], [0.14, 1.30], [0.165, 1.52], [0.13, 1.585], [0.11, 1.46]] },
-    { "id": "plasticOrbitR", "height": 0.105, "points": [[0.845, 1.30], [0.815, 1.30], [0.79, 1.52], [0.825, 1.585], [0.845, 1.46]] }
+    { "id": "plasticSlingL", "height": 0.075, "points": [[0.185, 0.645], [0.178, 0.50], [0.262, 0.452]] },
+    { "id": "plasticSlingR", "height": 0.075, "points": [[0.77, 0.645], [0.777, 0.50], [0.693, 0.452]] }
+  ],
+
+  "decor": [
+    { "id": "gearTL", "model": "gear", "x": 0.215, "y": 2.11, "size": 0.028, "angle": 0, "base": 0, "height": 0.016, "aspect": 1 },
+    { "id": "gearTR", "model": "gear", "x": 0.785, "y": 2.11, "size": 0.028, "angle": 0, "base": 0, "height": 0.016, "aspect": 1 },
+    { "id": "pistonTL", "model": "piston", "x": 0.295, "y": 2.11, "size": 0.04, "angle": 0, "base": 0, "height": 0.016, "aspect": 0.3 },
+    { "id": "pistonTR", "model": "piston", "x": 0.705, "y": 2.11, "size": 0.04, "angle": 180, "base": 0, "height": 0.016, "aspect": 0.3 },
+    { "id": "plateBL", "model": "gear", "x": 0.165, "y": 0.285, "size": 0.034, "angle": 20, "base": 0, "height": 0.01, "aspect": 1 },
+    { "id": "plateBR", "model": "gear", "x": 0.815, "y": 0.285, "size": 0.034, "angle": -20, "base": 0, "height": 0.01, "aspect": 1 },
+    { "id": "strapBL", "model": "bracket", "x": 0.25, "y": 0.262, "size": 0.042, "angle": -16, "base": 0, "height": 0.008, "aspect": 0.3 },
+    { "id": "strapBR", "model": "bracket", "x": 0.735, "y": 0.262, "size": 0.042, "angle": 16, "base": 0, "height": 0.008, "aspect": 0.3 }
   ],
 
   "rules": {

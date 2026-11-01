@@ -18,11 +18,11 @@
 - (SCNNode *)nodeNamed:(NSString *)name {
     SCNNode *model = _templates[name];
     if (!model) {
-        NSURL *url = [_bundle URLForResource:name withExtension:@"dae" subdirectory:_directory];
+        NSURL *url = [_bundle URLForResource:name withExtension:@"scn" subdirectory:_directory];
         if (!url) return nil;
         NSError *error;
-        // Export is already Y-up/metres; preserve its semantic material names and normals.
-        SCNScene *scene = [SCNScene sceneWithURL:url options:@{SCNSceneSourceConvertToYUpKey:@NO} error:&error];
+        // Compiled from Y-up, metre COLLADA, with its semantic material names and normals.
+        SCNScene *scene = [SCNScene sceneWithURL:url options:nil error:&error];
         if (!scene) { NSLog(@"Could not load model %@: %@", name, error); return nil; }
         model = [SCNNode node];
         model.name = name;

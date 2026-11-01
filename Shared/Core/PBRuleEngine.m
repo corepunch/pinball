@@ -46,6 +46,7 @@ static const double kBallAddDelay = 0.8;
     BOOL _lockLit;
     BOOL _jackpotLit;
     NSInteger _rampCount;
+    NSInteger _ringLit;
     BOOL _extraBallLit;
     BOOL _specialLit;
     BOOL _kickbackArmed;
@@ -105,6 +106,7 @@ static const double kBallAddDelay = 0.8;
     _extraBalls = 0;
     _locks = 0;
     _rampCount = 0;
+    _ringLit = 0;
     _lockLit = NO;
     _extraBallLit = NO;
     _specialLit = NO;
@@ -223,6 +225,7 @@ static const double kBallAddDelay = 0.8;
         case PBEventBumper:
             [self award:@"bumper"];
             _bonus += 1;
+            _ringLit = (_ringLit + 1) % 13;
             break;
         case PBEventSling:
             [self award:@"sling"];
@@ -547,6 +550,8 @@ static const double kBallAddDelay = 0.8;
 }
 
 - (PBLampMode)modeForBinding:(NSString *)bind {
+    // ring1...ringN: a progress dial that fills with bumper hits, then starts again.
+    if ([bind hasPrefix:@"ring"]) return _ringLit >= [bind substringFromIndex:4].integerValue ? PBLampOn : PBLampOff;
     static NSDictionary<NSString *, NSNumber *> *bindings;
     static dispatch_once_t once;
     dispatch_once(&once, ^{

@@ -27,8 +27,8 @@ ASSEMBLIES = (
     {'dropHousing', 'drop1', 'drop2', 'drop3'},
     {'captiveHousing', 'captiveTarget', 'captive'},
     {'scoopHood', 'scoop'},
-    {'flipperL', 'inlaneL', 'plasticSlingL'},
-    {'flipperR', 'inlaneR', 'plasticSlingR'},
+    {'flipperL', 'inlaneL', 'plasticSlingL', 'slideL'},
+    {'flipperR', 'inlaneR', 'plasticSlingR', 'slideR'},
     {'rampL', 'lampRampL'},
     {'rampR', 'lampRampR'},
     # Corner flashers stand high over the cabinet's edge.
@@ -163,7 +163,15 @@ def parts_of(table):
     for ball in table['captiveBalls']:
         add(ball['id']).disc(ball['x'], ball['y'], table['physics']['ballRadius'], .03)
     for lamp in table['lamps']:
-        add(lamp['id']).disc(lamp['x'], lamp['y'], lamp['size'] * (1.068 if lamp.get('shape') == 'arrow' else 1.1))
+        if lamp.get('shape') == 'arrow':
+            # A narrowed triangle, as the kit's arrowhead is: wide at the back, coming to a point.
+            size, turn = lamp['size'], math.radians(lamp.get('angle', 0))
+            along = (math.cos(turn) * size, math.sin(turn) * size)
+            back = (lamp['x'] - along[0] * .1, lamp['y'] - along[1] * .1)
+            add(lamp['id']).disc(*back, size * .556)
+            parts[-1].line([back, (lamp['x'] + along[0] * .8, lamp['y'] + along[1] * .8)], size * .2)
+        else:
+            add(lamp['id']).disc(lamp['x'], lamp['y'], lamp['size'] * 1.1)
         parts[-1].owns = lamp.get('bar')
     for flasher in table['flashers']:
         add(flasher['id']).disc(flasher['x'], flasher['y'], .034 * 1.05, .11, .15)

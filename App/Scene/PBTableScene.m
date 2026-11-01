@@ -138,6 +138,7 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
 @property (nonatomic, strong) SCNMaterial *idle;
 @property (nonatomic, strong) SCNMaterial *lit;
 @property (nonatomic) BOOL illuminated;
+@property (nonatomic) float capScale;
 @property (nonatomic, copy) NSArray<SCNGeometry *> *paintedGeometry;
 @end
 @implementation PBBumperView @end
@@ -404,7 +405,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         SCNMaterial *targetLens = [slingLens copy];
         targetLens.name = @"target_lens";
         targetLens.diffuse.intensity = 0.16;
-        targetLens.roughness.contents = @0.55;
+        // Matte: a gloss highlight from the key light would read as lit.
+        targetLens.lightingModelName = SCNLightingModelLambert;
         targetLens.emission.intensity = 0;
         // One each, as a hit lights only the bouncer that was hit.
         _slingLenses = @[ [slingLens copy], [slingLens copy] ];
@@ -976,7 +978,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             view.idle.emission.intensity = 0.3;
             view.lit = [view.idle copy];
             view.lit.emission.contents = (__bridge id)capImage;
-            view.lit.emission.intensity = 0.6;
+            view.lit.emission.intensity = 1.6;
             CGImageRelease(capImage);
             [self skinModel:modelBase overrides:@{}];
             [self skinModel:modelCap overrides:@{ @"cap_art": view.idle }];
@@ -988,6 +990,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
                 if ([node.geometry.name isEqualToString:@"cap_art"]) [painted addObject:node.geometry];
             }];
             view.cap = modelCap;
+            view.capScale = r;
             view.paintedGeometry = painted;
             [_root addChildNode:modelBase];
             [_root addChildNode:modelCap];
@@ -1007,6 +1010,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
                                     {r * 0.70f, 0.067f}, {r * 0.28f, 0.070f}, {0.0001f, 0.071f} };
         SCNGeometry *cap = [PBGeometry latheWithProfile:capProfile count:6 segments:64];
         PBBumperView *view = [PBBumperView new];
+        view.capScale = 1.0f;
         view.idle = [self printedMaterial:@"bumper_cap"];
         view.lit = [view.idle copy];
         view.lit.diffuse.contents = (__bridge id)hitImage;
@@ -1402,9 +1406,9 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
         simd_float2 profile[] = { {0.03f, 0.0f}, {0.03f, 0.012f}, {0.024f, 0.03f}, {0.012f, 0.042f}, {0.0001f, 0.046f} };
         SCNGeometry *domeGeometry = [PBGeometry latheWithProfile:profile count:5 segments:24];
-        SCNMaterial *dome = [self pbrWithDiffuse:[self color:color * 0.5f] metalness:0.0 roughness:0.12];
+        SCNMaterial *dome = [self pbrWithDiffuse:[self color:color * 0.35f] metalness:0.0 roughness:0.12];
         dome.emission.contents = [self color:color];
-        dome.emission.intensity = 0.08;
+        dome.emission.intensity = 0.056;
         dome.transparency = 0.9;
         SCNNode *domeNode = [self addNodeWithGeometry:domeGeometry material:dome];
         domeNode.position = [self at:def.position height:domeHeight];
@@ -1559,6 +1563,9 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             for (SCNGeometry *geometry in bumper.paintedGeometry) geometry.firstMaterial = illuminated ? bumper.lit : bumper.idle;
             bumper.illuminated = illuminated;
         }
+        // Contracts as it fires: drawn in and pressed down, for the moment it is lit.
+        float rest = bumper.capScale;
+        bumper.cap.scale = SCNVector3Make(rest * (1.0f - 0.14f * flash), rest * (1.0f - 0.3f * flash), rest * (1.0f - 0.14f * flash));
         bumper.cap.position = [self at:_table.bumpers[i].position height:-0.002f * flash];
     }
 
@@ -1626,7 +1633,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         flasher.level = MAX(0.0f, flasher.level - dt * 3.2f);
         float level = flasher.level * flasher.level;
         flasher.light.intensity = level * 160.0f;
-        flasher.dome.emission.intensity = 0.08 + level * 2.2;
+        flasher.dome.emission.intensity = 0.056 + level * 2.2;
         BOOL visible = level > 0.01f;
         flasher.glow.hidden = !visible;
         if (visible) flasher.glow.opacity = level;
@@ -1651,7 +1658,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     for (NSUInteger i = 0; i < _bumpers.count; i++) {
         float flash = expf(-[world bumperFlash:(NSInteger)i] * 9.0f);
         PBSpotDef *bumper = _table.bumpers[i];
-        add(bumper.position, bumper.radius * 1.9f, 0.36f, [_skin lampColor:@"bumper"], 0.85f + flash * 2.2f);
+        add(bumper.position, bumper.radius * 1.9f, 0.36f, [_skin lampColor:@"bumper"], 0.85f + flash * 3.2f);
     }
     for (NSUInteger i = 0; i < _table.slingshots.count; i++) {
         float kick = expf(-[world slingFlash:(NSInteger)i] * 6.0f);

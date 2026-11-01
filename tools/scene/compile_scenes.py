@@ -123,7 +123,7 @@ def plastics_part(table, centred, builder):
     data = mesher.MeshData()
     # Each bouncer gets its own lens, in the order of the table's slingshots, to light when it is hit.
     shapes = [(p['id'], expand_points(p['points']), 'slingshot', f'sling_lens_{i}') for i, p in enumerate(table['plastics'])]
-    shapes += [(w['id'], expand_points(w['points']), 'docking-pod' if w['id'] == 'captiveHousing' else 'housing', None) for w in table['walls'] if w['style'] == 'plastic']
+    shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic']
     for name, path, prefab, lens in shapes:
         outline = mesher.ccw([centred(*p) for p in path])
         x0, x1 = min(p[0] for p in outline), max(p[0] for p in outline)
@@ -160,7 +160,7 @@ def main():
     kit = {element.get('id'): element for element in ET.parse(ROOT / 'Scenes/kit.xml').getroot()}
     builder = prefabs.Builder(kit)
     # Helpers and table-driven prefabs are not parts of their own.
-    templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing'}
+    templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide'}
     parts = {name: builder.build(name) for name in kit if name not in templates}
     for path in sorted((ROOT / 'Scenes').glob('*.xml')):
         if path.stem == 'kit':

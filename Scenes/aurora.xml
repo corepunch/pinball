@@ -18,6 +18,9 @@
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.743,0.52 0.743,0.29 0.628,0.245" />
   <wall id="inlaneL" style="rail" height="0.03" radius="0.021" points="0.0975,0.505 0.0975,0.2195 0.25,0.1657" />
   <wall id="inlaneR" style="rail" height="0.03" radius="0.021" points="0.832,0.505 0.832,0.2175 0.705,0.1657" />
+  <wall id="slideL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.0975,-0.02 0.0975,0.2195 0.25,0.1657 0.25,0.1 0.2,-0.02" />
+  <wall id="slideR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.832,-0.02 0.755,-0.02 0.705,0.1 0.705,0.1657 0.832,0.2175" />
+  <wall id="outlaneRailL" style="wall" height="0.03" radius="0.0065" points="0.0065,0.5 0.0065,0.16" />
   <wall id="captiveStop" style="none" radius="0.003" layers="captive" points="0.45,1.095 0.52,1.095" />
   <wall id="rampSideLL" style="none" height="0.022" radius="0.005" layers="playfield ramp" points="0.2625,1.231 0.18,1.4" />
   <wall id="rampSideLR" style="none" height="0.022" radius="0.005" layers="playfield ramp" points="0.3375,1.269 0.26,1.44" />
@@ -100,8 +103,8 @@
   <lamp id="lampMagnet" x="0.4775" y="0.64" size="0.04248" color="cyan" icon="6" bind="magnet" />
   <lamp id="lampLock" x="0.382" y="0.755" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
   <lamp id="lampExtraBall" x="0.575" y="0.45" size="0.03776" color="amber" icon="9" bind="extraBall" shape="arrow" angle="60" />
-  <lamp id="lampOrbitL" x="0.054" y="0.88" size="0.017" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" />
-  <lamp id="lampOrbitR" x="0.884" y="0.88" size="0.017" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" bar="orbitR" />
+  <lamp id="lampOrbitL" x="0.054" y="0.88" size="0.026" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" />
+  <lamp id="lampOrbitR" x="0.884" y="0.88" size="0.026" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" bar="orbitR" />
   <lamp id="lampCaptive" x="0.485" y="0.92" size="0.03068" color="white" icon="7" bind="captiveHot" shape="arrow" angle="90" />
   <lamp id="lampKickback" x="0.041" y="0.582" size="0.017" color="green" icon="12" bind="kickback" bar="outlaneLeft" />
   <lamp id="lampSpecial" x="0.884" y="0.582" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />

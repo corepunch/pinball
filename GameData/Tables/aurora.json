@@ -351,6 +351,82 @@
    ]
   },
   {
+   "id": "slideL",
+   "style": "plastic",
+   "part": "slide",
+   "height": 0.018,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.0975,
+     -0.02
+    ],
+    [
+     0.0975,
+     0.2195
+    ],
+    [
+     0.25,
+     0.1657
+    ],
+    [
+     0.25,
+     0.1
+    ],
+    [
+     0.2,
+     -0.02
+    ]
+   ]
+  },
+  {
+   "id": "slideR",
+   "style": "plastic",
+   "part": "slide",
+   "height": 0.018,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.832,
+     -0.02
+    ],
+    [
+     0.755,
+     -0.02
+    ],
+    [
+     0.705,
+     0.1
+    ],
+    [
+     0.705,
+     0.1657
+    ],
+    [
+     0.832,
+     0.2175
+    ]
+   ]
+  },
+  {
+   "id": "outlaneRailL",
+   "style": "wall",
+   "height": 0.03,
+   "radius": 0.0065,
+   "points": [
+    [
+     0.0065,
+     0.5
+    ],
+    [
+     0.0065,
+     0.16
+    ]
+   ]
+  },
+  {
    "id": "captiveStop",
    "style": "none",
    "radius": 0.003,
@@ -3136,7 +3212,7 @@
    "id": "lampOrbitL",
    "x": 0.054,
    "y": 0.88,
-   "size": 0.017,
+   "size": 0.026,
    "color": "cyan",
    "icon": 7,
    "bind": "orbitHot",
@@ -3147,7 +3223,7 @@
    "id": "lampOrbitR",
    "x": 0.884,
    "y": 0.88,
-   "size": 0.017,
+   "size": 0.026,
    "color": "cyan",
    "icon": 7,
    "bind": "orbitHot",

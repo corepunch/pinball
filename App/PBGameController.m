@@ -3,6 +3,7 @@
 //
 
 #import "PBGameController.h"
+#import "PBBackdropBlur.h"
 #import "PBSkin.h"
 #import "PBSoundEngine.h"
 #import "PBTableScene.h"
@@ -20,6 +21,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 
 @implementation PBGameController {
     __weak SCNView *_view;
+    SCNTechnique *_backdropBlur;
     PBTableDefinition *_table;
     PBTableScene *_tableScene;
     PBSoundEngine *_sound;
@@ -98,6 +100,9 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         _interface = [[PBGameUI alloc] initWithBundle:bundle];
         _interface.hidden = _game.autopilot;
         _interface.actionHandler = ^(PBUIAction action) { [weakSelf performUIAction:action]; };
+        _interface.popupHandler = ^(BOOL shown) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf setBackdropBlurred:shown]; });
+        };
         [self configureInterface];
         [_interface updateScore:0 best:_game.rules.highScore ball:0 ballCount:_table.rules.balls];
         [_interface showScreen:PBMenuHome];
@@ -182,6 +187,12 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     [self loadSkin:_skinName];
     [self configureInterface];
     [_interface showScreen:_menuFlow.screen];
+}
+
+- (void)setBackdropBlurred:(BOOL)blurred {
+    if (_game.autopilot) return;
+    if (!_backdropBlur) _backdropBlur = [PBBackdropBlur techniqueForDevice:_view.device];
+    _view.technique = blurred ? _backdropBlur : nil;
 }
 
 - (void)configureInterface {

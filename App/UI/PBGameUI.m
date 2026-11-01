@@ -164,6 +164,7 @@ static NSString *PBScoreString(int64_t score) {
 @end
 
 @implementation PBGameUI {
+    BOOL _popupShown;
     SKNode *_root, *_menu;
     SKTexture *_titleArt;
     NSDictionary<NSString *, NSArray<SKTexture *> *> *_textures;
@@ -335,7 +336,17 @@ static const NSInteger kLevelsPerPage = 12;
     if (subtitle) [self label:subtitle size:11 x:0 y:height * 0.5 - 114 color:PBMuted() parent:_menu];
 }
 
+- (void)setPopupHandler:(void (^)(BOOL))popupHandler {
+    _popupHandler = [popupHandler copy];
+    if (_popupHandler) _popupHandler(_popupShown);  // A screen may already be up.
+}
+
 - (void)showScreen:(PBMenuScreen)screen {
+    BOOL popup = screen != PBMenuPlaying;
+    if (popup != _popupShown) {
+        _popupShown = popup;
+        if (self.popupHandler) self.popupHandler(popup);
+    }
     _screen = screen;
     [self render];
 }
@@ -373,7 +384,7 @@ static const NSInteger kLevelsPerPage = 12;
     [_keys removeAllObjects];
     _scoreSprite = _ballSprite = _messageSprite = nil;
     if (_screen == PBMenuPlaying) { [self renderHUD]; return; }
-    SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.84]
+    SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.3]
                                                      size:CGSizeMake(402, _logicalHeight)];
     scrim.position = CGPointMake(201, _logicalHeight * 0.5);
     [_root addChild:scrim];

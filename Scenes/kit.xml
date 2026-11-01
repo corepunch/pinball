@@ -46,6 +46,12 @@
   </each-corner>
  </prefab>
 
+ <!-- The raised slide under a flipper's outer side, with the ball's lane running down beside it. -->
+ <prefab id="slide">
+  <polygon points="{outline}" role="cabinet_shell" z="{height}"/>
+  <polygon points="{outline}" role="accent" sharp="80"><sweep section="-.0042,0 -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,0"/></polygon>
+ </prefab>
+
  <!-- The captive ball's low pod, with a recessed tray. -->
  <prefab id="docking-pod">
   <polygon points="{tray}" role="dark" z=".001"/>

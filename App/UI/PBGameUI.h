@@ -6,6 +6,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// Explicit input forwarding keeps menu touches out of the flipper controls.
 @interface PBGameUI : SKScene
 @property (nonatomic, copy, nullable) void (^actionHandler)(PBUIAction action);
+/// Told when a popup appears over the game, or the last one goes. Every screen but the game itself is one.
+@property (nonatomic, copy, nullable) void (^popupHandler)(BOOL shown);
 @property (nonatomic, copy) NSString *skinName;
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, strong) SKColor *messageColor;

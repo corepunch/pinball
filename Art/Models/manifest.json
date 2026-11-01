@@ -117,15 +117,15 @@
     },
     "aurora-walls": {
       "objects": 1,
-      "triangles": 1444,
+      "triangles": 1604,
       "radius": 1.2343,
-      "bytes": 111290
+      "bytes": 123219
     },
     "aurora-plastics": {
       "objects": 1,
-      "triangles": 1422,
-      "radius": 0.9178,
-      "bytes": 110266
+      "triangles": 1528,
+      "radius": 1.236,
+      "bytes": 119121
     },
     "aurora-rampL": {
       "objects": 1,
@@ -153,15 +153,15 @@
     },
     "meridian-walls": {
       "objects": 1,
-      "triangles": 1444,
+      "triangles": 1604,
       "radius": 1.2343,
-      "bytes": 111014
+      "bytes": 122943
     },
     "meridian-plastics": {
       "objects": 1,
-      "triangles": 1422,
-      "radius": 0.9178,
-      "bytes": 110326
+      "triangles": 1528,
+      "radius": 1.236,
+      "bytes": 119181
     },
     "meridian-rampL": {
       "objects": 1,

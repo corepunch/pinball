@@ -48,7 +48,7 @@ Also `<use prefab="…" at="x,y" name="value"…>` places a prefab with its vari
 
 ## Tables
 
-A table is its layout and rules. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep at least 0.0625 of lane for the ball, or it becomes a trap.
+A table is its layout and rules. A plastic wall can name its kit prefab with `part`, as the slides under the flippers do. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep at least 0.0625 of lane for the ball, or it becomes a trap.
 
 ### Layout rules
 
@@ -61,6 +61,10 @@ Judge a layout as the player sees it: through the 30 degree camera, on a phone, 
 - **Change a ramp's shape smoothly.** The compiler rejects sudden changes in a ramp's curve, so blend a move over many points.
 - **Rollover bars and stand-up targets lie flat,** like the lamps. Targets stay dark until hit, as an unlit lamp does.
 - **Moving a part can trap the ball or block a shot.** Spacing alone doesn't show this, so always run `make test` afterwards. Moving the drop bank towards the captive pod opened a trap that only the tests caught.
+
+### Popups
+
+Every screen but the game itself is a popup. `PBGameUI` says when one appears or goes through `popupHandler`, and `PBGameController` blurs what's behind it with `PBBackdropBlur`, so a new screen gets the blur with no extra work. Don't add a blur or a heavy scrim to a screen.
 
 ## Checking a change
 

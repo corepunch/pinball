@@ -152,20 +152,6 @@
           1848
         ],
         "bleed": 0
-      },
-      "apron": {
-        "rect": [
-          0,
-          1580,
-          851,
-          268
-        ],
-        "file": "abyss-playfield.jpg",
-        "canvas": [
-          851,
-          1848
-        ],
-        "bleed": 0
       }
     }
   },
@@ -212,14 +198,14 @@
     0.75
   ],
   "metal": [
-    0.72,
-    0.58,
-    0.32
+    1.0,
+    0.84,
+    0.56
   ],
   "accent": [
-    0.8,
-    0.59,
-    0.27
+    1.0,
+    0.78,
+    0.44
   ],
   "flipperRubber": [
     0.045,
@@ -241,15 +227,30 @@
   "plasticOpacity": 0.96,
   "materials": {
     "metalness": 0.88,
-    "roughness": 0.34,
+    "roughness": 0.24,
     "playfieldReflectivity": 0.15,
-    "bloom": 0.36,
-    "rampOpacity": 0.5,
+    "bloom": 0.16,
+    "rampOpacity": 0.72,
     "rampGlass": [
-      0.08,
-      0.42,
-      0.4
+      0.16,
+      0.6,
+      0.56
     ]
   },
-  "modelKit": "premium"
+  "modelKit": "premium",
+  "slingLens": [
+    0.1,
+    0.56,
+    0.44
+  ],
+  "capBase": [
+    0.06,
+    0.3,
+    0.28
+  ],
+  "capStar": [
+    0.74,
+    0.61,
+    0.34
+  ]
 }

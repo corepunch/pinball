@@ -33,6 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithTable:(PBTableDefinition *)table highScore:(int64_t)highScore;
 - (void)addObserver:(id<PBGameObserver>)observer;
+- (void)removeObserver:(id<PBGameObserver>)observer;
 - (void)update:(double)elapsed;
 
 #pragma mark Input, any thread

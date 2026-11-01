@@ -45,9 +45,9 @@ motion is smoothed and limited so the table stays readable. Deliberate shoves st
 ## Game interface
 
 The app uses a custom SpriteKit overlay: opaque navy panels, brass trim, ivory typography, and
-authored enamel buttons. It includes a main menu, gameplay score/ball HUD, pause, sound/haptic
+authored enamel buttons. It includes a main menu, gameplay HUD, pause, sound/haptic
 settings, skin selection, controls help, final results, and confirmation before restarting or ending
-a live game. The score sits on the apron so the upper lanes stay visible. The pause button respects
+a live game. The board fills the phone, with the flippers on its bottom edge. Score, ball and pause are small indicators beside the camera cutout, with the level goal and game messages below it. The pause button respects
 the phone's safe area. Menu touches are consumed before they can operate a flipper.
 
 Settings persist between launches. App inactivity pauses a live run and returns to the pause screen;
@@ -100,9 +100,8 @@ App/Scene      PBTableScene       builds the SceneKit graph, mirrors game state 
                PBPlayfieldPainter composites art with crisp lamps, wires, contact shadows
                PBSkin             loads per-skin layouts, sources, materials and atlas states
                PBModelLibrary     loads Blender mesh kits and isolates animated instances
-               PBDotMatrix        the score display
 App/Audio      PBSoundEngine      synthesized sound
-App/UI         PBGameUI           menus and gameplay HUD
+App/UI         PBGameUI           menus and the gameplay HUD
                Model/PBMenuFlow   navigation and settings, independent of graphics
 App/GameCenter PBGameCenter       authentication, leaderboards, and score submission
 App            PBGameController   the app's frame loop
@@ -121,16 +120,25 @@ path type inside `PBGeometry.m`. Interface artwork loads through ImageIO on both
 SCNPhysicsWorld is deliberately not used. Pinball needs exact control of bounce and kick, and flippers
 tunnel at a generic physics step.
 
+## Levels
+
+`GameData/Levels.json` is the level list: each entry pairs a table and skin with a goal and two star scores.
+The goal (`score`, or a count of `ramps`, `bumpers`, `drops`, `saucers`, `spinners`, `multiballs` or `jackpots`)
+earns the first star and unlocks the next level; the two scores earn the others. Progress is saved by level id,
+so levels can be reordered or added. `testEveryGoalIsReachableAndThreeStarsAreNotAutomatic` plays autopilot games
+on each table, logs `BALANCE` percentiles for setting targets, and fails on a goal it never reaches.
+Run with `-PBLevel <n>` to show that level's table behind the menus. `-PBTable <id>` or `-PBAutopilot YES` skip levels for free play.
+
 ## Adding a table
 
-1. Copy `GameData/Tables/aurora.json` and move things around. No code or project changes are needed.
-2. Point the table test at it and run `PinballCoreTests`. An autopilot plays 25 simulated minutes and
-   fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
-3. `python3 tools/skin_tool.py template <table>` draws that table's guide for painting skins.
-4. Rebuild the table-specific meshes ([Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md)) for it.
+1. Copy a file in `GameData/Tables` and move things around. No code or project changes are needed.
+2. Rebuild the meshes ([Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md)), which covers every table. A test fails if any are missing.
+3. Run `PinballCoreTests`, which covers every table automatically. An autopilot plays 25 simulated minutes
+   and fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
+4. Run the app with `-PBTable <id>` to play it, or `PB_PREVIEW_TABLE=<id> tools/render_preview.sh` for a render.
 
 `testNoTableHasOverlappingElements` runs on every JSON in `GameData/Tables`, with no setup. It projects each
-drawn part through the overhead camera, at its drawn size, and fails on parts covering each other (flipper
+drawn part through the table camera, at its drawn size, and fails on parts covering each other (flipper
 sweeps and ramps included), solids closer than a ball's width, or anything off the table or on the apron. Parts
 may only touch where one is built onto another. Collide-only walls (`"style": "none"`) are never seen, so they
 are exempt, which is how a wall can run under a ramp.

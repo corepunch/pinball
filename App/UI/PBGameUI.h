@@ -7,6 +7,20 @@ NS_ASSUME_NONNULL_BEGIN
 @interface PBGameUI : SKScene
 @property (nonatomic, copy, nullable) void (^actionHandler)(PBUIAction action);
 @property (nonatomic, copy) NSString *skinName;
+@property (nonatomic, copy) NSString *tableName;
+@property (nonatomic, strong) SKColor *messageColor;
+@property (nonatomic) NSInteger bonusMultiplier;
+/// With no level list, the menus show a single free-play table.
+/// One entry per level: its stars, or -1 while locked.
+@property (nonatomic, copy, nullable) NSArray<NSNumber *> *levelStars;
+@property (nonatomic) NSInteger totalStars;
+@property (nonatomic) NSInteger currentLevel;
+/// The level whose tile was last tapped.
+@property (nonatomic, readonly) NSInteger selectedLevel;
+@property (nonatomic, copy, nullable) NSString *levelName, *levelGoal;
+@property (nonatomic) int64_t levelTwoStarScore, levelThreeStarScore, levelBest;
+@property (nonatomic) NSInteger resultStars;
+@property (nonatomic) BOOL resultGoalMet, hasNextLevel;
 @property (nonatomic) BOOL soundEnabled;
 @property (nonatomic) BOOL hapticsEnabled;
 @property (nonatomic) BOOL newRecord;
@@ -14,8 +28,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithBundle:(NSBundle *)bundle;
 - (void)layoutForViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom;
 - (void)showScreen:(PBMenuScreen)screen;
+/// A moment's news from the game, or nil to go back to showing the level's goal.
+- (void)showMessage:(nullable NSString *)message;
+/// Opens the map on the page holding this level, and makes it the one the goal screen describes.
+- (void)showLevelPageForLevel:(NSInteger)index;
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
-         ballCount:(NSInteger)ballCount plungerReady:(BOOL)ready;
+         ballCount:(NSInteger)ballCount;
 /// Points use view coordinates with a top-left origin.
 - (BOOL)pointerBegan:(id)pointer atPoint:(CGPoint)point;
 - (BOOL)pointerMoved:(id)pointer atPoint:(CGPoint)point;

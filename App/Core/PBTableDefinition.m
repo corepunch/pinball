@@ -102,6 +102,7 @@ static PBSpotDef *PBParseSpot(NSDictionary *json) {
     spot.captureSpeed = [json[@"captureSpeed"] floatValue];
     spot.holdSeconds = [json[@"holdSeconds"] floatValue];
     spot.color = json[@"color"];
+    spot.model = json[@"model"];
     if (json[@"ejectDirection"]) spot.direction = simd_normalize(PBVec2(json[@"ejectDirection"]));
     return spot;
 }
@@ -166,9 +167,6 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
 
         NSDictionary *apron = json[@"apron"];
         _apronY = [apron[@"y"] floatValue];
-        _apronHeight = [apron[@"height"] floatValue];
-        NSArray *dmd = apron[@"dmd"];
-        _dmdRect = simd_make_float4([dmd[0] floatValue], [dmd[1] floatValue], [dmd[2] floatValue], [dmd[3] floatValue]);
 
         NSDictionary *plunger = json[@"plunger"];
         _plunger = [PBPlungerDef new];

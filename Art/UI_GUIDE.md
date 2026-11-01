@@ -5,8 +5,8 @@ The shipping interface is `App/UI/PBGameUI.m`, a SpriteKit scene assigned to the
 primary buttons, and blue enamel icon keys. It uses no system material, blur, or Liquid Glass controls.
 The title artwork is the selected app-icon concept 10.
 
-Screens: home, playing, paused, settings, how to play, results, end-game confirmation, restart
-confirmation. The gameplay score occupies the apron; pause stays clear of the home indicator and
+Screens: home, level map, level goal, playing, paused, settings, how to play, results, end-game confirmation,
+restart confirmation. During play, the board fills the phone. The SpriteKit HUD shows score, ball and pause as small indicators either side of the camera cutout, with the level goal and game messages just below it; pause stays clear of the home indicator and
 the central top lanes. Menus scale to smaller phones while preserving button hit areas.
 
 ## Artwork

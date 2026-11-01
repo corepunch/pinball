@@ -32,10 +32,24 @@ int main(int argc, const char *argv[]) {
         SCNRenderer *renderer = [SCNRenderer rendererWithDevice:MTLCreateSystemDefaultDevice() options:nil];
         renderer.scene = scene.scene; renderer.pointOfView = scene.cameraNode;
         PBGameUI *ui = [[PBGameUI alloc] initWithBundle:bundle];
+        ui.tableName = table.name;
+        // A mid-progress player; free-play menus show when there is no level list.
+        ui.levelStars = @[@3, @2, @1, @3, @1, @0, @-1, @-1, @-1, @-1, @-1, @-1, @-1, @-1, @-1];
+        ui.totalStars = 10;
+        ui.currentLevel = 5;
+        ui.levelName = @"Second Orbit";
+        ui.levelGoal = @"3 RAMPS";
+        ui.levelTwoStarScore = 60000;
+        ui.levelThreeStarScore = 150000;
+        ui.levelBest = 42000;
+        ui.resultStars = 2;
+        ui.resultGoalMet = YES;
+        ui.hasNextLevel = YES;
+        [ui showLevelPageForLevel:5];
         [ui layoutForViewSize:CGSizeMake(402, 874) topInset:59 bottomInset:34];
-        [ui updateScore:248650 best:985400 ball:2 ballCount:3 plungerReady:YES];
+        [ui updateScore:248650 best:985400 ball:2 ballCount:3];
         renderer.overlaySKScene = ui;
-        NSArray *names = @[@"home", @"playing", @"paused", @"settings", @"help", @"results", @"confirm-home", @"confirm-restart"];
+        NSArray *names = @[@"home", @"playing", @"paused", @"settings", @"help", @"results", @"confirm-home", @"confirm-restart", @"levels", @"level-intro"];
         for (NSInteger i = 0; i < names.count; i++) {
             Export(renderer, ui, (PBMenuScreen)i, [output stringByAppendingFormat:@"/ui-%@.png", names[i]], CGSizeMake(804, 1748));
         }

@@ -52,14 +52,10 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
     CGContextRef c = PBCreateContext(kPlayfieldWidth, height);
     CGRect full = CGRectMake(0, 0, kPlayfieldWidth, height);
 
-    if ([skin hasImageForSlot:@"apron"]) {
-        // Independent art zones keep the apron aligned for any table proportions.
-        CGFloat apron = table.apronY * scale;
-        CGContextDrawImage(c, CGRectMake(0, apron, kPlayfieldWidth, height - apron), [skin imageForSlot:@"playfield"]);
-        CGContextDrawImage(c, CGRectMake(0, 0, kPlayfieldWidth, apron), [skin imageForSlot:@"apron"]);
-    } else {
-        CGContextDrawImage(c, full, [skin imageForSlot:@"playfield"]);
-    }
+    // The art fills the height, keeping its proportions: the sides run off a tall table.
+    CGImageRef art = [skin imageForSlot:@"playfield"];
+    CGFloat artWidth = MAX((CGFloat)CGImageGetWidth(art) * height / CGImageGetHeight(art), (CGFloat)kPlayfieldWidth);
+    CGContextDrawImage(c, CGRectMake((kPlayfieldWidth - artWidth) * 0.5, 0, artWidth, height), art);
 
     // Fine grain restores surface detail at phone resolution, where the art is upscaled.
     CGContextSaveGState(c);
@@ -189,7 +185,8 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
             CGContextClip(c);
             // Bright at the apex and deep at the base, like a moulded plastic insert.
             CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-            CGFloat tone[8] = { color.x * 0.72, color.y * 0.72, color.z * 0.72, 1, color.x * 0.2, color.y * 0.2, color.z * 0.2, 1 };
+            simd_float3 hot = simd_mix(color, simd_make_float3(1.0f, 0.86f, 0.55f), 0.45f);
+            CGFloat tone[8] = { hot.x * 1.25, hot.y * 1.25, hot.z * 1.25, 1, color.x * 0.72, color.y * 0.72, color.z * 0.72, 1 };
             CGGradientRef gradient = CGGradientCreateWithColorComponents(space, tone, NULL, 2);
             CGPoint tip = CGPointMake(centre.x + cos(lamp.angle) * r, centre.y + sin(lamp.angle) * r);
             CGPoint base = CGPointMake(centre.x - cos(lamp.angle) * r * 0.5, centre.y - sin(lamp.angle) * r * 0.5);
@@ -202,14 +199,74 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
         // Dark rim, then the unlit coloured plastic.
         CGContextSetRGBFillColor(c, 0, 0, 0, 0.7);
         CGContextFillEllipseInRect(c, CGRectInset(rect, -0.0035, -0.0035));
-        PBSetFill(c, color * 0.34f, 1.0f);
-        CGContextFillEllipseInRect(c, rect);
         CGContextSaveGState(c);
         CGContextAddEllipseInRect(c, rect);
         CGContextClip(c);
+        // Glass with a lamp behind it, even when off: bright at the heart, deep at the rim.
+        CGColorSpaceRef glassSpace = CGColorSpaceCreateDeviceRGB();
+        simd_float3 heart = simd_mix(color, simd_make_float3(1.0f, 1.0f, 1.0f), 0.2f);
+        CGFloat glass[8] = { heart.x, heart.y, heart.z, 1, color.x * 0.5, color.y * 0.5, color.z * 0.5, 1 };
+        CGGradientRef glassGradient = CGGradientCreateWithColorComponents(glassSpace, glass, NULL, 2);
+        CGPoint middle = CGPointMake(lamp.position.x, lamp.position.y);
+        CGContextDrawRadialGradient(c, glassGradient, middle, 0, middle, r, 0);
+        CGGradientRelease(glassGradient);
+        CGColorSpaceRelease(glassSpace);
         PBDrawTintedIcon(c, [skin insertIcon:lamp.icon], color, CGRectInset(rect, r * 0.08, r * 0.08), 0.75f);
         CGContextRestoreGState(c);
     }
+}
+
++ (CGImageRef)newBumperCapWithBase:(simd_float3)base star:(simd_float3)star {
+    const size_t size = 512;
+    CGContextRef c = PBCreateContext(size, size);
+    PBSetFill(c, base, 1.0f);
+    CGContextFillRect(c, CGRectMake(0, 0, size, size));
+    PBSetFill(c, star, 1.0f);
+    CGFloat middle = size * 0.5, tip = size * 0.47, root = size * 0.3;
+    const int points = 12;
+    for (int i = 0; i < points; i++) {
+        CGFloat a = i * 2.0 * M_PI / points + M_PI_2, spread = M_PI / points * 0.82;
+        CGContextMoveToPoint(c, middle + cos(a) * tip, middle + sin(a) * tip);
+        CGContextAddLineToPoint(c, middle + cos(a + spread) * root, middle + sin(a + spread) * root);
+        CGContextAddLineToPoint(c, middle + cos(a - spread) * root, middle + sin(a - spread) * root);
+        CGContextClosePath(c);
+        CGContextFillPath(c);
+    }
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    CGContextRelease(c);
+    return image;
+}
+
++ (CGImageRef)newJewelWithColor:(simd_float3)color {
+    const size_t size = 128;
+    CGContextRef c = PBCreateContext(size, size);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGFloat stops[16] = { 1, 1, 1, 1, color.x, color.y, color.z, 1, color.x * 0.72, color.y * 0.72, color.z * 0.72, 1, color.x * 0.18, color.y * 0.18, color.z * 0.2, 1 };
+    CGFloat locations[4] = { 0, 0.2, 0.62, 1 };
+    CGGradientRef gradient = CGGradientCreateWithColorComponents(space, stops, locations, 4);
+    CGContextDrawRadialGradient(c, gradient, CGPointMake(size * 0.42, size * 0.6), 0, CGPointMake(size * 0.5, size * 0.5), size * 0.56, kCGGradientDrawsAfterEndLocation);
+    CGGradientRelease(gradient);
+    CGColorSpaceRelease(space);
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    CGContextRelease(c);
+    return image;
+}
+
++ (CGImageRef)newLensWithColor:(simd_float3)color {
+    const size_t size = 128;
+    CGContextRef c = PBCreateContext(size, size);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    simd_float3 hot = simd_mix(color, simd_make_float3(1.0f, 0.7f, 0.3f), 0.22f);
+    CGFloat stops[12] = { hot.x, hot.y, hot.z, 1, color.x * 0.8, color.y * 0.8, color.z * 0.8, 1, color.x * 0.3, color.y * 0.3, color.z * 0.3, 1 };
+    CGFloat locations[3] = { 0, 0.5, 1 };
+    CGGradientRef gradient = CGGradientCreateWithColorComponents(space, stops, locations, 3);
+    CGPoint centre = CGPointMake(size * 0.5, size * 0.5);
+    CGContextDrawRadialGradient(c, gradient, centre, 0, centre, size * 0.72, kCGGradientDrawsAfterEndLocation);
+    CGGradientRelease(gradient);
+    CGColorSpaceRelease(space);
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    CGContextRelease(c);
+    return image;
 }
 
 + (CGImageRef)newLitLampWithIcon:(CGImageRef)icon color:(simd_float3)color {

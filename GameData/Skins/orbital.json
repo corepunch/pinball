@@ -152,20 +152,6 @@
           1848
         ],
         "bleed": 0
-      },
-      "apron": {
-        "rect": [
-          0,
-          1580,
-          851,
-          268
-        ],
-        "file": "orbital-playfield.jpg",
-        "canvas": [
-          851,
-          1848
-        ],
-        "bleed": 0
       }
     }
   },
@@ -212,14 +198,14 @@
     0.75
   ],
   "metal": [
-    0.78,
-    0.81,
-    0.83
+    1.0,
+    0.97,
+    0.9
   ],
   "accent": [
-    0.84,
-    0.65,
-    0.32
+    1.0,
+    0.8,
+    0.5
   ],
   "flipperRubber": [
     0.58,
@@ -241,15 +227,30 @@
   "plasticOpacity": 0.96,
   "materials": {
     "metalness": 0.88,
-    "roughness": 0.34,
+    "roughness": 0.24,
     "playfieldReflectivity": 0.15,
-    "bloom": 0.36,
-    "rampOpacity": 0.36,
+    "bloom": 0.16,
+    "rampOpacity": 0.8,
     "rampGlass": [
-      0.86,
-      0.78,
-      0.6
+      0.66,
+      0.63,
+      0.56
     ]
   },
-  "modelKit": "premium"
+  "modelKit": "premium",
+  "slingLens": [
+    1,
+    0.24,
+    0.08
+  ],
+  "capBase": [
+    0.92,
+    0.86,
+    0.72
+  ],
+  "capStar": [
+    0.72,
+    0.09,
+    0.05
+  ]
 }

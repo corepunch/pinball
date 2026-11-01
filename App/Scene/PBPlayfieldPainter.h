@@ -24,6 +24,15 @@ NS_ASSUME_NONNULL_BEGIN
 /// The same for a triangular insert pointing along +x: the scene rotates the sprite. Caller releases.
 + (CGImageRef)newLitArrowWithColor:(simd_float3)color CF_RETURNS_RETAINED;
 
+/// A moulded coloured lens, hot at the centre and deep at the edge. Caller releases.
++ (CGImageRef)newLensWithColor:(simd_float3)color CF_RETURNS_RETAINED;
+
+/// A pop bumper's cap: a many-pointed star on enamel, filling the image. Caller releases.
++ (CGImageRef)newBumperCapWithBase:(simd_float3)base star:(simd_float3)star CF_RETURNS_RETAINED;
+
+/// A glass dome with a lamp in it, highlight up and to the left. Caller releases.
++ (CGImageRef)newJewelWithColor:(simd_float3)color CF_RETURNS_RETAINED;
+
 /// Round soft glow, for flashers and bumper flashes. Caller releases.
 + (CGImageRef)newGlowWithColor:(simd_float3)color CF_RETURNS_RETAINED;
 

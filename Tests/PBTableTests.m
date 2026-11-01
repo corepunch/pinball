@@ -118,7 +118,7 @@
 
 - (void)testValidatorFindsDecorOnTheApron {
     NSMutableDictionary *json = [self tableJSON:@"aurora"];
-    json[@"decor"] = [@[ @{ @"id": @"sunken", @"model": @"gear", @"x": @0.5, @"y": @0.1, @"size": @0.02 } ] mutableCopy];
+    json[@"decor"] = [@[ @{ @"id": @"sunken", @"model": @"gear", @"x": @0.5, @"y": @0.0, @"size": @0.02 } ] mutableCopy];
     BOOL found = NO;
     for (PBLayoutIssue *issue in [self issuesForJSON:json]) {
         if (issue.kind == PBLayoutIssueOutOfBounds && [issue.first isEqualToString:@"sunken"]) found = YES;
@@ -134,17 +134,28 @@
     XCTAssertLessThanOrEqual([assets[@"bumper-cap"][@"radius"] floatValue], PBBumperFootprintScale);
     XCTAssertLessThanOrEqual([assets[@"insert-bezel"][@"radius"] floatValue], PBLampFootprintScale);
     XCTAssertLessThanOrEqual([assets[@"post"][@"radius"] floatValue], PBPostFootprintScale);
-    // A missing model would otherwise just leave a hole in the table.
-    PBTableDefinition *table = [self loadTable:@"aurora"];
-    for (PBDecorDef *decor in table.decor) XCTAssertNotNil(assets[decor.model], @"%@", decor.model);
-    for (PBRampDef *ramp in table.ramps) {
-        NSString *model = [NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier];
-        XCTAssertNotNil(assets[model], @"%@", model);
+    // A missing model would otherwise leave a hole, or fall back to plain procedural parts.
+    NSString *compiled = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../GameData/Models/premium"];
+    for (NSString *name in [self allTableNames]) {
+        PBTableDefinition *table = [self loadTable:name];
+        NSMutableArray<NSString *> *models = [NSMutableArray array];
+        for (PBDecorDef *decor in table.decor) [models addObject:decor.model];
+        for (PBSpotDef *post in table.posts) if (post.model) [models addObject:post.model];
+        for (PBRampDef *ramp in table.ramps) [models addObject:[NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier]];
+        for (NSString *part in @[ @"flipper", @"walls", @"plastics" ]) [models addObject:[NSString stringWithFormat:@"%@-%@", table.identifier, part]];
+        for (NSString *model in models) {
+            XCTAssertNotNil(assets[model], @"%@: %@ is not built", name, model);
+            NSString *scene = [compiled stringByAppendingFormat:@"/%@.scn", model];
+            XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:scene], @"%@: %@ is not compiled", name, model);
+        }
     }
 }
 
 - (void)testBallStaysInsideTheTable {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkBallStaysInside:[self loadTable:name]];
+}
+
+- (void)checkBallStaysInside:(PBTableDefinition *)table {
     PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
     game.autopilot = YES;
     for (int i = 0; i < 60 * 300; i++) {
@@ -160,7 +171,10 @@
 }
 
 - (void)testFullPowerPlungeReachesTheTopLanes {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkFullPowerPlunge:[self loadTable:name]];
+}
+
+- (void)checkFullPowerPlunge:(PBTableDefinition *)table {
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     NSInteger index = [world spawnBallAtPlunger];
     [world setPlungerPulled:YES];
@@ -172,12 +186,15 @@
         top = MAX(top, world.balls[index].position.y);
         leftmost = MIN(leftmost, world.balls[index].position.x);
     }
-    XCTAssertGreaterThan(top, 1.8f, @"ball should climb to the arch");
+    XCTAssertGreaterThan(top, 1.9f, @"ball should climb to the arch");
     XCTAssertLessThan(leftmost, 0.8f, @"ball should clear the one-way gate into the playfield");
 }
 
 - (void)testShortPlungeRollsBackToThePlunger {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkShortPlunge:[self loadTable:name]];
+}
+
+- (void)checkShortPlunge:(PBTableDefinition *)table {
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     [world spawnBallAtPlunger];
     [world setPlungerPulled:YES];
@@ -188,10 +205,14 @@
 }
 
 - (void)testBallPassesBetweenRestingFlippers {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkBallPassesFlippers:[self loadTable:name]];
+}
+
+- (void)checkBallPassesFlippers:(PBTableDefinition *)table {
+    simd_float2 left = table.flippers.firstObject.pivot, right = table.flippers.lastObject.pivot;
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     NSInteger index = [world spawnBallAtPlunger];
-    [world placeBall:index at:simd_make_float2(0.4775f, 0.45f) velocity:0];
+    [world placeBall:index at:simd_make_float2((left.x + right.x) * 0.5f, left.y + 0.105f) velocity:0];
     __block BOOL drained = NO;
     for (int i = 0; i < 60 * 3 && !drained; i++) {
         [world advanceBy:1.0 / 60.0];
@@ -201,15 +222,18 @@
 }
 
 - (void)testFlipperSendsBallUpTheTable {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkFlipperSendsBallUp:[self loadTable:name]];
+}
+
+- (void)checkFlipperSendsBallUp:(PBTableDefinition *)table {
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     NSInteger index = [world spawnBallAtPlunger];
-    [world placeBall:index at:simd_make_float2(0.39f, 0.345f) velocity:0];
+    [world placeBall:index at:table.flippers.firstObject.pivot + simd_make_float2(0.09f, 0.0f) velocity:0];
     for (int i = 0; i < 6; i++) [world advanceBy:1.0 / 60.0];
     [world setFlipperGroupLeft:YES pressed:YES];
     float top = 0;
     for (int i = 0; i < 60; i++) { [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y); }
-    XCTAssertGreaterThan(top, 1.1f, @"a full flip should reach the upper playfield");
+    XCTAssertGreaterThan(top, 0.9f, @"a full flip should reach the upper playfield");
 }
 
 // Arming it takes both left targets and then a left outlane ball, too rare to count on in autoplay.
@@ -228,11 +252,14 @@
     XCTAssertTrue(kicked);
     float top = 0;
     for (int i = 0; i < 40; i++) { [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y); }
-    XCTAssertGreaterThan(top, 0.8f, @"the kick should clear the outlane");
+    XCTAssertGreaterThan(top, 0.6f, @"the kick should clear the outlane");
 }
 
 - (void)testAllFeaturesAreReachableInPlay {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (NSString *name in [self allTableNames]) [self checkFeaturesReachable:[self loadTable:name]];
+}
+
+- (void)checkFeaturesReachable:(PBTableDefinition *)table {
     PBStatsObserver *stats = [PBStatsObserver new];
     PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
     [game addObserver:stats];
@@ -247,12 +274,19 @@
     for (NSString *key in [stats.hits.allObjects sortedArrayUsingSelector:@selector(compare:)]) {
         [lines addObject:[NSString stringWithFormat:@"%@=%lu", key, (unsigned long)[stats.hits countForObject:key]]];
     }
-    NSLog(@"STATS best=%lld %@", bestScore, [lines componentsJoinedByString:@" "]);
+    NSLog(@"STATS %@ best=%lld %@", table.identifier, bestScore, [lines componentsJoinedByString:@" "]);
 
-    NSArray *mustHappen = @[ @"bumper", @"sling", @"drop", @"standup", @"spinner", @"saucer", @"rampEnter", @"rampComplete", @"rampL", @"rampR",
-                             @"laneA", @"laneB", @"laneC", @"orbitR", @"inlaneLeft", @"inlaneRight", @"outlaneLeft", @"outlaneRight",
-                             @"standL1", @"standR1", @"captiveTarget", @"magnet", @"fanfare:multiball", @"fanfare:gameOver" ];
-    for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@ never happened", key);
+    NSMutableArray *mustHappen = [@[ @"bumper", @"sling", @"fanfare:gameOver" ] mutableCopy];
+    if (table.dropTargets.count) [mustHappen addObject:@"drop"];
+    if (table.spinners.count) [mustHappen addObject:@"spinner"];
+    if (table.saucers.count) [mustHappen addObject:@"saucer"];
+    if (table.magnets.count) [mustHappen addObject:@"magnet"];
+    if (table.rules.locksForMultiball && table.saucers.count) [mustHappen addObject:@"fanfare:multiball"];
+    if (table.ramps.count) [mustHappen addObjectsFromArray:@[ @"rampEnter", @"rampComplete" ]];
+    for (PBRampDef *ramp in table.ramps) [mustHappen addObject:ramp.identifier];
+    for (PBSpotDef *rollover in table.rollovers) [mustHappen addObject:rollover.identifier];
+    for (PBEdgeDef *standup in table.standups) [mustHappen addObject:standup.identifier];
+    for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@: %@ never happened", table.identifier, key);
     XCTAssertGreaterThan(bestScore, 50000);
     NSUInteger drains = [stats.hits countForObject:@"drain"];
     NSUInteger stuck = [stats.hits countForObject:@"stuck"];

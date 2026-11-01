@@ -7,6 +7,7 @@
 #import "PBSoundEngine.h"
 #import "PBTableScene.h"
 #import "PBGameUI.h"
+#import "PBLevels.h"
 #import <stdatomic.h>
 
 static NSString *const kSkinDefaultsKey = @"PBSkin";
@@ -17,6 +18,15 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 @interface PBGameController () <PBGameObserver>
 @end
 
+/// UIKit has no public API for the display's corner radius, so it goes by screen size, in points.
+/// A home-button phone or an iPad frames the table without reaching its corners: no rounding.
+static CGFloat PBScreenCornerRadius(CGSize size) {
+    if (size.height / size.width < 1.9) return 0;
+    NSNumber *known = @{ @375: @39.0, @390: @47.33, @393: @55.0, @402: @62.0, @414: @41.5,
+                         @428: @53.33, @430: @55.0, @440: @62.0 }[@((NSInteger)size.width)];
+    return known ? known.doubleValue : size.width * 0.15;
+}
+
 @implementation PBGameController {
     __weak SCNView *_view;
     PBTableDefinition *_table;
@@ -25,6 +35,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     NSTimeInterval _lastTime;
     NSArray<NSString *> *_skins;
     NSString *_skinName;
+    PBSkin *_skin;
     NSLock *_lightingInputLock;
     simd_quatf _lightingAttitude;
     PBGameCenter *_gameCenter;
@@ -33,6 +44,13 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     PBGameUI *_interface;
     NSTimeInterval _lastUISnapshot;
     int64_t _startingHighScore;
+    NSMutableArray<id<PBGameObserver>> *_gameObservers;
+    PBLevelCatalog *_catalog;   // Nil in free play: a table chosen at launch, or autopilot.
+    PBLevelProgress *_progress;
+    PBLevelSession *_session;
+    NSInteger _levelIndex;
+    NSString *_forcedSkin;
+    PBLevelSession *_previousSession;
 }
 
 - (instancetype)initWithView:(SCNView *)view {
@@ -48,33 +66,44 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         _lightingInputLock = [NSLock new];
         _lightingAttitude = simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f);
         NSBundle *bundle = NSBundle.mainBundle;
-        NSString *tableName = [NSUserDefaults.standardUserDefaults stringForKey:@"PBTable"] ?: [PBTableDefinition availableTablesInBundle:bundle].firstObject;
+        NSUserDefaults *launch = NSUserDefaults.standardUserDefaults;
+        NSDictionary *arguments = [launch volatileDomainForName:NSArgumentDomain];
+        BOOL autopilot = [launch boolForKey:@"PBAutopilot"];
         NSError *error;
-        _table = [PBTableDefinition tableNamed:tableName bundle:bundle error:&error];
-        NSAssert(_table, @"Could not load table %@: %@", tableName, error);
-
-        int64_t highScore = [NSUserDefaults.standardUserDefaults integerForKey:[kHighScoreKeyPrefix stringByAppendingString:_table.identifier]];
-        _game = [[PBGame alloc] initWithTable:_table highScore:highScore];
-        _game.autopilot = [NSUserDefaults.standardUserDefaults boolForKey:@"PBAutopilot"];
-        [_game addObserver:self];
-
+        if (!arguments[@"PBTable"] && !autopilot) {
+            _catalog = [PBLevelCatalog catalogInBundle:bundle error:&error];
+            NSAssert(_catalog, @"Could not load levels: %@", error);
+            _progress = [[PBLevelProgress alloc] initWithDefaults:launch];
+            _levelIndex = [_progress currentLevelIndexInCatalog:_catalog];
+            if (arguments[@"PBLevel"]) _levelIndex = MAX(0, MIN([arguments[@"PBLevel"] integerValue] - 1, (NSInteger)_catalog.levels.count - 1));
+        }
+        NSString *tableName = _catalog ? _catalog.levels[(NSUInteger)_levelIndex].table
+                                       : arguments[@"PBTable"] ?: [PBTableDefinition availableTablesInBundle:bundle].firstObject;
+        _gameObservers = [NSMutableArray array];
         _sound = [PBSoundEngine new];
         NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
         _sound.enabled = [defaults objectForKey:kSoundEnabledKey] ? [defaults boolForKey:kSoundEnabledKey] : YES;
         _hapticsEnabled = [defaults objectForKey:kHapticsEnabledKey] ? [defaults boolForKey:kHapticsEnabledKey] : YES;
-        [_game addObserver:_sound];
         [_sound start];
+        [self useTableNamed:tableName];
+        _game.autopilot = autopilot;
 
         _skins = [PBSkin availableSkinsInBundle:bundle];
-        _skinName = [NSUserDefaults.standardUserDefaults stringForKey:kSkinDefaultsKey] ?: _table.defaultSkin;
-        [self loadSkin:_skinName];
+        // A level brings its own skin. -PBSkin at launch overrides it, for testing.
+        _forcedSkin = arguments[kSkinDefaultsKey];
+        if (_catalog) {
+            [self loadSkin:_forcedSkin ?: _catalog.levels[(NSUInteger)_levelIndex].skin];
+        } else {
+            [self loadSkin:_forcedSkin ?: [defaults stringForKey:kSkinDefaultsKey] ?: _table.defaultSkin];
+        }
 
         _menuFlow = [PBMenuFlow new];
+        _menuFlow.usesLevelMap = _catalog != nil;
         _interface = [[PBGameUI alloc] initWithBundle:bundle];
         _interface.hidden = _game.autopilot;
         _interface.actionHandler = ^(PBUIAction action) { [weakSelf performUIAction:action]; };
         [self configureInterface];
-        [_interface updateScore:0 best:highScore ball:0 ballCount:_table.rules.balls plungerReady:NO];
+        [_interface updateScore:0 best:_game.rules.highScore ball:0 ballCount:_table.rules.balls];
         [_interface showScreen:PBMenuHome];
         _menuPaused = !_game.autopilot;
         view.overlaySKScene = _interface;
@@ -90,13 +119,54 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     return self;
 }
 
+- (void)addGameObserver:(id<PBGameObserver>)observer {
+    [_gameObservers addObject:observer];
+    [_game addObserver:observer];
+}
+
+/// Replaces the game when the table changes. The render thread reads it, hence the lock.
+- (void)useTableNamed:(NSString *)name {
+    if ([_table.identifier isEqualToString:name] && _game) return;
+    NSError *error;
+    PBTableDefinition *table = [PBTableDefinition tableNamed:name bundle:NSBundle.mainBundle error:&error];
+    NSAssert(table, @"Could not load table %@: %@", name, error);
+    int64_t highScore = [NSUserDefaults.standardUserDefaults integerForKey:[kHighScoreKeyPrefix stringByAppendingString:table.identifier]];
+    PBGame *game = [[PBGame alloc] initWithTable:table highScore:highScore];
+    [game addObserver:self];
+    [game addObserver:_sound];
+    for (id<PBGameObserver> observer in _gameObservers) [game addObserver:observer];
+    [SCNTransaction lock];
+    _table = table;
+    _game = game;
+    [SCNTransaction unlock];
+}
+
+/// Makes this level the one on the table, behind whichever menu is showing.
+- (void)prepareLevelAtIndex:(NSInteger)index {
+    _levelIndex = index;
+    PBLevelDef *level = _catalog.levels[(NSUInteger)index];
+    PBTableDefinition *previous = _table;
+    [self useTableNamed:level.table];
+    NSString *skin = _forcedSkin ?: level.skin;
+    if (_table != previous || ![_skinName isEqualToString:skin]) [self loadSkin:skin];
+    PBLevelSession *session = [[PBLevelSession alloc] initWithLevel:level];
+    [SCNTransaction lock];
+    _session = session;
+    [_game removeObserver:_previousSession];
+    _previousSession = session;
+    [_game addObserver:session];
+    [SCNTransaction unlock];
+}
+
 - (void)loadSkin:(NSString *)name {
     PBSkin *skin = [PBSkin skinNamed:name bundle:NSBundle.mainBundle] ?: [PBSkin skinNamed:_table.defaultSkin bundle:NSBundle.mainBundle];
     NSAssert(skin, @"No valid skin available for %@", _table.identifier);
     _skinName = skin.identifier;
+    _skin = skin;
     PBTableScene *scene = [[PBTableScene alloc] initWithTable:_table skin:skin];
     // The render thread reads _tableScene; the transaction lock keeps the swap atomic.
     [SCNTransaction lock];
+    if (_tableScene) [_game removeObserver:_tableScene];
     [_game addObserver:scene];
     _tableScene = scene;
     SCNView *view = _view;
@@ -110,7 +180,8 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     if (!_skins.count) return;
     NSUInteger index = [_skins indexOfObject:_skinName];
     _skinName = _skins[index == NSNotFound ? 0 : (index + 1) % _skins.count];
-    [NSUserDefaults.standardUserDefaults setObject:_skinName forKey:kSkinDefaultsKey];
+    // In free play the choice is remembered. A level's own skin returns at the next level.
+    if (!_catalog) [NSUserDefaults.standardUserDefaults setObject:_skinName forKey:kSkinDefaultsKey];
     [self loadSkin:_skinName];
     [self configureInterface];
     [_interface showScreen:_menuFlow.screen];
@@ -118,8 +189,26 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 
 - (void)configureInterface {
     _interface.skinName = _skinName.capitalizedString;
+    _interface.tableName = _table.name;
+    simd_float3 message = _skin.dmdColor;
+    _interface.messageColor = [SKColor colorWithRed:message.x green:message.y blue:message.z alpha:1];
     _interface.soundEnabled = _sound.isEnabled;
     _interface.hapticsEnabled = self.hapticsEnabled;
+    if (!_catalog) return;
+    NSMutableArray *stars = [NSMutableArray array];
+    for (NSInteger i = 0; i < (NSInteger)_catalog.levels.count; i++) {
+        BOOL open = [_progress isLevelUnlockedAtIndex:i inCatalog:_catalog];
+        [stars addObject:@(open ? [_progress starsForLevel:_catalog.levels[(NSUInteger)i]] : -1)];
+    }
+    PBLevelDef *level = _catalog.levels[(NSUInteger)_levelIndex];
+    _interface.levelStars = stars;
+    _interface.totalStars = _progress.totalStars;
+    _interface.currentLevel = [_progress currentLevelIndexInCatalog:_catalog];
+    _interface.levelName = level.name;
+    _interface.levelGoal = level.goalText;
+    _interface.levelTwoStarScore = level.twoStarScore;
+    _interface.levelThreeStarScore = level.threeStarScore;
+    _interface.levelBest = [_progress bestScoreForLevel:level];
 }
 
 - (void)performUIAction:(PBUIAction)action {
@@ -134,11 +223,26 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         atomic_store(&_hapticsEnabled, !self.hapticsEnabled);
         [NSUserDefaults.standardUserDefaults setBool:self.hapticsEnabled forKey:kHapticsEnabledKey];
     }
+    // Only a level the map offered, or the one that follows a completed level, can be chosen.
+    if (_catalog && _menuFlow.screen == PBMenuLevels && action == PBUISelectLevel) {
+        if (![_progress isLevelUnlockedAtIndex:_interface.selectedLevel inCatalog:_catalog]) return;
+        [self prepareLevelAtIndex:_interface.selectedLevel];
+    }
+    if (_catalog && _menuFlow.screen == PBMenuResults && action == PBUINextLevel) {
+        if (![_progress isLevelUnlockedAtIndex:_levelIndex + 1 inCatalog:_catalog]) return;
+        [self prepareLevelAtIndex:_levelIndex + 1];
+        [_interface showLevelPageForLevel:_levelIndex];
+    }
+    if (_catalog && _menuFlow.screen == PBMenuHome && action == PBUIPlay) {
+        [_interface showLevelPageForLevel:[_progress currentLevelIndexInCatalog:_catalog]];
+    }
     PBMenuCommand command = [_menuFlow performAction:action];
     if (command == PBMenuStartGame) {
+        // First play from launch or a retry: the level is already on the table.
+        if (_catalog && !_session) [self prepareLevelAtIndex:_levelIndex];
         [self releaseInputs];
         _interface.newRecord = NO;
-        [_interface updateScore:0 best:_game.rules.highScore ball:1 ballCount:_table.rules.balls plungerReady:YES];
+        [_interface updateScore:0 best:_game.rules.highScore ball:1 ballCount:_table.rules.balls];
         [_game requestNewGame];
     }
     if (command == PBMenuAbandonGame) [self releaseInputs];
@@ -198,7 +302,10 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 
 - (void)viewDidResize {
     CGSize size = _view.bounds.size;
-    if (size.width > 0) [_tableScene fitCameraToAspect:size.height / size.width];
+    if (size.width > 0) {
+        [_tableScene fitCameraToAspect:size.height / size.width];
+        [_tableScene fitBorderToCornerRadius:PBScreenCornerRadius(size) / size.width];
+    }
     UIEdgeInsets insets = _view.safeAreaInsets;
     [_interface layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
 }
@@ -229,11 +336,14 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         _lastUISnapshot = time;
         int64_t score = _game.rules.score, best = _game.rules.highScore;
         NSInteger ball = _game.rules.ballNumber;
-        BOOL ready = _game.world.isBallOnPlunger;
+        NSInteger bonus = _game.rules.bonusMultiplier;
+        NSString *message = _game.rules.displayIsMessage ? _game.rules.displayTop : nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             // A queued live snapshot must not overwrite the frozen game-over result.
             if (self->_menuFlow.screen == PBMenuPlaying) {
-                [self->_interface updateScore:score best:best ball:ball ballCount:self->_table.rules.balls plungerReady:ready];
+                self->_interface.bonusMultiplier = bonus;
+                [self->_interface updateScore:score best:best ball:ball ballCount:self->_table.rules.balls];
+                [self->_interface showMessage:message];
             }
         });
     }
@@ -255,6 +365,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         int64_t score = game.rules.score;
         int64_t best = game.rules.highScore;
         BOOL record = score > _startingHighScore;
+        PBLevelSession *session = _session;
         if (!game.autopilot) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self->_gameCenter finishGameWithScore:score tableIdentifier:self->_table.identifier];
@@ -262,8 +373,22 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
                 atomic_store(&self->_menuPaused, YES);
                 [self releaseInputs];
                 [self->_interface updateScore:score best:best ball:self->_table.rules.balls
-                                   ballCount:self->_table.rules.balls plungerReady:NO];
+                                   ballCount:self->_table.rules.balls];
                 self->_interface.newRecord = record;
+                if (self->_catalog && session) {
+                    // Read here, once every observer has seen the end of the game.
+                    BOOL goalMet = session.goalMet;
+                    PBLevelDef *level = session.level;
+                    NSInteger stars = [level starsForScore:score goalMet:goalMet];
+                    int64_t levelBest = [self->_progress bestScoreForLevel:level];
+                    [self->_progress recordStars:stars score:score forLevel:level];
+                    [self->_interface updateScore:score best:MAX(score, levelBest) ball:self->_table.rules.balls
+                                       ballCount:self->_table.rules.balls];
+                    self->_interface.newRecord = score > levelBest;
+                    self->_interface.resultStars = stars;
+                    self->_interface.resultGoalMet = goalMet;
+                    self->_interface.hasNextLevel = self->_levelIndex + 1 < (NSInteger)self->_catalog.levels.count;
+                }
                 [self configureInterface];
                 [self->_interface showScreen:PBMenuResults];
             });

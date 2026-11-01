@@ -34,7 +34,7 @@ static const float kNudgeImpulse = 0.42f;
     _leftTouches = [NSMutableSet set];
     _rightTouches = [NSMutableSet set];
     _controller = [[PBGameController alloc] initWithView:(SCNView *)self.view];
-    [_controller.game addObserver:self];
+    [_controller addGameObserver:self];
 
     _flipperHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleRigid];
     _impactHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];

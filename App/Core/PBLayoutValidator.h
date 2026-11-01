@@ -1,7 +1,7 @@
 //
 //  PBLayoutValidator.h
 //  Checks a table the way the player sees it: every drawn element becomes a footprint,
-//  projected through the overhead camera, so tall parts are tested where they appear on
+//  projected through the table camera, so tall parts are tested where they appear on
 //  screen. Footprints use the size of the drawn hardware, not the physics radius.
 //
 
@@ -9,8 +9,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// The overhead camera. The scene reads this too, so the test sees what the player sees.
-extern const float PBTableCameraFieldOfView;
+/// The camera is orthographic, leaning this many degrees toward the player, as in the concept
+/// art: every part shows the same side, and none splays away from the screen's centre.
+/// The scene reads this too, so the test sees what the player sees.
+extern const float PBTableCameraTilt;
 
 /// Drawn size of round hardware relative to its table value. Blender's manifest records
 /// the real model extents, and a test keeps these in step with them.

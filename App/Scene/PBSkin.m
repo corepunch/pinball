@@ -68,6 +68,9 @@ static simd_float3 PBColor(NSArray *rgb, simd_float3 fallback) {
         _plasticOpacity = [_palette[@"plasticOpacity"] floatValue] ?: 0.8f;
         _accentColor = PBColor(_palette[@"accent"], _metalColor);
         _flipperRubberColor = PBColor(_palette[@"flipperRubber"], simd_make_float3(0.75f, 0.05f, 0.08f));
+        _slingLensColor = PBColor(_palette[@"slingLens"], [self lampColor:@"red"]);
+        _capBaseColor = PBColor(_palette[@"capBase"], simd_make_float3(0.92f, 0.86f, 0.72f));
+        _capStarColor = PBColor(_palette[@"capStar"], simd_make_float3(0.7f, 0.08f, 0.05f));
         NSDictionary *materials = _palette[@"materials"];
         _hardwareMetalness = materials[@"metalness"] ? [materials[@"metalness"] floatValue] : 1.0f;
         _hardwareRoughness = materials[@"roughness"] ? [materials[@"roughness"] floatValue] : 0.22f;

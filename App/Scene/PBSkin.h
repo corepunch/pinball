@@ -24,6 +24,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) float plasticOpacity;
 @property (nonatomic, readonly) simd_float3 accentColor;
 @property (nonatomic, readonly) simd_float3 flipperRubberColor;
+@property (nonatomic, readonly) simd_float3 slingLensColor;
+@property (nonatomic, readonly) simd_float3 capBaseColor, capStarColor;
 @property (nonatomic, readonly) float hardwareMetalness;
 @property (nonatomic, readonly) float hardwareRoughness;
 @property (nonatomic, readonly) float playfieldReflectivity;

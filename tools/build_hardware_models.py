@@ -1,9 +1,9 @@
 """Editable Blender hardware master and SceneKit-ready COLLADA, executed via Blender MCP.
 
 No downloads, simulation caches or external Python packages. Round kit parts are built to
-unit radius and scaled by the table; elongated decor to unit half length. Table-specific
-assets (ramps, wall plates, plastics, display frame) use the JSON's coordinates, so they
-follow the physics exactly: rebuild after moving walls or ramps.
+unit radius and scaled by the table; elongated decor to unit half length. Each table in
+GameData/Tables gets its own assets (flipper, ramps, walls, plastics) in
+the JSON's coordinates, so they follow the physics exactly: rebuild after moving walls or ramps.
 """
 import bmesh
 import bpy
@@ -34,14 +34,16 @@ scene['workflow'] = 'Authored through the installed Blender MCP bridge; tools/bu
 # Each role is a material slot the game rebinds per skin; see PBTableScene's skinModel.
 ROLES = {
     'metal': (.56, .61, .65, 1), 'accent': (.72, .48, .19, 1), 'dark': (.012, .019, .027, 1),
-    'rubber': (.62, .58, .47, 1), 'flipper_rubber': (.5, .1, .06, 1), 'cap_art': (.7, .2, .12, 1),
-    'glass': (.16, .42, .42, .5), 'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1),
-    'wall_art': (.05, .12, .14, 1), 'plastic_art': (.1, .2, .3, 1), 'block_art': (.05, .18, .18, 1),
+    'rubber': (.62, .58, .47, 1), 'black_rubber': (.012, .012, .014, 1), 'skirt_lamp': (1, .2, .08, 1), 'cap_art': (.7, .2, .12, 1), 'enamel': (.86, .78, .6, 1),
+    'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1), 'glow_amber': (1, .65, .16, 1),
+    'jewel': (.2, .8, 1, 1), 'ramp_floor': (.86, .78, .6, .62), 'sling_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1),
+    'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
     'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
 }
-ATLAS_SLOTS = {'cap_art': 'bumper_cap', 'wall_art': 'wall_top', 'plastic_art': 'slingshot', 'block_art': 'plastic',
+ATLAS_SLOTS = {'cap_art': 'bumper_cap', 'jewel': 'bumper_cap_lit', 'wall_art': 'wall_top', 'block_art': 'plastic',
                'flipper_art': 'flipper', 'target_art': 'drop_target'}
-METALLIC = ('metal', 'accent')
+METALLIC = ('metal', 'accent', 'ramp_floor')
+EMISSIVE = {'amber_lens': 1, 'skirt_lamp': 3, 'glow': 3, 'glow_amber': 3, 'jewel': 1, 'sling_lens': 1}
 materials = {}
 palette = json.loads((ROOT / 'GameData/Skins/orbital.json').read_text())
 atlas = bpy.data.images.load(str(ROOT / 'Art/Masters/orbital-hardware.png'))
@@ -53,7 +55,14 @@ for role, color in ROLES.items():
     bsdf = nodes.get('Principled BSDF')
     bsdf.inputs['Base Color'].default_value = color
     bsdf.inputs['Metallic'].default_value = .9 if role in METALLIC else 0
-    bsdf.inputs['Roughness'].default_value = .28 if role in METALLIC else .38
+    bsdf.inputs['Roughness'].default_value = .2 if role in METALLIC else .3
+    if color[3] < 1:
+        # Only for tools/render_board_blender.py: the game binds its own clear materials.
+        bsdf.inputs['Alpha'].default_value = color[3]
+        material.blend_method = 'BLEND'
+    if role in EMISSIVE:
+        bsdf.inputs['Emission Color'].default_value = color
+        bsdf.inputs['Emission Strength'].default_value = EMISSIVE[role]
     if role in ATLAS_SLOTS:
         uv, mapping, texture = nodes.new('ShaderNodeTexCoord'), nodes.new('ShaderNodeMapping'), nodes.new('ShaderNodeTexImage')
         texture.image = atlas
@@ -63,6 +72,8 @@ for role, color in ROLES.items():
         links.new(uv.outputs['UV'], mapping.inputs['Vector'])
         links.new(mapping.outputs['Vector'], texture.inputs['Vector'])
         links.new(texture.outputs['Color'], bsdf.inputs['Base Color'])
+        if role in EMISSIVE:
+            links.new(texture.outputs['Color'], bsdf.inputs['Emission Color'])
     materials[role] = material
 
 assets = {}
@@ -130,9 +141,10 @@ def cylinder(name, radius, bottom, top, role, xy=(0, 0), segments=24, bevel=None
     return lathe(name, [(radius, bottom), (radius, top - b), (radius - b, top), (.0001, top)], role, segments, xy)
 
 
-def rivet(name, radius, z, role='metal', xy=(0, 0), segments=10):
-    return lathe(name, [(radius, z), (radius * .9, z + radius * .35), (radius * .55, z + radius * .68), (.0001, z + radius * .82)],
-                 role, segments, xy, sharp=70)
+def bolt(name, radius, z, xy=(0, 0)):
+    """The concept's big fastener: a brass collar holding a polished dome."""
+    lathe(f'{name} collar', [(radius, z), (radius, z + radius * .2), (radius * .84, z + radius * .36), (radius * .62, z + radius * .36)], 'accent', 20, xy, sharp=70)
+    lathe(f'{name} dome', [(radius * .64, z + radius * .28), (radius * .58, z + radius * .56), (radius * .34, z + radius * .84), (.0001, z + radius * .94)], 'metal', 16, xy, sharp=80)
 
 
 def ring(name, major, minor, z, role, xy=(0, 0), segments=48, sides=8):
@@ -201,32 +213,35 @@ def next_slot():
     return (X, 0, 0)
 
 
+# From the construction drawing: base flange, skirt with lit slots, rubber ring, cap, jewel.
+# Tall enough that the camera's tilt shows the skirt below the ring.
 asset('bumper-base', next_slot())
-lathe('Stepped foot flange', [(1.12, 0), (1.12, .05), (1.08, .085), (1.0, .10), (.96, .14)], 'accent', 64)
-for i in range(32):
-    a = 2 * math.pi * i / 32
-    rivet(f'Flange rivet {i:02}', .018, .085, 'metal', (1.05 * math.cos(a), 1.05 * math.sin(a)), 8)
-lathe('Impact cushion', [(.99, .13), (1.0, .17), (.99, .24), (.93, .26)], 'rubber', 64, sharp=80)
-lathe('Lamp gallery', [(.99, .24), (.97, .29), (.86, .33), (.80, .46), (.80, .55)], 'dark', 64)
-for i in range(12):
-    a = 2 * math.pi * (i + .5) / 12
-    x, y = .905 * math.cos(a), .905 * math.sin(a)
-    # A jewel set into the gallery, outside the cap so it shows from above; lit by the skin's bumper colour.
-    lathe(f'Jewel seat {i:02}', [(.082, .30), (.082, .335), (.066, .35)], 'accent', 14, (x, y))
-    lathe(f'Gallery jewel {i:02}', [(.066, .34), (.066, .37), (.044, .415), (.001, .435)], 'glow', 14, (x, y), sharp=80)
-ring('Upper rolled lip', .81, .03, .58, 'accent', segments=64)
+lathe('Base flange', [(1.06, 0), (1.06, .05), (1.03, .08), (.94, .1)], 'accent', 64, sharp=70)
+for i in range(8):
+    a = 2 * math.pi * (i + .5) / 8
+    bolt(f'Flange bolt {i}', .034, .06, (1.0 * math.cos(a), 1.0 * math.sin(a)))
+lathe('Skirt', [(.92, .08), (.92, .72)], 'accent', 64, sharp=70)
+ring('Skirt band', .925, .018, .18, 'metal', segments=64, sides=6)
+for i in range(10):
+    a0 = 2 * math.pi * (i + .22) / 10
+    a1 = 2 * math.pi * (i + .78) / 10
+    quad = [(r * math.cos(a), r * math.sin(a), z) for a, r, z in ((a0, .93, .25), (a1, .93, .25), (a1, .93, .55), (a0, .93, .55))]
+    solid(f'Lit slot {i}', quad, [(0, 1, 2, 3)], 'skirt_lamp', sharp=90)
+lathe('Rubber ring', [(.86, .72), (.97, .75), (1.02, .86), (.97, .97), (.88, 1.01)], 'black_rubber', 64, sharp=80)
 
+CAP_PLANAR = 1.8
 asset('bumper-cap', next_slot())
-lathe('Enamel crown • atlas surface', [(.80, .60), (.80, .70), (.78, .79), (.70, .90), (.52, 1.0), (.36, 1.055), (.31, 1.065)], 'cap_art', 72, planar=1.62, sharp=80)
-ring('Outer machined lip', .80, .03, .695, 'accent', segments=72)
-ring('Inner concentric fillet', .335, .026, 1.07, 'accent', segments=48)
-lathe('Jewel bezel', [(.32, 1.05), (.32, 1.11), (.275, 1.16)], 'accent', 48)
-ring('Jewel seat', .272, .018, 1.155, 'metal', segments=48)
-lathe('Raised jewel • authored atlas centre', [(.262, 1.15), (.24, 1.215), (.17, 1.275), (.09, 1.31), (.001, 1.32)], 'cap_art', 40, planar=1.62, sharp=80)
+lathe('Cap • painted star', [(.9, 1.06), (.8, 1.11), (.64, 1.17), (.5, 1.21)], 'cap_art', 72, planar=CAP_PLANAR, sharp=80)
+lathe('Brass lip', [(.93, .98), (.93, 1.05), (.89, 1.09), (.85, 1.085)], 'accent', 72, sharp=70)
+lathe('Jewel collar', [(.5, 1.2), (.5, 1.25), (.46, 1.29), (.33, 1.31), (.3, 1.29)], 'accent', 56, sharp=70)
+for i in range(8):
+    a = 2 * math.pi * (i + .5) / 8
+    bolt(f'Collar bolt {i}', .026, 1.28, (.415 * math.cos(a), .415 * math.sin(a)))
+lathe('Jewel', [(.31, 1.27), (.3, 1.34), (.23, 1.43), (.12, 1.49), (.001, 1.51)], 'jewel', 40, planar=.64, sharp=80)
 
 asset('insert-bezel', next_slot())
 lathe('Recessed socket', [(1.08, -.02), (1.10, .01), (1.06, .05), (1.0, .055)], 'dark', 40)
-ring('Bevelled bezel', 1.04, .04, .055, 'accent', segments=40, sides=6)
+ring('Bevelled bezel', 1.04, .03, .05, 'accent', segments=40, sides=8)
 # A shallow clear lens over the printed insert, so each one catches a highlight like a jewel.
 lathe('Domed lens', [(1.0, .05), (.92, .13), (.7, .21), (.38, .265), (.001, .28)], 'lens', 36, sharp=80)
 
@@ -238,9 +253,9 @@ for corner, a in enumerate((0, 2 * math.pi / 3, 4 * math.pi / 3)):
         b = a - math.pi / 3 + s * (2 * math.pi / 3) / 6
         triangle.append((centre.x + .24 * math.cos(b), centre.y + .24 * math.sin(b), 0))
 asset('insert-arrow', next_slot())
-w = .055
+w = .04
 sweep('Triangular bezel', triangle, [(-w, -.02), (-w, .06), (-w * .3, .10), (w * .3, .10), (w, .06), (w, -.02)], 'accent', closed=True)
-sweep('Triangular socket', triangle, [(w, -.02), (w, .01), (w * 2.1, .012), (w * 2.1, -.02)], 'dark', closed=True)
+sweep('Triangular socket', triangle, [(w, -.02), (w, .01), (w * 1.2, .012), (w * 1.2, -.02)], 'dark', closed=True)
 inner = [(p[0] * .93, p[1] * .93) for p in triangle]
 apex = len(inner)
 vertices = [(p[0], p[1], .05) for p in inner] + [(p[0] * .62, p[1] * .62, .2) for p in inner] + [(0, 0, .26)]
@@ -251,47 +266,11 @@ for i in range(apex):
     faces.append((i + apex, j + apex, apex * 2))
 solid('Faceted lens', vertices, faces, 'lens', sharp=80)
 
+# Small polished studs: the walls they cap are thin lines.
 asset('post', next_slot())
-cylinder('Stem', .55, 0, 3.0, 'metal', segments=14)
-lathe('Rubber sleeve', [(.72, 1.1), (1.0, 1.35), (1.0, 2.0), (.72, 2.25)], 'rubber', 20, sharp=80)
-lathe('Domed cap', [(.72, 3.0), (.72, 3.25), (.6, 3.55), (.34, 3.8), (.001, 3.92)], 'accent', 18, sharp=80)
-rivet('Cap screw', .26, 3.86, 'metal')
+lathe('Collar', [(.62, 0), (.62, 2.4), (.56, 2.6)], 'accent', 20, sharp=80)
+lathe('Polished dome', [(.56, 2.5), (.5, 3.0), (.3, 3.4), (.001, 3.5)], 'metal', 18, sharp=80)
 
-# Unit length from the pivot along +x, in the proportions of the table's flipper.
-asset('flipper', next_slot())
-flipper_def = json.loads((ROOT / 'GameData/Tables/aurora.json').read_text())['flippers'][0]
-rb, rt, height = flipper_def['baseRadius'] / flipper_def['length'], flipper_def['tipRadius'] / flipper_def['length'], .253
-stations = [-rb + rb * (1 - math.cos(i * math.pi / 12)) for i in range(7)] + [i * .1 for i in range(1, 10)] + \
-           [1 + rt * math.sin(i * math.pi / 12) for i in range(7)]
-
-
-def half_width(x):
-    if x <= 0:
-        return math.sqrt(max(rb * rb - x * x, 0))
-    if x >= 1:
-        return math.sqrt(max(rt * rt - (x - 1) * (x - 1), 0))
-    return rb + (rt - rb) * x
-
-
-across = [-1, -.98, -.76, -.45, 0, .45, .76, .98, 1]
-rise = [.0, .62, .92, .985, 1, .985, .92, .62, .0]
-vertices, uvs, faces = [], [], []
-for x in stations:
-    hw = max(half_width(x), .001)
-    for c, r in zip(across, rise):
-        vertices.append((x, c * hw, .03 + (height - .03) * r))
-        uvs.append(((x + rb) / (1 + rb + rt), .5 + c * .5))
-m = len(across)
-for i in range(len(stations) - 1):
-    for j in range(m - 1):
-        faces.append((i * m + j, (i + 1) * m + j, (i + 1) * m + j + 1, i * m + j + 1))
-top = [f for f in faces if f[0] % m in range(2, m - 3)]
-solid('Enamel bat • atlas surface', vertices, top, 'flipper_art', uvs, 80)
-solid('Rubber edge', vertices, [f for f in faces if f[0] % m in (0, 1, m - 3, m - 2)], 'flipper_rubber', uvs, 80)
-lathe('Pivot collar', [(rb * .72, height), (rb * .72, height + .03), (rb * .58, height + .065)], 'accent', 24)
-lathe('Pivot cap', [(rb * .58, height + .06), (rb * .42, height + .09), (rb * .2, height + .105), (.001, height + .11)], 'metal', 20, sharp=80)
-
-# Unit width and height. Seen from straight above, so the art goes on a broad bevelled top.
 asset('target', next_slot())
 d, t = .17, 1.0
 face = [(-.5, -d), (.5, -d), (.5, d), (-.5, d)]
@@ -301,66 +280,46 @@ sweep('Target frame', [(x * 1.06, y * 1.12, 0) for x, y in face],
 
 asset('flasher-cage', next_slot())
 lathe('Foot ring', [(1.05, 0), (1.05, .1), (.92, .22)], 'accent', 32)
-for i in range(6):
-    a = 2 * math.pi * i / 6
-    bar = [(math.cos(a) * r, math.sin(a) * r, z) for r, z in ((.95, .15), (.92, .55), (.74, 1.0), (.42, 1.34), (.1, 1.52))]
-    sweep(f'Cage bar {i}', bar, [(-.085, 0), (-.085, .07), (.085, .07), (.085, 0)], 'accent', sharp=80)
-lathe('Finial', [(.14, 1.48), (.14, 1.56), (.06, 1.66), (.001, 1.7)], 'metal', 12, sharp=80)
+ring('Chrome collar', .86, .07, .24, 'metal', segments=32)
 
-asset('gear', next_slot())
-teeth = 14
-outline = []
-for i in range(teeth):
-    for r, off in ((.8, -.27), (1.0, -.14), (1.0, .14), (.8, .27)):
-        a = (i + off + .0) * 2 * math.pi / teeth
-        outline.append((r * math.cos(a), r * math.sin(a), 0))
-sweep('Gear teeth', outline, [(-.02, 0), (-.02, .08), (.02, .13), (.32, .13)], 'accent', closed=True, sharp=30)
-prism_top('Gear web', [(p[0] * .7, p[1] * .7) for p in outline], .12, 'wall_art')
-for i in range(6):
-    a = 2 * math.pi * i / 6
-    cylinder(f'Lightening hole {i}', .13, .1, .125, 'dark', (.46 * math.cos(a), .46 * math.sin(a)), 14, .01)
-lathe('Hub', [(.26, .12), (.24, .24), (.15, .28), (.001, .29)], 'metal', 20)
+def bullet_lamp(name, glow):
+    """Unit radius: a glowing bullet in a brass and chrome socket, seen from above."""
+    asset(name, next_slot())
+    lathe('Socket flange', [(1.0, 0), (1.0, .1), (.92, .18), (.8, .2)], 'accent', 28)
+    ring('Chrome ring', .78, .07, .24, 'metal', segments=28)
+    lathe('Glowing bullet', [(.7, .2), (.68, .42), (.52, .62), (.28, .76), (.001, .8)], glow, 24, sharp=80)
+    lathe('Lens highlight', [(.72, .24), (.69, .44), (.53, .64), (.29, .78), (.001, .82)], 'lens', 24, sharp=80)
 
-asset('medallion', next_slot())
-lathe('Dished plate', [(1.0, 0), (1.0, .08), (.92, .12), (.82, .07), (.001, .07)], 'accent', 48)
-star = []
-for i in range(16):
-    r = (.76 if i % 4 == 0 else .3) if i % 2 == 0 else .17
-    a = i * math.pi / 8
-    star.append((r * math.cos(a), r * math.sin(a)))
-prism_top('Compass star', star, .1, 'metal')
-for i in range(8):
-    a = 2 * math.pi * i / 8
-    rivet(f'Rim rivet {i}', .05, .1, 'metal', (.92 * math.cos(a), .92 * math.sin(a)), 8)
 
-# Elongated parts: unit half length along +x.
-asset('piston', next_slot())
-aspect = .3
-for x0, x1, r, role in ((-1, -.25, aspect * .92, 'accent'), (-.25, .95, aspect * .35, 'metal')):
-    profile = [(r * .8, 0), (r, r * .25), (r, r * .75), (r * .8, r)]
-    steps = [x0 + (x1 - x0) * i / 6 for i in range(7)]
-    sweep(f'Barrel {x0}', [(x, 0, 0) for x in steps],
-          [(-r * .95, .0), (-r, .35 * r), (-r * .55, .9 * r), (0, 1.1 * r), (r * .55, .9 * r), (r, .35 * r), (r * .95, 0)], role, sharp=80)
-for x in (-.9, -.35):
-    sweep(f'Collar {x}', [(x, 0, 0), (x + .07, 0, 0)],
-          [(-aspect, 0), (-aspect, .42 * aspect), (-aspect * .55, aspect), (0, 1.2 * aspect), (aspect * .55, aspect), (aspect, .42 * aspect), (aspect, 0)], 'metal', sharp=80)
-rivet('Rod end', aspect * .42, .03, 'accent', (.95, 0))
+bullet_lamp('bullet-cyan', 'glow')
+bullet_lamp('bullet-amber', 'glow_amber')
 
-asset('bracket', next_slot())
-aspect = .3
-outline = [(-1, -aspect), (1, -aspect * .6), (1, aspect * .6), (-1, aspect)]
-rounded = [(x, y, 0) for x, y in outline]
-sweep('Bracket edge', rounded, [(-.04, 0), (-.04, .07), (.02, .1)], 'accent', closed=True, sharp=30)
-prism_top('Bracket plate', [(x * .97, y * .92) for x, y in outline], .095, 'wall_art')
-for x in (-.82, 0, .82):
-    rivet(f'Bracket rivet {x}', aspect * .32, .09, 'metal', (x, 0))
+asset('stud', next_slot())
+lathe('Stud base', [(1.0, 0), (1.0, .12), (.86, .22), (.72, .24)], 'accent', 24)
+lathe('Stud dome', [(.74, .2), (.7, .5), (.5, .8), (.26, .96), (.001, 1.0)], 'metal', 20, sharp=80)
 
+# Unit circumradius, apex on +x: an always-lit coloured insert and its brass bezel.
+asset('arrow-lens', next_slot())
+w = .045
+sweep('Heavy bezel', triangle, [(-w, -.02), (-w, .08), (-w * .3, .13), (w * .3, .13), (w, .08), (w, -.02)], 'accent', closed=True)
+inner = [(p[0] * .9, p[1] * .9) for p in triangle]
+low = [min(p[i] for p in inner) for i in (0, 1)]
+span = [max(p[i] for p in inner) - low[i] for i in (0, 1)]
+n = len(inner)
+vertices = [(p[0], p[1], .05) for p in inner] + [(p[0] * .6, p[1] * .6, .16) for p in inner] + [(0, 0, .22)]
+uvs = [((v[0] - low[0]) / span[0], (v[1] - low[1]) / span[1]) for v in vertices]
+faces = []
+for i in range(n):
+    j = (i + 1) % n
+    faces.append((i, j, j + n, i + n))
+    faces.append((i + n, j + n, n * 2))
+solid('Coloured lens', vertices, faces, 'sling_lens', uvs, sharp=80)
 
 
 # --------------------------------------------------------------------------- Table-specific
 
-table = json.loads((ROOT / 'GameData/Tables/aurora.json').read_text())
-SIZE = table['size']
+TABLES = [json.loads(path.read_text()) for path in sorted((ROOT / 'GameData/Tables').glob('*.json'))]
+SIZE = TABLES[0]['size']  # Set per table in the loop below.
 
 
 def centred(x, y):
@@ -393,126 +352,241 @@ def smooth_path(points):
     return out + [p[-1]]
 
 
-def rivets_along(prefix, path, spacing, z, radius, offset=0.0, role='metal'):
-    travelled = spacing * .5
-    for i in range(len(path) - 1):
-        a, b = Vector(path[i]), Vector(path[i + 1])
-        length = (b - a).length
-        if length < 1e-5:
-            continue
-        direction = (b - a) / length
-        normal = Vector((-direction.y, direction.x))
-        while travelled < length:
-            point = a + direction * travelled + normal * offset
-            x, y = centred(point.x, point.y)
-            rivet(f'{prefix} {i} {travelled:.3f}', radius, z, role, (x, y))
-            travelled += spacing
-        travelled -= length
-
-
-# Guide plates: broad enough to read as machined metal, like the concept's bolted rails.
-asset(f"{table['id']}-walls", (0, -3, 0))
-for wall in table['walls']:
-    if wall['style'] not in ('wall', 'rail'):
-        continue
-    path = table_path(wall['points'])
-    points = [(*centred(*p), 0) for p in path]
-    half = wall['radius'] + .004
-    h = wall['height']
-    bevel = min(half * .28, .003)
-    inlay = half * .52
-    section = [(-half, 0), (-half, h - bevel), (-half + bevel, h), (-inlay, h), (inlay, h), (half - bevel, h), (half, h - bevel), (half, 0)]
-    top_role = 'accent' if wall['style'] == 'rail' else 'wall_art'
-    sweep(wall['id'], points, section, 'accent', band_roles=['accent', 'accent', 'accent', top_role, 'accent', 'accent', 'accent'], uv_scale=4)
-    if wall['style'] == 'rail' or h >= .07:
-        rivets_along(f"{wall['id']} rivet", path, .07 if wall['id'] != 'outer' else .1, h - .0004, .0032)
-
-asset(f"{table['id']}-plastics", (0, -6, 0))
-plastic_shapes = [(p['id'], table_path(p['points']), p['height'], 'plastic_art') for p in table['plastics']]
-plastic_shapes += [(w['id'], table_path(w['points']), 0, 'block_art') for w in table['walls'] if w['style'] == 'plastic']
-for name, path, base, art in plastic_shapes:
-    wall_height = next((w['height'] for w in table['walls'] if w['id'] == name), .006)
-    top = base + wall_height
-    outline = [centred(*p) for p in path]
-    if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1]
-           for i in range(len(outline))) < 0:
-        outline = outline[::-1]
-    prism_top(f'{name} art', outline, top, art)
-    frame = [(*p, base) for p in outline]
-    # Outline is counter-clockwise, so "left of travel" is inward.
-    sweep(f'{name} frame', frame, [(-.003, 0), (-.003, wall_height + .002), (.001, wall_height + .004), (.004, wall_height + .002), (.004, wall_height)],
-          'accent', closed=True, sharp=30)
+def faceted_lens(name, outline, z, role, rise=None):
+    """A shallow moulded dome over a counter-clockwise outline, UVs across its bounding box."""
     centre = Vector((sum(p[0] for p in outline) / len(outline), sum(p[1] for p in outline) / len(outline)))
-    for i, p in enumerate(outline):
-        # Bolts sit just inside each corner, and hold raised plastics on standoffs.
-        toward = (centre - Vector(p))
-        spot = Vector(p) + toward * min(.016 / max(toward.length, .001), .3)
-        rivet(f'{name} bolt {i}', .0042, top + .0015, 'metal', tuple(spot))
-        if base > 0:
-            cylinder(f'{name} standoff {i}', .004, 0, base, 'metal', tuple(spot), 10)
+    low = (min(p[0] for p in outline), min(p[1] for p in outline))
+    span = (max(p[0] for p in outline) - low[0], max(p[1] for p in outline) - low[1])
+    n = len(outline)
+    rise = min(span) * .1 if rise is None else rise
+    rings = [(1.0, 0), (.8, rise * .75), (.48, rise)]
+    vertices = [(centre.x + (p[0] - centre.x) * k, centre.y + (p[1] - centre.y) * k, z + dz) for k, dz in rings for p in outline] + [(centre.x, centre.y, z + rise * 1.12)]
+    faces = []
+    for r in range(2):
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append((r * n + i, r * n + j, (r + 1) * n + j, (r + 1) * n + i))
+    for i in range(n):
+        faces.append((2 * n + i, 2 * n + (i + 1) % n, 3 * n))
+    uvs = [((v[0] - low[0]) / span[0], (v[1] - low[1]) / span[1]) for v in vertices]
+    return solid(name, vertices, faces, role, uvs, 60)
 
-for ramp in table['ramps']:
-    asset(f"{table['id']}-{ramp['id']}", (0, 3, 0))
-    points = smooth_path(ramp['points'])
-    half = ramp['width'] * .5 + .004
-    path = [Vector((*centred(p.x, p.y), p.z)) for p in points]
-    # Clear channel: the floor follows the physics surface exactly.
-    wall = .024
-    sweep('Clear channel', path, [(-half, wall), (-half, .003), (-half + .006, 0), (half - .006, 0), (half, .003), (half, wall)], 'glass', sharp=80)
-    # Heavy rolled rims, the concept's strongest silhouette.
-    for side in (-1, 1):
-        o = side * (half + .001)
-        r = .0082
-        rim = [(o + r * math.cos(a), wall + r * math.sin(a)) for a in (math.pi + i * math.pi * 2 / 8 for i in range(9))]
-        rim = rim if side < 0 else rim
-        sweep(f'Rolled rim {side}', path, rim, 'accent', sharp=80)
-        # A thin chrome hairline inside the brass.
-        sweep(f'Hairline {side}', path, [(o - side * .0085, wall - .001), (o - side * .0085, wall + .0015), (o - side * .0065, wall + .0015)][::side], 'metal', sharp=80)
-    # Clamp bands, each bolted through both rims.
-    for i in range(5, len(path) - 3, 7):
-        a, b = path[i], path[i + 1]
-        wrap = [(-half - .009, wall - .007), (-half - .009, wall + .009), (-half + .006, wall + .009), (-half + .006, wall + .006),
-                (-half - .003, wall + .006)]
+
+# ------------------------------------------------------------------------------- Mechanisms
+
+def lens_triangle(name, centre, scale, apex, role):
+    """A framed, domed triangular lens from the arrow outline, its apex along +x or -x."""
+    outline = [(centre + apex * p[0] * scale, apex * p[1] * scale) for p in triangle]
+    if apex < 0:
+        outline = outline[::-1]
+    faceted_lens(f'{name} lens', outline, .05, role, rise=.1)
+    sweep(f'{name} bezel', [(*p, 0) for p in outline], [(-.035, 0), (-.035, .08), (0, .11), (.035, .08), (.035, 0)], 'accent', closed=True, sharp=70)
+
+
+# Unit half length along +x: the concept's lit pair, a red arrow above an amber one pointing away.
+asset('arrow-stack', next_slot())
+lens_triangle('Upper', .44, .52, 1, 'sling_lens')
+lens_triangle('Lower', -.44, .52, -1, 'amber_lens')
+
+# Unit half length along +x, half as wide: a bright bracket plate holding a lamp, and two bolts.
+asset('mech-bracket', next_slot())
+plate = [(-1, -.32), (.1, -.46), (1, -.2), (1, .2), (.2, .46), (-1, .32)]
+plate = [q for a, b in zip(plate, plate[1:] + plate[:1]) for q in ((a[0] * .86 + b[0] * .14, a[1] * .86 + b[1] * .14), (a[0] * .14 + b[0] * .86, a[1] * .14 + b[1] * .86))]
+faceted_lens('Plate', plate, .05, 'metal', rise=.09)
+sweep('Plate rim', [(*p, 0) for p in plate], [(-.03, 0), (-.03, .06), (0, .09), (.03, .06), (.03, 0)], 'accent', closed=True, sharp=70)
+lathe('Lamp seat', [(.3, .1), (.3, .16), (.25, .2)], 'accent', 24, (.1, 0), sharp=70)
+lathe('Lamp', [(.25, .17), (.21, .27), (.11, .34), (.001, .36)], 'glow', 20, (.1, 0), sharp=80)
+bolt('Bolt a', .13, .12, (-.72, 0))
+bolt('Bolt b', .1, .12, (.76, 0))
+
+# Unit half length along +x, a third as wide: a brass cylinder driving a polished rod.
+asset('mech-piston', next_slot())
+r = .3
+round_top = [(r * math.cos(a), r * .9 * math.sin(a) + .02) for a in (math.pi - i * math.pi / 8 for i in range(9))][::-1]
+round_top = [(-x, z) for x, z in round_top]
+sweep('Cylinder', [(-.95, 0, 0), (-.1, 0, 0)], [(x, z) for x, z in round_top], 'accent', sharp=80)
+sweep('Rod', [(-.1, 0, 0), (.82, 0, 0)], [(x * .33, z * .36 + .05) for x, z in round_top], 'metal', sharp=80)
+for x in (-.95, -.62, -.28, -.1):
+    sweep(f'Collar {x}', [(x - .035, 0, 0), (x + .035, 0, 0)], [(p[0] * 1.14, p[1] * 1.14) for p in round_top], 'metal' if x in (-.95, -.1) else 'accent', sharp=80)
+lathe('Eye', [(.2, 0), (.2, .14), (.15, .2), (.07, .22)], 'accent', 16, (.84, 0), sharp=70)
+bolt('Eye pin', .09, .19, (.84, 0))
+
+# Unit radius, standing clear of the table like a post: a brass stud, and one topped with a lamp.
+asset('mech-stud', next_slot())
+lathe('Foot', [(1.0, 0), (1.0, .32), (.8, .55), (.62, .62)], 'accent', 18, sharp=70)
+lathe('Stem', [(.62, .55), (.62, 2.2), (.86, 2.45), (.86, 2.8), (.62, 3.05)], 'accent', 18, sharp=70)
+lathe('Polished dome', [(.62, 3.0), (.56, 3.45), (.32, 3.82), (.001, 3.95)], 'metal', 18, sharp=80)
+asset('mech-tower', next_slot())
+lathe('Foot', [(1.0, 0), (1.0, .32), (.8, .55), (.7, .62)], 'accent', 18, sharp=70)
+lathe('Holder', [(.7, .55), (.7, 2.0), (.92, 2.25), (.92, 2.55), (.74, 2.7)], 'accent', 18, sharp=70)
+lathe('Lamp', [(.74, 2.6), (.72, 3.1), (.56, 3.6), (.3, 3.92), (.001, 4.0)], 'glow', 18, sharp=80)
+
+
+for table_index, table in enumerate(TABLES):
+    SIZE = table['size']
+    # Unit length from the pivot along +x, in the proportions of the table's flipper.
+    asset(f"{table['id']}-flipper", next_slot())
+    flipper_def = table['flippers'][0]
+    rb, rt, height = flipper_def['baseRadius'] / flipper_def['length'], flipper_def['tipRadius'] / flipper_def['length'], .253
+    stations = [-rb + rb * (1 - math.cos(i * math.pi / 12)) for i in range(7)] + [i * .1 for i in range(1, 10)] + \
+               [1 + rt * math.sin(i * math.pi / 12) for i in range(7)]
+
+
+    def half_width(x):
+        if x <= 0:
+            return math.sqrt(max(rb * rb - x * x, 0))
+        if x >= 1:
+            return math.sqrt(max(rt * rt - (x - 1) * (x - 1), 0))
+        return rb + (rt - rb) * x
+
+
+    # From the drawing: an ivory bat in a broad black rubber edge, with a lit inset and a brass pivot.
+    across = [-1, -.97, -.92, -.84, -.8, -.45, 0, .45, .8, .84, .92, .97, 1]
+    rise = [.0, .62, .95, .88, .9, .98, 1, .98, .9, .88, .95, .62, .0]
+    vertices, uvs, faces = [], [], []
+    for x in stations:
+        hw = max(half_width(x), .001)
+        for c, r in zip(across, rise):
+            vertices.append((x, c * hw, .03 + (height - .03) * r))
+            # The art's plain enamel band, above its stripes.
+            uvs.append(((x + rb) / (1 + rb + rt), .865 + c * .085))
+    m = len(across)
+    for i in range(len(stations) - 1):
+        for j in range(m - 1):
+            faces.append((i * m + j, (i + 1) * m + j, (i + 1) * m + j + 1, i * m + j + 1))
+    solid('Enamel bat', vertices, [f for f in faces if f[0] % m in range(4, m - 5)], 'flipper_art', uvs, 80)
+    solid('Brass trim', vertices, [f for f in faces if f[0] % m in (3, m - 5)], 'accent', uvs, 80)
+    solid('Rubber edge', vertices, [f for f in faces if f[0] % m in (0, 1, 2, m - 4, m - 3, m - 2)], 'black_rubber', uvs, 80)
+    lathe('Pivot collar', [(rb * .95, 0), (rb * .95, height + .02), (rb * .82, height + .045), (rb * .55, height + .05)], 'accent', 28, sharp=70)
+    lathe('Pivot cap', [(rb * .58, height + .04), (rb * .46, height + .08), (rb * .22, height + .1), (.001, height + .105)], 'metal', 20, sharp=80)
+    inset = [(.38, .0), (.22, -.05), (.22, .05)]
+    prism_top('Lit inset', inset, height + .003, 'sling_lens')
+    sweep('Inset frame', [(*p, height) for p in inset[::-1]], [(-.006, 0), (-.006, .007), (.006, .007), (.006, 0)], 'accent', closed=True, sharp=70)
+    bolt('Tip bolt', rt * .42, height - .01, (1, 0))
+
+    # Every wall is a thin polished line. The concept has no heavy rails, and no fasteners on them.
+    asset(f"{table['id']}-walls", (table_index * 3, -3, 0))
+    r = .0032
+    for wall in table['walls']:
+        if wall['style'] not in ('wall', 'rail', 'rubber'):
+            continue
+        path = table_path(wall['points'])
+        h = wall['height']
+        sweep(wall['id'], [(*centred(*p), 0) for p in path],
+              [(-r, 0), (-r, h - r * .9), (-r * .7, h - r * .3), (0, h), (r * .7, h - r * .3), (r, h - r * .9), (r, 0)], 'accent', sharp=80)
+        for k, end in enumerate((path[0], path[-1])):
+            lathe(f"{wall['id']} end {k}", [(r, 0), (r, h - r * .5), (r * .7, h + r * .2), (.0001, h + r * .4)], 'accent', 12, centred(*end), sharp=80)
+
+    # The dead corners below the inlanes: a domed kite-shaped guard on a thin foot rail.
+    # The table mirrors about the point midway between the flippers.
+    # Coordinates are relative to the left flipper's pivot, plus the (.3, .345) they were measured from.
+    pivot = table['flippers'][0]['pivot']
+    MIRROR = pivot[0] + table['flippers'][1]['pivot'][0]
+    for side, mirror in (('L', lambda x: x + pivot[0] - .3), ('R', lambda x: MIRROR - (x + pivot[0] - .3))):
+        rise = pivot[1] - .345
+        kite = [(.112, .352), (.158, .392), (.226, .362), (.238, .315), (.178, .272), (.118, .292)]
+        # Soften each corner, keeping the straight edges of the concept's plate.
+        kite = [q for a, b in zip(kite, kite[1:] + kite[:1]) for q in ((a[0] * .86 + b[0] * .14, a[1] * .86 + b[1] * .14), (a[0] * .14 + b[0] * .86, a[1] * .14 + b[1] * .86))]
+        outline = [centred(mirror(x), y + rise) for x, y in kite]
+        if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1] for i in range(len(outline))) < 0:
+            outline = outline[::-1]
+        faceted_lens(f'Guard {side} plate', outline, .004, 'accent', rise=.006)
+        sweep(f'Guard {side} rim', [(*p, 0) for p in outline], [(-.0016, 0), (-.0016, .0048), (0, .006), (.0016, .0048)], 'metal', closed=True, sharp=80)
+        bolt(f'Guard {side} bolt', .0095, .009, centred(mirror(.172), .33 + rise))
+        foot = [(.098, .278), (.112, .26), (.262, .26)]
+        sweep(f'Foot rail {side}', [(*centred(mirror(x), y + rise), 0) for x, y in foot], [(-.002, 0), (-.002, .004), (0, .0052), (.002, .004), (.002, 0)], 'accent', sharp=80)
+
+    asset(f"{table['id']}-plastics", (table_index * 3, -6, 0))
+    plastic_shapes = [(p['id'], table_path(p['points']), p['height'], 'sling_lens') for p in table['plastics']]
+    plastic_shapes += [(w['id'], table_path(w['points']), 0, 'block_art') for w in table['walls'] if w['style'] == 'plastic']
+    for name, path, base, art in plastic_shapes:
+        wall_height = next((w['height'] for w in table['walls'] if w['id'] == name), .006)
+        top = base + wall_height
+        outline = [centred(*p) for p in path]
+        if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1]
+               for i in range(len(outline))) < 0:
+            outline = outline[::-1]
+        if art == 'sling_lens':
+            # From the drawing: black bands between three brass posts, around a framed lit panel.
+            middle = Vector((sum(p[0] for p in outline) / len(outline), sum(p[1] for p in outline) / len(outline)))
+            panel = [tuple(middle + (Vector(p) - middle) * .62) for p in outline]
+            faceted_lens(f'{name} panel', panel, .008, art, rise=.004)
+            sweep(f'{name} panel frame', [(*p, 0) for p in panel], [(-.0022, 0), (-.0022, .009), (0, .0105), (.0022, .009), (.0022, 0)], 'accent', closed=True, sharp=70)
+            for a, b in zip(outline, outline[1:] + outline[:1]):
+                sweep(f'{name} band {a[0]:.3f}', [(a[0], a[1], 0), (b[0], b[1], 0)], [(-.0048, .003), (-.0048, .013), (-.0028, .0185), (.0028, .0185), (.0048, .013), (.0048, .003)], 'black_rubber', sharp=80)
+            for k, p in enumerate(outline):
+                lathe(f'{name} post {k}', [(.0088, 0), (.0088, .004), (.0066, .007), (.0066, .019), (.0056, .022)], 'accent', 18, tuple(p), sharp=70)
+                bolt(f'{name} post cap {k}', .0056, .021, tuple(p))
+            continue
+        prism_top(f'{name} art', outline, top, art)
+        # Outline is counter-clockwise, so "left of travel" is inward.
+        sweep(f'{name} frame', [(*p, base) for p in outline], [(-.0024, 0), (-.0024, wall_height + .002), (-.0008, wall_height + .0032), (.0008, wall_height + .0032), (.0024, wall_height + .002), (.0024, 0)], 'accent', closed=True, sharp=80)
+
+    # From the construction drawing: a flat channel floor between channel walls, broad brass side
+    # rails, a retaining rail held above them, clamps across the rails, and mounting brackets.
+    # The floor's lowest line follows the physics surface exactly.
+    for ramp in table['ramps']:
+        asset(f"{table['id']}-{ramp['id']}", (table_index * 3, 3, 0))
+        path = [Vector((*centred(p.x, p.y), p.z)) for p in smooth_path(ramp['points'])]
+        half = ramp['width'] * .5 + .002
+        wall = .022
+        rail = .0118
+
+        def normal_at(i):
+            tangent = (path[min(i + 1, len(path) - 1)] - path[max(i - 1, 0)]).xy.normalized()
+            return Vector((-tangent.y, tangent.x))
+        stops = (-1, -.8, -.6, -.4, -.2, 0, .2, .4, .6, .8, 1)
+        floor = [(u * half, .009 * u * u) for u in stops]
+        sweep('Channel floor', path, [(-half, wall)] + floor + [(half, wall)], 'ramp_floor', sharp=80)
+        for u in (-.5, .5):
+            z = .009 * u * u
+            sweep(f'Floor line {u}', path, [(u * half - .0007, z + .0003), (u * half, z + .001), (u * half + .0007, z + .0003)], 'accent', sharp=89)
         for side in (-1, 1):
-            section = wrap if side < 0 else [(-x, z) for x, z in wrap][::-1]
-            band = [a, a + (b - a) * .5, b]
-            sweep(f'Clamp {i} {side}', band, section, 'accent', sharp=30)
-        tangent = (b - a).xy.normalized()
-        normal = Vector((-tangent.y, tangent.x))
-        for side in (-1, 1):
-            spot = a.xy + normal * side * (half + .0025)
-            rivet(f'Clamp bolt {i} {side}', .0034, a.z + wall + .009, 'metal', tuple(spot))
-    # Bolted flanges at the mouth and exit.
-    for index, step in ((0, 1), (len(path) - 1, -1)):
-        a, b = path[index], path[index + step]
-        section = [(-half - .016, -.001), (-half - .016, wall + .004), (-half - .01, wall + .008), (half + .01, wall + .008), (half + .016, wall + .004), (half + .016, -.001)]
-        end = a + (b - a).normalized() * .02
-        sweep(f'End flange {index}', [a, end] if step > 0 else [end, a], section, 'accent', sharp=30)
-        tangent = (b - a).xy.normalized()
-        normal = Vector((-tangent.y, tangent.x))
-        for side in (-1, 1):
-            spot = (a.xy + end.xy) * .5 + normal * side * (half + .009)
-            rivet(f'Flange bolt {index} {side}', .0042, a.z + wall + .007, 'metal', tuple(spot))
-    # Support posts where the channel is high enough to need them.
-    for i in range(12, len(path) - 8, 12):
-        if path[i].z > .05:
-            tangent = (path[i + 1] - path[i - 1]).xy.normalized()
-            normal = Vector((-tangent.y, tangent.x))
+            # The side rail, crowned so its top sweeps the MatCap's streaks along every bend.
+            # Broad enough to read as the concept's heavy rail: it overhangs the floor's unused edge.
+            over = .009
+            crown = [(-over, wall - .005), (-over + .0012, wall - .001), (-over + (rail + over) * .25, wall + .0016), (-over + (rail + over) * .5, wall + .0028), (-over + (rail + over) * .75, wall + .0016), (rail - .0012, wall - .001), (rail, wall - .004), (rail, -.002)]
+            section = [(side * (half + x), z) for x, z in crown]
+            # Sections run toward the left of travel, or their faces point inward and get culled.
+            sweep(f'Side rail {side}', path, section if side > 0 else section[::-1], 'accent', sharp=70)
+            # Retaining rail: a fine wire on standoffs, held above the side rail.
+            lift = .0145
+            o = side * (half + rail * .5)
+            sweep(f'Retaining rail {side}', path, [(o + .0013 * math.cos(a), wall + lift + .0013 * math.sin(a)) for a in (math.pi + i * math.pi * 2 / 8 for i in range(9))], 'metal', sharp=89)
+            for i in range(4, len(path) - 2, 9):
+                cylinder(f'Standoff {i} {side}', .0012, path[i].z + wall, path[i].z + wall + lift, 'metal', tuple(path[i].xy + normal_at(i) * o), 6, 0)
+        # Clamps across each rail, one small bolt each.
+        for i in range(7, len(path) - 4, 14):
+            a, b = path[i], path[i + 1]
+            end = a + (b - a).normalized() * .009
             for side in (-1, 1):
-                cylinder(f'Support {i} {side}', .0045, 0, path[i].z, 'metal', tuple(path[i].xy + normal * side * (half + .004)), 10)
-
-asset(f"{table['id']}-dmd", (0, -9, 0))
-rx, ry, rw, rh = table['apron']['dmd']
-apron_top = table['apron']['height']
-m = .022
-frame = [(*centred(rx - m, ry - m), apron_top), (*centred(rx + rw + m, ry - m), apron_top),
-         (*centred(rx + rw + m, ry + rh + m), apron_top), (*centred(rx - m, ry + rh + m), apron_top)]
-sweep('Display frame', frame, [(-.008, 0), (-.008, .007), (-.002, .012), (.008, .012), (.018, .008), (.018, 0)], 'accent', closed=True, sharp=30)
-for name, x, y in (('bl', rx - m + .004, ry - m + .004), ('br', rx + rw + m - .004, ry - m + .004),
-                   ('tr', rx + rw + m - .004, ry + rh + m - .004), ('tl', rx - m + .004, ry + rh + m - .004)):
-    rivet(f'Frame bolt {name}', .0048, apron_top + .012, 'metal', centred(x, y))
-rivets_along('Frame rivet top', [(rx, ry + rh + m - .004), (rx + rw, ry + rh + m - .004)], .06, apron_top + .012, .0028)
-rivets_along('Frame rivet low', [(rx, ry - m + .004), (rx + rw, ry - m + .004)], .06, apron_top + .012, .0028)
+                section = [(side * (half - .001), wall + .001), (side * (half - .001), wall + .0042), (side * (half + rail + .001), wall + .0042), (side * (half + rail + .001), -.001)]
+                sweep(f'Clamp {i} {side}', [a, end], section if side > 0 else section[::-1], 'accent', sharp=30)
+                bolt(f'Clamp bolt {i} {side}', .0026, a.z + wall + .0036, tuple((a.xy + end.xy) * .5 + normal_at(i) * side * (half + rail * .5)))
+        # Lit inserts set into the outer rails, as on the track reference.
+        for i in range(16, len(path) - 8, 24):
+            tangent = (path[i + 1] - path[i]).xy.normalized()
+            for side in (-1, 1):
+                normal = normal_at(i)
+                c = path[i].xy + normal * side * (half + rail * .5)
+                c = path[i].xy + normal * side * (half + (rail - .009) * .5)
+                corners = [c + tangent * .015, c - tangent * .01 + normal * .0072, c - tangent * .01 - normal * .0072]
+                prism_top(f'Rail insert {i} {side}', [tuple(q) for q in corners], path[i].z + wall + .0034, 'sling_lens')
+        # Square ends, as the track's open section.
+        for index, step in ((0, 1), (len(path) - 1, -1)):
+            a, b = path[index], path[index + step]
+            end = a + (b - a).normalized() * .007
+            section = [(-half - rail - .001, -.001), (-half - rail - .001, wall + .004), (half + rail + .001, wall + .004), (half + rail + .001, -.001)]
+            sweep(f'End band {index}', [a, end] if step > 0 else [end, a], [(-half - rail - .001, wall - .004), (-half - rail - .001, wall + .004), (-half + .001, wall + .004), (-half + .001, wall - .004)], 'accent', sharp=30)
+            sweep(f'End band r {index}', [a, end] if step > 0 else [end, a], [(half - .001, wall - .004), (half - .001, wall + .004), (half + rail + .001, wall + .004), (half + rail + .001, wall - .004)][::-1], 'accent', sharp=30)
+        # Mounting brackets: a leg down to a bolted foot, wherever the track runs high.
+        for i in range(12, len(path) - 8, 12):
+            if path[i].z < .05:
+                continue
+            for side in (-1, 1):
+                spot = path[i].xy + normal_at(i) * side * (half + rail * .5)
+                cylinder(f'Leg {i} {side}', .0036, 0, path[i].z, 'accent', tuple(spot), 10, .0005)
+                lathe(f'Foot {i} {side}', [(.0062, 0), (.0062, .0025), (.0042, .004)], 'accent', 14, tuple(spot), sharp=70)
 
 
 # ------------------------------------------------------------------------------------ Export

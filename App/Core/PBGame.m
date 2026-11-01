@@ -31,6 +31,7 @@
 }
 
 - (void)addObserver:(id<PBGameObserver>)observer { [_observers addObject:observer]; }
+- (void)removeObserver:(id<PBGameObserver>)observer { [_observers removeObject:observer]; }
 
 - (void)setLeftPressed:(BOOL)pressed { atomic_store(&_leftInput, pressed); }
 - (void)requestNewGame { atomic_store(&_newGameRequested, YES); }

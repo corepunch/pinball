@@ -4,16 +4,17 @@
 
 #import "PBLayoutValidator.h"
 
-const float PBTableCameraFieldOfView = 30.0f;
-const float PBBumperFootprintScale = 1.14f;
+const float PBTableCameraTilt = 18.0f;
+const float PBBumperFootprintScale = 1.08f;
 const float PBLampFootprintScale = 1.12f;
 const float PBPostFootprintScale = 1.05f;
 
 // Footprints are a little larger than colliders, so a passable gap can measure under a ball's width.
 static const float kPassableFraction = 0.82f;
-static const float kPlateMargin = 0.004f;
+// A flipper seats against the end of its guide rail, and the tilt can lift it this far over.
+static const float kFlipperSeat = 0.0035f;
 
-typedef struct { simd_float2 a, b; float radius; } PBCapsule;
+typedef struct { simd_float2 a, b; float radius; BOOL onFloor; } PBCapsule;
 
 typedef NS_ENUM(NSInteger, PBPartRole) {
     PBPartStructure,  // Walls, posts, slings, targets, gates: may be built onto each other.
@@ -113,14 +114,14 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
 @implementation PBLayoutValidator {
     PBTableDefinition *_table;
     NSMutableArray<PBPart *> *_parts;
-    float _cameraHeight;
+    float _heightShift;
 }
 
 + (NSArray<PBLayoutIssue *> *)issuesForTable:(PBTableDefinition *)table {
     PBLayoutValidator *validator = [self new];
     validator->_table = table;
     validator->_parts = [NSMutableArray array];
-    validator->_cameraHeight = table.size.y * 0.5f / tanf(PBTableCameraFieldOfView * (float)M_PI / 360.0f);
+    validator->_heightShift = tanf(PBTableCameraTilt * (float)M_PI / 180.0f);
     [validator collectParts];
     [validator groupAttachedStructure];
     NSMutableArray *issues = [NSMutableArray array];
@@ -131,10 +132,9 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
 
 #pragma mark - Footprints
 
-/// Where a point at this height lands on the playfield, seen from the overhead camera.
+/// Where a point at this height lands on the playfield, seen from the tilted camera.
 - (simd_float2)project:(simd_float2)p height:(float)height {
-    simd_float2 centre = _table.size * 0.5f;
-    return centre + (p - centre) * (_cameraHeight / MAX(_cameraHeight - height, 0.1f));
+    return p + simd_make_float2(0, height * _heightShift);
 }
 
 - (PBPart *)addPart:(NSString *)identifier role:(PBPartRole)role {
@@ -147,8 +147,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
 }
 
 - (void)addCapsuleTo:(PBPart *)part from:(simd_float2)a to:(simd_float2)b radius:(float)radius height:(float)height {
-    float scale = _cameraHeight / MAX(_cameraHeight - height, 0.1f);
-    PBCapsule capsule = { [self project:a height:height], [self project:b height:height], radius * scale };
+    PBCapsule capsule = { [self project:a height:height], [self project:b height:height], radius, height <= 0 };
     [part.capsules appendBytes:&capsule length:sizeof(capsule)];
 }
 
@@ -170,9 +169,8 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         part.mayRunUnderApron = YES;
         const simd_float2 *p = wall.points.points;
         NSInteger n = wall.points.count, segments = wall.closed ? n : n - 1;
-        // Blender's guide plates stand a little wider than the collider inside them.
-        BOOL plated = wall.style == PBWallStyleWall || wall.style == PBWallStyleRail;
-        float drawn = wall.radius + (plated ? kPlateMargin : 0.0f);
+        // Drawn as a thin line inside the collider, which is what must stay clear.
+        float drawn = wall.radius;
         for (NSInteger i = 0; i < segments; i++) {
             [self addUprightTo:part from:p[i] to:p[(i + 1) % n] radius:drawn height:wall.height];
         }
@@ -188,7 +186,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     for (PBSpotDef *bumper in t.bumpers) {
         PBPart *part = [self addPart:bumper.identifier role:PBPartBumper];
         part.solid = YES;
-        [self addUprightTo:part from:bumper.position to:bumper.position radius:bumper.radius * PBBumperFootprintScale height:bumper.radius * 1.3f];
+        [self addUprightTo:part from:bumper.position to:bumper.position radius:bumper.radius * PBBumperFootprintScale height:bumper.radius * 1.5f];
     }
     for (PBEdgeDef *sling in t.slingshots) {
         PBPart *part = [self addPart:sling.identifier role:PBPartStructure];
@@ -201,7 +199,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         for (int i = 0; i <= 6; i++) {
             float angle = flipper.restAngle + (flipper.activeAngle - flipper.restAngle) * (float)i / 6.0f;
             simd_float2 tip = flipper.pivot + simd_make_float2(cosf(angle), sinf(angle)) * flipper.length;
-            [self addUprightTo:part from:flipper.pivot to:tip radius:flipper.baseRadius height:0.045f];
+            [self addUprightTo:part from:flipper.pivot to:tip radius:flipper.baseRadius height:0.038f];
         }
     }
     void (^edges)(NSArray<PBEdgeDef *> *, float, float, BOOL) = ^(NSArray<PBEdgeDef *> *list, float radius, float height, BOOL solid) {
@@ -265,7 +263,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     }
     for (PBRampDef *ramp in t.ramps) {
         PBPart *part = [self addPart:ramp.identifier role:PBPartRamp];
-        float half = ramp.width * 0.5f + 0.012f;
+        float half = ramp.width * 0.5f + 0.015f;  // Out to the side rails.
         // The ramp ends are cut square: leave the capsule's round caps out of its footprint.
         float length = 0;
         for (NSInteger i = 1; i < ramp.pointCount; i++) length += simd_distance([ramp pointAtIndex:i].xy, [ramp pointAtIndex:i - 1].xy);
@@ -277,7 +275,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
             along += step;
             if (midpoint < half * 0.75f || midpoint > length - half * 0.75f) continue;
             // The rims stand above the floor and are what the player sees.
-            PBCapsule capsule = { [self project:a.xy height:a.z + 0.024f], [self project:b.xy height:b.z + 0.024f], half };
+            PBCapsule capsule = { [self project:a.xy height:a.z + 0.024f], [self project:b.xy height:b.z + 0.024f], half, NO };
             [part.capsules appendBytes:&capsule length:sizeof(capsule)];
         }
     }
@@ -319,6 +317,20 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     return best;
 }
 
+/// A ball rolls on the floor, so whether it fits through is measured there, not through the camera.
+- (float)floorDistance:(PBPart *)x :(PBPart *)y where:(simd_float2 *)where {
+    float best = FLT_MAX;
+    for (NSInteger i = 0; i < x.count; i++) {
+        for (NSInteger j = 0; j < y.count; j++) {
+            if (!x.items[i].onFloor || !y.items[j].onFloor) continue;
+            simd_float2 point;
+            float gap = PBCenterlineDistance(x.items[i], y.items[j], &point) - x.items[i].radius - y.items[j].radius;
+            if (gap < best) { best = gap; *where = point; }
+        }
+    }
+    return best;
+}
+
 - (BOOL)part:(PBPart *)x holdsPart:(PBPart *)y {
     if (!x.outline) return NO;
     for (NSInteger j = 0; j < y.count; j++) {
@@ -342,6 +354,10 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
 - (BOOL)mayOverlap:(PBPart *)x :(PBPart *)y {
     PBPartRole a = x.role, b = y.role;
     if (a == PBPartStructure && b == PBPartStructure) return [self partsAttach:x :y];
+    if ((a == PBPartFlipper && b == PBPartStructure) || (b == PBPartFlipper && a == PBPartStructure)) {
+        simd_float2 where;
+        return [self surfaceDistance:x :y where:&where] > -kFlipperSeat;
+    }
     // A ramp starts between its entrance walls, and is carried over everything else.
     if ((a == PBPartRamp && y.rampMounted) || (b == PBPartRamp && x.rampMounted)) return YES;
     // Plastics are screwed to the walls and posts beneath them.
@@ -368,8 +384,11 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
             BOOL held = [self part:x holdsPart:y] || [self part:y holdsPart:x];
             if ((gap < 0 || held) && ![self mayOverlap:x :y]) {
                 [self report:issues kind:PBLayoutIssueOverlap first:x second:y amount:held ? MAX(-gap, 0.001f) : -gap at:where];
-            } else if (x.solid && y.solid && x.group != y.group && gap >= 0 && gap < ball * kPassableFraction) {
-                [self report:issues kind:PBLayoutIssueNarrowGap first:x second:y amount:ball * kPassableFraction - gap at:where];
+            } else if (x.solid && y.solid && x.group != y.group) {
+                float floorGap = [self floorDistance:x :y where:&where];
+                if (floorGap >= 0 && floorGap < ball * kPassableFraction) {
+                    [self report:issues kind:PBLayoutIssueNarrowGap first:x second:y amount:ball * kPassableFraction - floorGap at:where];
+                }
             }
         }
     }

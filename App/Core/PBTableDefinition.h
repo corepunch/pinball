@@ -54,6 +54,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) float captureSpeed;
 @property (nonatomic) float holdSeconds;
 @property (nonatomic, copy, nullable) NSString *color;
+/// A post drawn as this kit part, rather than the plain post.
+@property (nonatomic, copy, nullable) NSString *model;
 @end
 
 /// A line element: slingshots, drop targets, stand-ups, spinners, gates.
@@ -151,9 +153,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, readonly) float drainY;
 @property (nonatomic, readonly) float plungerSpeed;
 
+/// Nothing but the drain lies below this line.
 @property (nonatomic, readonly) float apronY;
-@property (nonatomic, readonly) float apronHeight;
-@property (nonatomic, readonly) simd_float4 dmdRect;  // x, y, width, height.
 
 @property (nonatomic, strong, readonly) PBPlungerDef *plunger;
 @property (nonatomic, copy, readonly) NSArray<PBWallDef *> *walls;

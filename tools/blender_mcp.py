@@ -14,8 +14,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("script", type=Path)
     parser.add_argument("--port", type=int, default=9877)
+    parser.add_argument("--env", action="append", default=[], metavar="NAME=VALUE", help="set in the Blender session first")
     args = parser.parse_args()
-    code = "__file__ = " + repr(str(args.script.resolve())) + "\n" + args.script.read_text()
+    env = dict(item.split("=", 1) for item in args.env)
+    code = "import os\nos.environ.update(" + repr(env) + ")\n__file__ = " + repr(str(args.script.resolve())) + "\n" + args.script.read_text()
     request = {"type": "execute", "strict_json": True, "code": code}
     with socket.create_connection(("127.0.0.1", args.port), timeout=30) as connection:
         connection.settimeout(300)

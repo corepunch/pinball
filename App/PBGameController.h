@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) BOOL hapticsEnabled;
 
 - (instancetype)initWithView:(SCNView *)view;
+/// The game is replaced when a level changes table, so observers register here to follow it.
+- (void)addGameObserver:(id<PBGameObserver>)observer;
 /// Call whenever the view's size changes.
 - (void)viewDidResize;
 - (void)selectNextSkin;

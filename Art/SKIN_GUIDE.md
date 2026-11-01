@@ -17,12 +17,14 @@ Runtime artwork lives in `GameData/Skins/{orbital,abyss}{,-playfield}.jpg`, abou
 The matching JSON defines the palette, material values, and `atlasLayout`. Coordinates are measured
 against the actual authored PNGs, including small deviations from the nominal regular grid.
 `canvas` declares the atlas coordinate system; each slot has a `rect` and optional `bleed`. Slots may
-declare their own `file` and `canvas`, which is how separate playfield sources work. The `apron` slot
-is composited at the table's actual apron boundary instead of stretching the scoreboard zone.
+declare their own `file` and `canvas`, which is how separate playfield sources work. The playfield art
+fills the table's height and keeps its proportions, so its sides run off the phone's edges.
 The `inserts` slot is a 4×4 glyph sheet with optional `cellBleed` to exclude its dividers.
 
 Material controls under `materials` are `metalness`, `roughness`, `playfieldReflectivity`, `bloom`,
-and `rampOpacity`. Palette `accent` controls decorative metal; `flipperRubber` controls bat sleeves.
+`rampOpacity` and `rampGlass` (the ramp's tint; opacity 1 is solid sheet metal). All metal is a tinted MatCap. `capBase` and `capStar` paint the bumper caps. Palette
+`accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
+sleeves of skins with no model kit.
 Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
 reflections. `modelKit: "premium"` selects the Blender-authored domed bumper, insert socket, and ramp
 channel meshes; see [MODEL_GUIDE.md](MODEL_GUIDE.md). New decorative meshes do not alter collision

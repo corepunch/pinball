@@ -1,0 +1,54 @@
+Generator: built-in ImageGen
+Reference: Art/Concepts/premium-components-isometric.png
+Final output: Art/Concepts/orbital-modelling-reference.png
+
+INITIAL GENERATION PROMPT
+
+Use case: stylized-concept
+Asset type: detailed orthographic modelling reference atlas for Blender.
+Primary request: Create ONE large ORBITAL-only pinball component design sheet. Show TOP, SIDE and FRONT orthographic views of a track/ramp segment, pop bumper and flipper, plus a smaller isometric material reference for each. All views must depict exactly the same geometry for each part.
+Input image role: attached premium-components-isometric.png is the visual design reference. Use ONLY its ORBITAL column and bottom Orbital construction details. No Abyss, Solar or Ion designs. Refine ambiguous geometry into clear, simple, buildable forms.
+Canvas: high resolution landscape technical product-design sheet, request 3840 x 2560. Matte off-white background, fine gray grid dividers, dark precise typography, crisp technical outlines with restrained material shading. Objects large with generous space around silhouettes. Minimal cast shadows in orthographic cells. No background scene, no dramatic lighting, no depth of field.
+Title exactly "ORBITAL — BLENDER MODELLING REFERENCE".
+Composition: three generously sized horizontal rows labelled "TRACK", "BUMPER", "FLIPPER". Four columns labelled exactly "TOP", "SIDE", "FRONT", "ISOMETRIC". First three columns are TRUE parallel orthographic projections, NEVER tilted beauty views. TOP looks straight down Z axis, SIDE looks horizontally along X axis, FRONT looks horizontally along Y axis. The fourth column alone uses elevated isometric perspective. Use common orientation and consistent scale between the three projections within each row. Light projection guide lines or centerlines help align corresponding forms. Different object rows may use different display scales for clarity.
+Palette/materials: Orbital antique brushed brass, cream enamel, small deep-red triangular enamel detail, clear turquoise glass, dark charcoal rubber, clean silver running surface. Light tasteful wear only. Small real chamfers and seams. No invented icons or extra decorative motifs. No excessive bloom. Preserve the red-and-cream bumper sunburst and turquoise dome.
+
+ROW 1 TRACK:
+Design a single continuous elevated 180-degree U-bend open pinball channel. In TOP view its plan is an unambiguous U/horseshoe with TWO parallel straight entry/exit stubs pointing toward the bottom of the sheet and ONE semicircular connection at the back; exactly TWO open ends. No bridges, extra branches or impossible intersections. Smooth constant-height silver sheet-metal running floor, low brass inner and outer retaining walls following the channel, with rounded top edges. Rails and floor have visible modest thickness. Pinball channel interior is comfortably wider than the reference chrome ball, which is only shown beside the isometric view to avoid obscuring the drawing. No bolts or protrusions in the ball path. Underneath, four short brass support posts on bolted foot plates, evenly supporting the channel, with functional side brackets and replaceable segment join seams. Small red enamel trim panels on external wall only.
+TOP: exact overhead plan with floor and both wall boundaries clearly drawn, no visible vertical faces.
+SIDE: exact flat side elevation, floor level straight/horizontal, rail height and feet evident, curved back projected correctly without exposing any top surfaces. Use faint dashed lines for hidden inner structure only where helpful.
+FRONT: view looking straight into BOTH open ends, show TWO U-shaped channel mouth profiles side by side, with floor thickness, sidewalls and posts. Top of back bend may be visible behind but no tilted viewpoint.
+ISOMETRIC: smaller three-quarter reference of exactly the same U-bend geometry; both open ends visible.
+
+ROW 2 BUMPER:
+Circular radially symmetric pop bumper: shallow beveled cream enamel top cap with red radial sunburst inlays, riveted brass edge rim, small central turquoise glass dome seated in brass bezel, thick dark rubber rebound ring around lower perimeter, thin distinct metal skirt, a narrower cylindrical brass pedestal with small red luminous windows, bolted circular mounting flange. Avoid oversized or floating cap. Same widths/heights in SIDE and FRONT.
+TOP: perfect concentric circles viewed straight down, round turquoise center, evenly spaced red sunburst wedges, rubber ring perimeter visible outside cap. No ellipse or visible side.
+SIDE and FRONT: horizontal orthographic silhouettes, concentric stepped layers in true elevation; dome, cap bevel, ring, skirt, pedestal, flange and mounting points clearly separated. These two views should be nearly identical because bumper is rotationally symmetric; do not invent a different design to make views look different.
+ISOMETRIC: same object with restrained material shading, no alternate proportions.
+
+ROW 3 FLIPPER:
+One tapered cream enamel pinball flipper with brass edging, broad round pivot heel and narrow rounded tip, continuous thick dark rubber band around perimeter, small inset red enamel triangle close to pivot, two small countersunk fasteners in non-contact top panel. Cylindrical steel pivot shaft extends downward through playfield at the broad heel. Do NOT add an external hinge, crank or mounting foot. Paddle is a clean rounded tapered solid with a flat underside and lightly beveled top.
+Set long axis along Y, heel toward sheet bottom in TOP view, tip toward sheet top.
+TOP: true overhead elongated tapered plan, round heel, narrow rounded tip, rubber border and concentric pivot center visible; no side faces.
+SIDE: true long elevation, heel at left, tip at right; show consistent paddle thickness and rubber band, with vertical pivot shaft underneath the heel at left. No visible top surface.
+FRONT: true short end elevation looking at the broad heel; paddle width and thickness, rounded shoulder outline and pivot shaft below centered. No lengthwise cheating or perspective.
+ISOMETRIC: same complete paddle and downward shaft, matching top/side/front geometry.
+
+Bottom detail band: three small clearly drawn orthographic SECTION details, one under each component group, separated by thin lines: "CHANNEL SECTION", "BUMPER STACK", "FLIPPER SECTION". Show channel floor/wall thickness with light cut-face hatching; bumper axial half-section showing cap shell above distinct ring/skirt/base without invented internal machinery; flipper transverse section showing enamel top plate, brass core and replaceable rubber edge. Leader labels kept short and accurate: "RUNNING FLOOR", "RETAINING WALL", "SUPPORT", "CAP", "RUBBER RING", "SKIRT", "BASE", "RUBBER EDGE", "PIVOT SHAFT". Labels must point to the intended part. Do not clutter the main silhouettes.
+Tiny footer exactly "Design reference • dimensions to be set in Blender".
+Critical constraints: Nine real orthographic views, not nine isometric renders. Physical consistency between all views takes priority over ornament. Never draw fake numerical dimensions or pretend this is manufacturing CAD. No measurement numbers. No extra components, no slingshot, no complete table, no planets, no scores, no icon set, no watermark. This entire set is authored together as a single atlas.
+
+PROJECTION CORRECTION PROMPT
+
+Use case: precise-object-edit.
+Edit target: the attached ORBITAL Blender modelling sheet.
+Make a targeted projection correction to the six cells in SIDE and FRONT columns ONLY (track, bumper, flipper). Preserve the full page layout, title, labels, TOP column, ISOMETRIC column, palette, shapes and bottom section panels exactly.
+The side/front cells currently contain elevated perspective product renderings. Replace them with true zero-elevation orthographic technical drawings. These must be straight-on elevations, not attractive 3D renders. Use clean silhouettes, fine drafting outlines and flat subtle material colors rather than lighting that implies perspective.
+Absolute geometric test: horizontal circles are viewed EXACTLY edge-on, appearing as straight horizontal lines, NEVER elliptical rims; no top faces of any horizontal plates are visible in any SIDE or FRONT cell; vertical posts show rectangular silhouettes with no elliptical foot tops; vertical parallel edges remain parallel. No converging lines. Camera is horizontal, at object center height, orthographic.
+TRACK SIDE: flat side elevation of the U-bend assembly; do not expose running-floor top or inside of the track. Front outer wall hides the same-height back wall and floor. Brass retaining wall as long flat elevation band, thin horizontal rail edge, correct low supports beneath, no elliptical foot plates.
+TRACK FRONT: looking straight down the two channel mouths, showing two U-shaped openings front-on, with straight horizontal floor edges and vertical wall edges; rear curved wall projects into a flat connecting band behind. Absolutely no looking down into channel floor. Feet horizontal straight line silhouettes.
+BUMPER SIDE and FRONT: same geometry and heights in both cells, zero camera elevation. Cream cap is a shallow trapezoid/profile with brass edges viewed strictly from side; the red sunburst graphic on the upward-facing top surface must NOT be visible because camera is at zero elevation. Turquoise dome is a half-circle above cap. Thick rubber ring has near-rectangular rounded-corner profile, thin horizontal skirt, narrower rectangular pedestal profile and flat flange underneath. No ellipses on base or cap. Preserve colors and overall silhouette proportions from current sheet.
+FLIPPER SIDE: exact long side elevation with horizontal paddle top edge and bottom edge, dark rubber band in profile, thin brass/cream top plate as a narrow edge, pivot shaft below heel at left. Do not show red triangle or top screws from side because no top face is visible.
+FLIPPER FRONT: exact short end-on view of the broad pivot heel: a wide low rounded rectangle, top brass/cream plate as narrow edge only, thick dark rubber below, vertical centered shaft below. No red triangle or top face visible. No apparent length receding behind it.
+Preserve TOP and ISOMETRIC cells untouched. Preserve all text and existing lower section diagrams. The goal is truthful modelling elevations, even if simpler and less pictorial. Single complete atlas output.
+

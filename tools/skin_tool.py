@@ -113,8 +113,6 @@ def draw_template(table, labels):
     ax0, ay0 = m((0, table["apron"]["y"]))
     ax1, ay1 = m((1.0, 0))
     d.rectangle((ax0, ay0, ax1, ay1), fill=(226, 226, 232))
-    dx, dy, dw, dh = table["apron"]["dmd"]
-    d.rectangle((*m((dx, dy + dh)), *m((dx + dw, dy))), fill=(46, 46, 52))
 
     for w in table["walls"]:
         if w.get("style") == "none":

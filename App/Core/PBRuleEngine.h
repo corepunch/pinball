@@ -44,10 +44,10 @@ typedef NS_ENUM(uint8_t, PBLampMode) {
 @property (nonatomic, readonly) BOOL multiballActive;
 @property (nonatomic, readonly) BOOL tilted;
 
-/// Current text for the dot-matrix display.
+/// Current text for the HUD.
 @property (nonatomic, copy, readonly) NSString *displayTop;
 @property (nonatomic, copy, readonly) NSString *displayBottom;
-/// True while a transient message owns the display, so it can be drawn larger.
+/// True while displayTop holds a transient message.
 @property (nonatomic, readonly) BOOL displayIsMessage;
 
 - (instancetype)initWithWorld:(PBPhysicsWorld *)world highScore:(int64_t)highScore;
@@ -55,6 +55,8 @@ typedef NS_ENUM(uint8_t, PBLampMode) {
 - (void)handleEvent:(const PBEvent *)event;
 - (void)update:(double)dt;
 - (void)nudged;
+/// Shows on the HUD for a moment.
+- (void)showMessage:(NSString *)message;
 /// Lane-change: lit lamps in rotating groups shift with the flippers.
 - (void)flipperPressedLeft:(BOOL)left;
 - (PBLampMode)modeForLamp:(NSInteger)lampIndex;

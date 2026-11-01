@@ -5,6 +5,7 @@
 #import <Metal/Metal.h>
 #import <ImageIO/ImageIO.h>
 #import "PBTableScene.h"
+#import "PBLayoutValidator.h"
 
 static void PBRequire(BOOL condition, NSString *message) {
     if (!condition) { NSLog(@"Preview validation failed: %@", message); exit(1); }
@@ -48,10 +49,13 @@ static void PBCheckTiltLighting(PBTableScene *scene, SCNRenderer *renderer, NSSt
 
 static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PBTableDefinition *table, NSString *path) {
     SCNVector3 camera = scene.cameraNode.position;
+    CGFloat zoom = scene.cameraNode.camera.orthographicScale;
     simd_float2 centre = simd_make_float2(0, 0);
     for (PBSpotDef *bumper in table.bumpers) centre += bumper.position;
     centre /= (float)MAX(table.bumpers.count, 1);
-    scene.cameraNode.position = SCNVector3Make(centre.x - table.size.x * 0.5f, 0.85f, -(centre.y - table.size.y * 0.5f));
+    scene.cameraNode.camera.orthographicScale = 0.11;
+    scene.cameraNode.position = SCNVector3Make(centre.x - table.size.x * 0.5f, camera.y,
+                                               -(centre.y - table.size.y * 0.5f) + camera.y * tanf(PBTableCameraTilt * (float)M_PI / 180.0f));
     const int frames = 72;
     CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:path],
                                                                        CFSTR("com.compuserve.gif"), frames, NULL);
@@ -73,6 +77,7 @@ static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PB
     PBRequire(CGImageDestinationFinalize(destination), @"tilt animation export failed");
     CFRelease(destination);
     scene.cameraNode.position = camera;
+    scene.cameraNode.camera.orthographicScale = zoom;
     NSLog(@"Exported actual-scene tilt animation %@", path);
 }
 
@@ -88,7 +93,10 @@ int main(int argc, const char *argv[]) {
         NSString *output = [NSString stringWithUTF8String:argv[2]];
         [[NSFileManager defaultManager] createDirectoryAtPath:output withIntermediateDirectories:YES attributes:nil error:NULL];
         NSError *error;
-        PBTableDefinition *table = [PBTableDefinition tableNamed:@"aurora" bundle:bundle error:&error];
+        NSString *tableName = NSProcessInfo.processInfo.environment[@"PB_PREVIEW_TABLE"] ?: @"aurora";
+        PBTableDefinition *table = [PBTableDefinition tableNamed:tableName bundle:bundle error:&error];
+        // Aurora's previews keep their plain skin names.
+        NSString *prefix = [tableName isEqualToString:@"aurora"] ? @"" : [tableName stringByAppendingString:@"-"];
         PBRequire(table != nil, error.description ?: @"missing table");
         NSArray<NSString *> *names = [PBSkin availableSkinsInBundle:bundle];
         PBRequire([names containsObject:@"orbital"] && [names containsObject:@"abyss"], @"missing new skins");
@@ -107,7 +115,7 @@ int main(int argc, const char *argv[]) {
                 }
                 for (NSInteger i = 0; i < 16; i++) PBRequire([skin insertIcon:i] != nil, @"invalid insert crop");
                 BOOL premium = [name isEqualToString:@"orbital"] || [name isEqualToString:@"abyss"];
-                if (premium) PBRequire([skin hasImageForSlot:@"bumper_cap_lit"] && [skin hasImageForSlot:@"apron"], @"missing authored state/apron");
+                if (premium) PBRequire([skin hasImageForSlot:@"bumper_cap_lit"], @"missing authored state");
                 if (argc > 3 && ![name isEqualToString:[NSString stringWithUTF8String:argv[3]]]) continue;
 
                 PBGame *game = [[PBGame alloc] initWithTable:table highScore:1250000];
@@ -123,7 +131,7 @@ int main(int argc, const char *argv[]) {
                 }
                 // Warm pipeline, then export at the same 2x scale as a phone screenshot.
                 [renderer snapshotAtTime:2.0 withSize:CGSizeMake(804, 1743) antialiasingMode:SCNAntialiasingModeMultisampling4X];
-                NSString *path = [output stringByAppendingPathComponent:[name stringByAppendingString:@".png"]];
+                NSString *path = [output stringByAppendingPathComponent:[NSString stringWithFormat:@"%@%@.png", prefix, name]];
                 PBExport(renderer, 2.016, path);
                 if (premium) {
                     SCNNode *cap = [scene.scene.rootNode childNodeWithName:@"bumper.bumperA" recursively:YES];
@@ -141,7 +149,7 @@ int main(int argc, const char *argv[]) {
                     PBRequire(idle != nil, @"missing bumper node");
                     if (skin.modelKit) {
                         PBRequire(cap.childNodes.count >= 3, @"Blender bumper kit failed to load");
-                        PBRequire([scene.scene.rootNode childNodeWithName:@"aurora-rampL" recursively:YES] != nil, @"Blender ramp failed to load");
+                        PBRequire([scene.scene.rootNode childNodeWithName:[NSString stringWithFormat:@"%@-%@", table.identifier, table.ramps.firstObject.identifier] recursively:YES] != nil, @"Blender ramp failed to load");
                     }
                     [game setLeftPressed:YES];
                     [game update:1.0 / 60.0];
@@ -157,7 +165,7 @@ int main(int argc, const char *argv[]) {
                     PBRequire([game.world bumperFlash:0] < 0.02f, @"fixture missed bumper");
                     PBRequire(painted.firstMaterial != idle, @"bumper did not select authored hit artwork");
                     PBRequire(otherPainted.firstMaterial == otherIdle, @"bumper instances share animated geometry");
-                    path = [output stringByAppendingPathComponent:[name stringByAppendingString:@"-hit.png"]];
+                    path = [output stringByAppendingPathComponent:[NSString stringWithFormat:@"%@%@-hit.png", prefix, name]];
                     PBExport(renderer, 2.05, path);
                     [game.world removeAllPlayBalls];
                     for (int i = 0; i < 30; i++) {

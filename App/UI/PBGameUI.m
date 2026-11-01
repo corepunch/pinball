@@ -19,11 +19,44 @@ static SKTexture *PBTextureAtURL(NSURL *url) {
     return texture;
 }
 
+/// A crop shares its parent's pixels, and on iOS a texture made from one can show the whole
+/// parent. Drawing it into its own bitmap leaves nothing to share. Caller releases.
+static CGImageRef PBCreateIndependentCrop(CGImageRef image, CGRect rect) CF_RETURNS_RETAINED;
+static CGImageRef PBCreateIndependentCrop(CGImageRef image, CGRect rect) {
+    CGImageRef crop = CGImageCreateWithImageInRect(image, rect);
+    size_t width = CGImageGetWidth(crop), height = CGImageGetHeight(crop);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(space);
+    CGContextDrawImage(context, CGRectMake(0, 0, width, height), crop);
+    CGImageRef copy = CGBitmapContextCreateImage(context);
+    CGContextRelease(context);
+    CGImageRelease(crop);
+    return copy;
+}
+
 static SKColor *PBInk(void) { return [SKColor colorWithRed:0.035 green:0.075 blue:0.10 alpha:1]; }
 static SKColor *PBIvory(void) { return [SKColor colorWithRed:0.95 green:0.88 blue:0.73 alpha:1]; }
 static SKColor *PBBrass(void) { return [SKColor colorWithRed:0.65 green:0.49 blue:0.28 alpha:1]; }
 static SKColor *PBMuted(void) { return [SKColor colorWithRed:0.49 green:0.59 blue:0.60 alpha:1]; }
 static SKColor *PBRed(void) { return [SKColor colorWithRed:0.88 green:0.23 blue:0.14 alpha:1]; }
+
+static SKShapeNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
+    CGMutablePathRef path = CGPathCreateMutable();
+    for (int i = 0; i < 10; i++) {
+        CGFloat r = i % 2 ? radius * 0.42 : radius, a = M_PI_2 + i * M_PI / 5;
+        if (i == 0) CGPathMoveToPoint(path, NULL, r * cos(a), r * sin(a));
+        else CGPathAddLineToPoint(path, NULL, r * cos(a), r * sin(a));
+    }
+    CGPathCloseSubpath(path);
+    SKShapeNode *star = [SKShapeNode shapeNodeWithPath:path];
+    CGPathRelease(path);
+    star.position = position;
+    star.lineWidth = 0.8;
+    star.strokeColor = PBBrass();
+    star.fillColor = earned ? [SKColor colorWithRed:1.0 green:0.76 blue:0.28 alpha:1] : [PBInk() colorWithAlphaComponent:0.9];
+    return star;
+}
 
 static NSString *PBScoreString(int64_t score) {
     static NSNumberFormatter *formatter;
@@ -95,6 +128,7 @@ static NSString *PBScoreString(int64_t score) {
 @property (nonatomic, copy) NSArray<SKTexture *> *states;
 @property (nonatomic) CGRect hitRect;
 @property (nonatomic) BOOL enabled, selected, pressed;
+@property (nonatomic) NSInteger tag;
 - (void)refresh;
 @end
 
@@ -114,14 +148,15 @@ static NSString *PBScoreString(int64_t score) {
     NSMutableArray<PBUIKey *> *_keys;
     NSMapTable<id, PBUIKey *> *_pressedKeys;
     NSHashTable<id> *_capturedPointers;
-    SKLabelNode *_scoreLabel, *_ballLabel, *_launchLabel;
-    SKShapeNode *_launchPlate;
     CGFloat _logicalHeight, _topInset, _bottomInset;
     CGSize _inputViewSize;
     int64_t _score, _best;
-    NSInteger _ball, _ballCount;
-    BOOL _plungerReady;
+    SKLabelNode *_scoreLabel, *_ballLabel, *_messageLabel;
+    NSString *_message;
+    NSInteger _ball, _ballCount, _levelPage;
 }
+
+static const NSInteger kLevelsPerPage = 12;
 
 - (instancetype)initWithBundle:(NSBundle *)bundle {
     if ((self = [super initWithSize:CGSizeMake(402, 874)])) {
@@ -129,8 +164,10 @@ static NSString *PBScoreString(int64_t score) {
         self.scaleMode = SKSceneScaleModeResizeFill;
         self.userInteractionEnabled = NO;
         _skinName = @"Orbital";
+        _tableName = @"Aurora";
         _soundEnabled = _hapticsEnabled = YES;
         _ballCount = 3;
+        _messageColor = [SKColor colorWithRed:1 green:0.55 blue:0.13 alpha:1];
         _logicalHeight = 874;
         _inputViewSize = CGSizeMake(402, 874);
         _keys = [NSMutableArray array];
@@ -162,7 +199,7 @@ static NSString *PBScoreString(int64_t score) {
                 if (_nineSliceInsets[name]) {
                     // Upload the exact authored cell before subdividing it: nested
                     // atlas subtextures lose their expected UVs in the overlay.
-                    CGImageRef cell = CGImageCreateWithImageInRect(atlasPixels,
+                    CGImageRef cell = PBCreateIndependentCrop(atlasPixels,
                         CGRectMake([slot[0] doubleValue], y, [slot[1] doubleValue], h));
                     texture = [SKTexture textureWithCGImage:cell];
                     CGImageRelease(cell);
@@ -231,7 +268,7 @@ static NSString *PBScoreString(int64_t score) {
 - (PBUIKey *)key:(NSString *)art title:(NSString *)title action:(PBUIAction)action
                x:(CGFloat)x y:(CGFloat)y width:(CGFloat)width parent:(SKNode *)parent {
     BOOL wide = title != nil;
-    CGFloat height = wide ? 88 : 62;
+    CGFloat height = wide ? 88 : width * 62.0 / 58.0;  // Icon keys keep their proportions.
     PBUIKey *key = [PBUIKey node];
     key.action = action;
     key.enabled = YES;
@@ -248,7 +285,9 @@ static NSString *PBScoreString(int64_t score) {
         [key addChild:key.face];
     }
     // Texture sampling and hit geometry are identical for every authored state.
-    key.hitRect = CGRectMake(-width * 0.48, -(wide ? 28 : 30), width * 0.96, wide ? 56 : 60);
+    // A small indicator-sized key still takes a whole fingertip.
+    CGFloat hitWidth = MAX(width * 0.96, 48);
+    key.hitRect = CGRectMake(-hitWidth * 0.5, -(wide ? 28 : 30), hitWidth, wide ? 56 : 60);
     if (wide) [self label:title size:width < 150 ? 14 : 18 x:0 y:0 color:PBIvory() parent:key];
     [parent addChild:key];
     [_keys addObject:key];
@@ -275,8 +314,7 @@ static NSString *PBScoreString(int64_t score) {
 - (void)render {
     [_root removeAllChildren];
     [_keys removeAllObjects];
-    _scoreLabel = _ballLabel = _launchLabel = nil;
-    _launchPlate = nil;
+    _scoreLabel = _ballLabel = _messageLabel = nil;
     if (_screen == PBMenuPlaying) { [self renderHUD]; return; }
     SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.84]
                                                      size:CGSizeMake(402, _logicalHeight)];
@@ -284,7 +322,8 @@ static NSString *PBScoreString(int64_t score) {
     [_root addChild:scrim];
     CGFloat height = _screen == PBMenuHome ? 700 : _screen == PBMenuPaused ? 520 :
                      _screen == PBMenuSettings ? 610 : _screen == PBMenuHelp ? 620 :
-                     _screen == PBMenuResults ? 600 : 440;
+                     _screen == PBMenuResults ? 600 : _screen == PBMenuLevels ? 700 :
+                     _screen == PBMenuLevelIntro ? 560 : 440;
     CGFloat top = MAX(18, _topInset + 12), bottom = MAX(18, _bottomInset + 12);
     CGFloat available = MAX(200, _logicalHeight - top - bottom);
     _menu = [SKNode node];
@@ -305,6 +344,8 @@ static NSString *PBScoreString(int64_t score) {
         case PBMenuSettings: [self renderSettings]; break;
         case PBMenuHelp: [self renderHelp]; break;
         case PBMenuResults: [self renderResults]; break;
+        case PBMenuLevels: [self renderLevels]; break;
+        case PBMenuLevelIntro: [self renderLevelIntro]; break;
         case PBMenuConfirmHome:
         case PBMenuConfirmRestart: [self renderConfirmation]; break;
         default: break;
@@ -319,10 +360,18 @@ static NSString *PBScoreString(int64_t score) {
     SKSpriteNode *hero = [SKSpriteNode spriteNodeWithTexture:_titleArt size:CGSizeMake(144, 144)];
     hero.position = CGPointMake(0, 116);
     [_menu addChild:hero];
-    [self label:[NSString stringWithFormat:@"AURORA  /  %@", _skinName.uppercaseString]
-          size:13 x:0 y:12 color:PBIvory() parent:_menu];
-    [self label:@"PERSONAL BEST" size:10 x:0 y:-32 color:PBBrass() parent:_menu];
-    [self label:PBScoreString(_best) size:28 x:0 y:-61 color:PBIvory() parent:_menu];
+    if (_levelStars) {
+        [self label:[NSString stringWithFormat:@"LEVEL %ld OF %lu", (long)_currentLevel + 1, (unsigned long)_levelStars.count]
+              size:13 x:0 y:12 color:PBIvory() parent:_menu];
+        [self label:@"STARS EARNED" size:10 x:0 y:-32 color:PBBrass() parent:_menu];
+        [self label:[NSString stringWithFormat:@"%ld / %lu", (long)_totalStars, (unsigned long)_levelStars.count * 3]
+              size:28 x:0 y:-61 color:PBIvory() parent:_menu];
+    } else {
+        [self label:[NSString stringWithFormat:@"%@  /  %@", _tableName.uppercaseString, _skinName.uppercaseString]
+              size:13 x:0 y:12 color:PBIvory() parent:_menu];
+        [self label:@"PERSONAL BEST" size:10 x:0 y:-32 color:PBBrass() parent:_menu];
+        [self label:PBScoreString(_best) size:28 x:0 y:-61 color:PBIvory() parent:_menu];
+    }
     [self key:@"primary" title:@"PLAY" action:PBUIPlay x:0 y:-140 width:320 parent:_menu];
     [self icon:@"trophy" caption:@"SCORES" action:PBUILeaderboard x:-92 y:-230];
     [self icon:@"settings" caption:@"SETTINGS" action:PBUISettings x:0 y:-230];
@@ -331,8 +380,63 @@ static NSString *PBScoreString(int64_t score) {
           size:10 x:0 y:-316 color:PBMuted() parent:_menu];
 }
 
+- (void)renderLevels {
+    [self heading:@"LEVELS" subtitle:[NSString stringWithFormat:@"%ld / %lu STARS", (long)_totalStars, (unsigned long)_levelStars.count * 3] height:700];
+    NSInteger count = (NSInteger)_levelStars.count, pages = MAX(1, (count + kLevelsPerPage - 1) / kLevelsPerPage);
+    _levelPage = MAX(0, MIN(_levelPage, pages - 1));
+    for (NSInteger slot = 0; slot < kLevelsPerPage; slot++) {
+        NSInteger index = _levelPage * kLevelsPerPage + slot;
+        if (index >= count) break;
+        CGFloat x = (slot % 3 - 1) * 112.0, y = 168.0 - (slot / 3) * 100.0;
+        NSInteger stars = _levelStars[(NSUInteger)index].integerValue;
+        NSString *title = [NSString stringWithFormat:@"%ld", (long)index + 1];
+        PBUIKey *tile = [self key:index == _currentLevel ? @"primary" : @"secondary" title:title action:PBUISelectLevel x:x y:y width:104 parent:_menu];
+        tile.tag = index;
+        tile.enabled = stars >= 0;
+        [tile refresh];
+        if (stars < 0) continue;
+        for (NSInteger s = 0; s < 3; s++) [_menu addChild:PBStar(7, CGPointMake(x + (s - 1) * 17, y - 37), s < stars)];
+    }
+    if (pages > 1) {
+        PBUIKey *previous = [self key:@"secondary" title:@"PREV" action:PBUIPreviousPage x:-112 y:-222 width:104 parent:_menu];
+        previous.enabled = _levelPage > 0;
+        [previous refresh];
+        PBUIKey *next = [self key:@"secondary" title:@"NEXT" action:PBUINextPage x:112 y:-222 width:104 parent:_menu];
+        next.enabled = _levelPage < pages - 1;
+        [next refresh];
+        [self label:[NSString stringWithFormat:@"%ld / %ld", (long)_levelPage + 1, (long)pages] size:13 x:0 y:-222 color:PBMuted() parent:_menu];
+    }
+    [self key:@"secondary" title:@"BACK" action:PBUIBack x:0 y:-295 width:260 parent:_menu];
+}
+
+- (void)showLevelPageForLevel:(NSInteger)index {
+    _levelPage = MAX(index, 0) / kLevelsPerPage;
+    _selectedLevel = index;
+}
+
+- (void)renderLevelIntro {
+    [self heading:_levelName.uppercaseString subtitle:[NSString stringWithFormat:@"LEVEL %ld", (long)_selectedLevel + 1] height:560];
+    [self label:@"YOUR GOAL" size:11 x:0 y:112 color:PBBrass() parent:_menu];
+    [self label:_levelGoal size:30 x:0 y:80 color:PBIvory() parent:_menu];
+    NSInteger earned = _selectedLevel < (NSInteger)_levelStars.count ? MAX(_levelStars[(NSUInteger)_selectedLevel].integerValue, 0) : 0;
+    NSArray *tiers = @[ @[ @1, @"COMPLETE THE GOAL" ],
+                        @[ @2, [@"SCORE " stringByAppendingString:PBScoreString(_levelTwoStarScore)] ],
+                        @[ @3, [@"SCORE " stringByAppendingString:PBScoreString(_levelThreeStarScore)] ] ];
+    for (NSUInteger i = 0; i < tiers.count; i++) {
+        CGFloat y = 30.0 - (CGFloat)i * 30.0;
+        NSInteger stars = [tiers[i][0] integerValue];
+        for (NSInteger s = 0; s < stars; s++) [_menu addChild:PBStar(8, CGPointMake(-132 + s * 19, y), earned >= stars)];
+        SKLabelNode *label = [self label:tiers[i][1] size:14 x:-62 y:y color:PBIvory() parent:_menu];
+        label.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeLeft;
+    }
+    [self label:_levelBest > 0 ? [@"YOUR BEST  " stringByAppendingString:PBScoreString(_levelBest)] : @"THREE BALLS. GOOD LUCK."
+          size:11 x:0 y:-58 color:PBMuted() parent:_menu];
+    [self key:@"primary" title:@"PLAY" action:PBUIPlay x:0 y:-124 width:320 parent:_menu];
+    [self key:@"secondary" title:@"BACK" action:PBUIBack x:0 y:-212 width:260 parent:_menu];
+}
+
 - (void)renderPause {
-    [self heading:@"PAUSED" subtitle:@"YOUR BALL IS WAITING." height:520];
+    [self heading:@"PAUSED" subtitle:_levelGoal ? [@"GOAL: " stringByAppendingString:_levelGoal] : @"YOUR BALL IS WAITING." height:520];
     [self label:PBScoreString(_score) size:28 x:0 y:82 color:PBIvory() parent:_menu];
     [self key:@"primary" title:@"RESUME" action:PBUIResume x:0 y:-6 width:320 parent:_menu];
     [self icon:@"settings" caption:@"SETTINGS" action:PBUISettings x:-92 y:-100];
@@ -382,7 +486,28 @@ static NSString *PBScoreString(int64_t score) {
     [self key:@"primary" title:@"GOT IT" action:PBUIBack x:0 y:-239 width:320 parent:_menu];
 }
 
+- (void)renderLevelResults {
+    [self heading:_resultGoalMet ? @"LEVEL COMPLETE" : @"NOT THIS TIME"
+         subtitle:[NSString stringWithFormat:@"%@  /  GOAL: %@", _levelName.uppercaseString, _levelGoal] height:600];
+    for (NSInteger s = 0; s < 3; s++) {
+        [_menu addChild:PBStar(s == 1 ? 28 : 22, CGPointMake((s - 1) * 62, s == 1 ? 142 : 134), s < _resultStars)];
+    }
+    [self label:PBScoreString(_score) size:40 x:0 y:82 color:_newRecord ? PBRed() : PBIvory() parent:_menu];
+    [self label:_newRecord ? @"NEW LEVEL BEST" : [@"LEVEL BEST  " stringByAppendingString:PBScoreString(_best)]
+          size:11 x:0 y:46 color:PBBrass() parent:_menu];
+    if (_resultGoalMet && _hasNextLevel) {
+        [self key:@"primary" title:@"NEXT LEVEL" action:PBUINextLevel x:0 y:-22 width:320 parent:_menu];
+        [self key:@"secondary" title:@"PLAY AGAIN" action:PBUIPlay x:0 y:-104 width:260 parent:_menu];
+    } else {
+        [self key:@"primary" title:@"TRY AGAIN" action:PBUIPlay x:0 y:-40 width:320 parent:_menu];
+    }
+    [self icon:@"trophy" caption:@"SCORES" action:PBUILeaderboard x:-92 y:-196];
+    [self icon:@"back" caption:@"LEVELS" action:PBUILevels x:0 y:-196];
+    [self icon:@"settings" caption:@"SETTINGS" action:PBUISettings x:92 y:-196];
+}
+
 - (void)renderResults {
+    if (_levelStars) { [self renderLevelResults]; return; }
     [self heading:@"GAME OVER" subtitle:_newRecord ? @"NEW PERSONAL BEST" : @"NICE RUN. GO AGAIN."
              height:600];
     [self label:PBScoreString(_score) size:44 x:0 y:106 color:_newRecord ? PBRed() : PBIvory() parent:_menu];
@@ -406,33 +531,33 @@ static NSString *PBScoreString(int64_t score) {
 }
 
 - (void)renderHUD {
-    // Keep all upper lanes visible: the score lives on the cabinet's apron.
-    CGFloat y = MAX(_bottomInset + 35, 44);
-    [self panel:CGSizeMake(324, 62) at:CGPointMake(201, y) parent:_root];
-    SKLabelNode *caption = [self label:@"SCORE" size:9 x:63 y:y + 16 color:PBBrass() parent:_root];
-    caption.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeLeft;
-    _scoreLabel = [self label:PBScoreString(_score) size:23 x:63 y:y - 8 color:PBIvory() parent:_root];
+    // Small indicators either side of the camera cutout, and the news just below it.
+    CGFloat y = _logicalHeight - MAX(_topInset - 30, 30);
+    [self key:@"pause" title:nil action:PBUIPause x:338 y:y width:34 parent:_root];
+    _scoreLabel = [self label:@"" size:13 x:60 y:y color:PBIvory() parent:_root];
     _scoreLabel.fontName = @"Menlo-Bold";
     _scoreLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeLeft;
-    _ballLabel = [self label:@"" size:12 x:302 y:y color:PBIvory() parent:_root];
-    CGFloat top = _logicalHeight - MAX(_topInset + 30, 42);
-    [self key:@"pause" title:nil action:PBUIPause x:355 y:top width:52 parent:_root];
-    _launchPlate = [SKShapeNode shapeNodeWithRectOfSize:CGSizeMake(276, 26) cornerRadius:6];
-    _launchPlate.fillColor = PBInk(); _launchPlate.strokeColor = PBBrass();
-    _launchPlate.position = CGPointMake(165, top);
-    [_root addChild:_launchPlate];
-    _launchLabel = [self label:@"HOLD RIGHT  •  RELEASE TO LAUNCH" size:10 x:165 y:top color:PBIvory() parent:_root];
-    [self updateScore:_score best:_best ball:_ball ballCount:_ballCount plungerReady:_plungerReady];
+    _ballLabel = [self label:@"" size:11 x:315 y:y color:PBIvory() parent:_root];
+    _ballLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeRight;
+    _messageLabel = [self label:@"" size:11 x:201 y:_logicalHeight - MAX(_topInset, 30) + 2 color:PBMuted() parent:_root];
+    [self updateScore:_score best:_best ball:_ball ballCount:_ballCount];
+    [self showMessage:_message];
+}
+
+- (void)showMessage:(NSString *)message {
+    _message = message;
+    _messageLabel.text = message ?: _levelGoal ?: @"";
+    _messageLabel.fontColor = message ? _messageColor : PBMuted();
 }
 
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
-         ballCount:(NSInteger)ballCount plungerReady:(BOOL)ready {
-    _score = score; _best = best; _ball = ball; _ballCount = ballCount; _plungerReady = ready;
+         ballCount:(NSInteger)ballCount {
+    _score = score; _best = best; _ball = ball; _ballCount = ballCount;
     _scoreLabel.text = PBScoreString(score);
     _scoreLabel.xScale = 1;
-    if (_scoreLabel.frame.size.width > 176) _scoreLabel.xScale = 176 / _scoreLabel.frame.size.width;
-    _ballLabel.text = [NSString stringWithFormat:@"BALL %ld / %ld", (long)MAX(1, ball), (long)ballCount];
-    _launchLabel.hidden = _launchPlate.hidden = !ready;
+    if (_scoreLabel.frame.size.width > 68) _scoreLabel.xScale = 68 / _scoreLabel.frame.size.width;
+    NSString *balls = [NSString stringWithFormat:@"%ld/%ld", (long)MAX(1, ball), (long)ballCount];
+    _ballLabel.text = _bonusMultiplier > 1 ? [NSString stringWithFormat:@"X%ld  %@", (long)_bonusMultiplier, balls] : balls;
 }
 
 - (CGPoint)logicalPoint:(CGPoint)point {
@@ -473,7 +598,13 @@ static NSString *PBScoreString(int64_t score) {
     key.pressed = NO; [key refresh];
     [_pressedKeys removeObjectForKey:pointer];
     [_capturedPointers removeObject:pointer];
-    if (activate && self.actionHandler) self.actionHandler(key.action);
+    if (activate && (key.action == PBUIPreviousPage || key.action == PBUINextPage)) {
+        _levelPage += key.action == PBUINextPage ? 1 : -1;
+        [self render];
+    } else if (activate && self.actionHandler) {
+        if (key.action == PBUISelectLevel) _selectedLevel = key.tag;
+        self.actionHandler(key.action);
+    }
     return YES;
 }
 

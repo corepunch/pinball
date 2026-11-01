@@ -7,7 +7,8 @@
 - (PBMenuCommand)performAction:(PBUIAction)action {
     switch (action) {
         case PBUIPlay:
-            if (_screen != PBMenuHome && _screen != PBMenuResults) break;
+            if (_screen == PBMenuHome && _usesLevelMap) { _screen = PBMenuLevels; break; }
+            if (_screen != PBMenuHome && _screen != PBMenuResults && _screen != PBMenuLevelIntro) break;
             _hasActiveGame = YES;
             _screen = PBMenuPlaying;
             return PBMenuStartGame;
@@ -27,7 +28,17 @@
             if (_screen == PBMenuSettings || _screen == PBMenuHelp) _screen = _returnScreen;
             else if (_screen == PBMenuPaused) _screen = PBMenuPlaying;
             else if (_screen == PBMenuConfirmHome || _screen == PBMenuConfirmRestart) _screen = PBMenuPaused;
-            else if (_screen == PBMenuResults) _screen = PBMenuHome;
+            else if (_screen == PBMenuResults || _screen == PBMenuLevels) _screen = PBMenuHome;
+            else if (_screen == PBMenuLevelIntro) _screen = PBMenuLevels;
+            break;
+        case PBUILevels:
+            if (_screen == PBMenuResults) _screen = PBMenuLevels;
+            break;
+        case PBUISelectLevel:
+            if (_screen == PBMenuLevels) _screen = PBMenuLevelIntro;
+            break;
+        case PBUINextLevel:
+            if (_screen == PBMenuResults) _screen = PBMenuLevelIntro;
             break;
         case PBUIHome:
             if (_screen == PBMenuPaused) _screen = PBMenuConfirmHome;
@@ -43,7 +54,7 @@
             }
             if (_screen == PBMenuConfirmHome) {
                 _hasActiveGame = NO;
-                _screen = PBMenuHome;
+                _screen = _usesLevelMap ? PBMenuLevels : PBMenuHome;
                 return PBMenuAbandonGame;
             }
             break;

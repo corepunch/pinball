@@ -32,6 +32,7 @@ static simd_float2 PBVec2(id value) {
 @implementation PBFlipperDef @end
 @implementation PBLampDef @end
 @implementation PBPlasticDef @end
+@implementation PBDecorDef @end
 @implementation PBPlungerDef @end
 @implementation PBRuleGroupDef @end
 
@@ -233,6 +234,8 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             lamp.color = item[@"color"];
             lamp.icon = [item[@"icon"] integerValue];
             lamp.bind = item[@"bind"];
+            lamp.isArrow = [item[@"shape"] isEqualToString:@"arrow"];
+            lamp.angle = PBRadians([item[@"angle"] floatValue]);
             return lamp;
         });
         _plastics = PBMap(json[@"plastics"], ^id(NSDictionary *item) {
@@ -241,6 +244,20 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             plastic.height = [item[@"height"] floatValue];
             plastic.points = PBParsePath(item[@"points"]);
             return plastic;
+        });
+        _decor = PBMap(json[@"decor"] ?: @[], ^id(NSDictionary *item) {
+            PBDecorDef *decor = [PBDecorDef new];
+            decor.identifier = item[@"id"];
+            decor.model = item[@"model"];
+            decor.position = simd_make_float2([item[@"x"] floatValue], [item[@"y"] floatValue]);
+            decor.size = [item[@"size"] floatValue];
+            decor.angle = PBRadians([item[@"angle"] floatValue]);
+            decor.base = [item[@"base"] floatValue];
+            decor.height = [item[@"height"] floatValue];
+            float aspect = item[@"aspect"] ? [item[@"aspect"] floatValue] : 1.0f;  // Half width over half length.
+            decor.radius = decor.size * aspect;
+            decor.extent = decor.size * (1.0f - aspect);
+            return decor;
         });
 
         NSDictionary *rules = json[@"rules"];

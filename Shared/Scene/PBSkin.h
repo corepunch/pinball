@@ -29,6 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) float playfieldReflectivity;
 @property (nonatomic, readonly) float bloomIntensity;
 @property (nonatomic, readonly) float rampOpacity;
+@property (nonatomic, readonly) simd_float3 rampGlassColor;
 
 + (nullable instancetype)skinNamed:(NSString *)identifier bundle:(NSBundle *)bundle;
 + (NSArray<NSString *> *)availableSkinsInBundle:(NSBundle *)bundle;

@@ -7,6 +7,7 @@
 
 #import <XCTest/XCTest.h>
 #import "PBGame.h"
+#import "PBLayoutValidator.h"
 
 @interface PBStatsObserver : NSObject <PBGameObserver>
 @property (nonatomic, strong) NSCountedSet<NSString *> *hits;
@@ -18,6 +19,7 @@
     static NSString *const names[] = { @"bumper", @"sling", @"drop", @"standup", @"rollover", @"spinner", @"saucer", @"saucerEject",
         @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck" };
     [self.hits addObject:names[event->kind]];
+    if (event->kind == PBEventRampComplete) [self.hits addObject:game.table.ramps[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventRollover) [self.hits addObject:game.table.rollovers[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventStandup) [self.hits addObject:game.table.standups[(NSUInteger)event->element].identifier];
 }
@@ -37,6 +39,108 @@
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSData dataWithContentsOfFile:path] error:&error];
     XCTAssertNotNil(table, @"%@", error);
     return table;
+}
+
+- (NSArray<NSString *> *)allTableNames {
+    NSString *folder = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../GameData/Tables"];
+    NSMutableArray *names = [NSMutableArray array];
+    for (NSString *file in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:folder error:NULL]) {
+        if ([file.pathExtension isEqualToString:@"json"]) [names addObject:file.stringByDeletingPathExtension];
+    }
+    return names;
+}
+
+- (NSMutableDictionary *)tableJSON:(NSString *)name {
+    NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent]
+                      stringByAppendingFormat:@"/../GameData/Tables/%@.json", name];
+    return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:path] options:NSJSONReadingMutableContainers error:NULL];
+}
+
+- (NSArray<PBLayoutIssue *> *)issuesForJSON:(NSDictionary *)json {
+    NSData *data = [NSJSONSerialization dataWithJSONObject:json options:0 error:NULL];
+    return [PBLayoutValidator issuesForTable:[[PBTableDefinition alloc] initWithJSONData:data error:NULL]];
+}
+
+- (BOOL)issues:(NSArray<PBLayoutIssue *> *)issues contain:(NSString *)first and:(NSString *)second kind:(PBLayoutIssueKind)kind {
+    for (PBLayoutIssue *issue in issues) {
+        if (issue.kind != kind) continue;
+        if (([issue.first isEqualToString:first] && [issue.second isEqualToString:second]) ||
+            ([issue.first isEqualToString:second] && [issue.second isEqualToString:first])) return YES;
+    }
+    return NO;
+}
+
+// Every table in GameData is checked, so a new board is covered just by being added.
+- (void)testNoTableHasOverlappingElements {
+    NSArray *names = [self allTableNames];
+    XCTAssertGreaterThan(names.count, 0u);
+    for (NSString *name in names) {
+        for (PBLayoutIssue *issue in [PBLayoutValidator issuesForTable:[self loadTable:name]]) {
+            XCTFail(@"%@: %@", name, issue);
+        }
+    }
+}
+
+// The checks above are only worth having if each one still fires.
+- (void)testValidatorFindsALampOnABumper {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *lamp = json[@"lamps"][0], *bumper = json[@"bumpers"][0];
+    lamp[@"x"] = bumper[@"x"];
+    lamp[@"y"] = bumper[@"y"];
+    XCTAssertTrue([self issues:[self issuesForJSON:json] contain:lamp[@"id"] and:bumper[@"id"] kind:PBLayoutIssueOverlap]);
+}
+
+- (void)testValidatorFindsARampOverABumper {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *ramp = json[@"ramps"][0], *bumper = json[@"bumpers"][0];
+    NSArray *point = ramp[@"points"][3];
+    bumper[@"x"] = point[0];
+    bumper[@"y"] = point[1];
+    XCTAssertTrue([self issues:[self issuesForJSON:json] contain:ramp[@"id"] and:bumper[@"id"] kind:PBLayoutIssueOverlap]);
+}
+
+- (void)testValidatorFindsWallsCrossing {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    [json[@"walls"] addObject:@{ @"id": @"crossing", @"style": @"wall", @"height": @0.05, @"radius": @0.006,
+                                 @"points": @[ @[ @0.03, @0.8 ], @[ @0.5, @0.8 ] ] }];
+    NSArray *issues = [self issuesForJSON:json];
+    XCTAssertTrue([self issues:issues contain:@"crossing" and:@"guideOrbitL" kind:PBLayoutIssueOverlap] ||
+                  [self issues:issues contain:@"crossing" and:@"magnet" kind:PBLayoutIssueOverlap], @"%@", issues);
+}
+
+- (void)testValidatorFindsAGapTooNarrowForTheBall {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *a = json[@"bumpers"][0], *b = json[@"bumpers"][1];
+    b[@"x"] = @([a[@"x"] floatValue] + [a[@"r"] floatValue] * 2.0f * 1.14f + 0.02f);
+    b[@"y"] = a[@"y"];
+    XCTAssertTrue([self issues:[self issuesForJSON:json] contain:a[@"id"] and:b[@"id"] kind:PBLayoutIssueNarrowGap]);
+}
+
+- (void)testValidatorFindsDecorOnTheApron {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    json[@"decor"] = [@[ @{ @"id": @"sunken", @"model": @"gear", @"x": @0.5, @"y": @0.1, @"size": @0.02 } ] mutableCopy];
+    BOOL found = NO;
+    for (PBLayoutIssue *issue in [self issuesForJSON:json]) {
+        if (issue.kind == PBLayoutIssueOutOfBounds && [issue.first isEqualToString:@"sunken"]) found = YES;
+    }
+    XCTAssertTrue(found);
+}
+
+// Footprints are only honest if they cover the models actually drawn.
+- (void)testFootprintsCoverTheBlenderModels {
+    NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../Art/Models/manifest.json"];
+    NSDictionary *assets = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:path] options:0 error:NULL][@"assets"];
+    XCTAssertLessThanOrEqual([assets[@"bumper-base"][@"radius"] floatValue], PBBumperFootprintScale);
+    XCTAssertLessThanOrEqual([assets[@"bumper-cap"][@"radius"] floatValue], PBBumperFootprintScale);
+    XCTAssertLessThanOrEqual([assets[@"insert-bezel"][@"radius"] floatValue], PBLampFootprintScale);
+    XCTAssertLessThanOrEqual([assets[@"post"][@"radius"] floatValue], PBPostFootprintScale);
+    // A missing model would otherwise just leave a hole in the table.
+    PBTableDefinition *table = [self loadTable:@"aurora"];
+    for (PBDecorDef *decor in table.decor) XCTAssertNotNil(assets[decor.model], @"%@", decor.model);
+    for (PBRampDef *ramp in table.ramps) {
+        NSString *model = [NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier];
+        XCTAssertNotNil(assets[model], @"%@", model);
+    }
 }
 
 - (void)testBallStaysInsideTheTable {
@@ -108,6 +212,25 @@
     XCTAssertGreaterThan(top, 1.1f, @"a full flip should reach the upper playfield");
 }
 
+// Arming it takes both left targets and then a left outlane ball, too rare to count on in autoplay.
+- (void)testArmedKickbackSavesALeftOutlaneBall {
+    PBTableDefinition *table = [self loadTable:@"aurora"];
+    PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+    [world setKickback:0 armed:YES];
+    NSInteger index = [world spawnBallAtPlunger];
+    PBSpotDef *kickback = table.kickbacks.firstObject;
+    [world placeBall:index at:kickback.position + simd_make_float2(0, 0.14f) velocity:simd_make_float2(0, -0.5f)];
+    __block BOOL kicked = NO;
+    for (int i = 0; i < 60 && !kicked; i++) {
+        [world advanceBy:1.0 / 60.0];
+        [world drainEvents:^(const PBEvent *event) { if (event->kind == PBEventKickback) kicked = YES; }];
+    }
+    XCTAssertTrue(kicked);
+    float top = 0;
+    for (int i = 0; i < 40; i++) { [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y); }
+    XCTAssertGreaterThan(top, 0.8f, @"the kick should clear the outlane");
+}
+
 - (void)testAllFeaturesAreReachableInPlay {
     PBTableDefinition *table = [self loadTable:@"aurora"];
     PBStatsObserver *stats = [PBStatsObserver new];
@@ -126,9 +249,9 @@
     }
     NSLog(@"STATS best=%lld %@", bestScore, [lines componentsJoinedByString:@" "]);
 
-    NSArray *mustHappen = @[ @"bumper", @"sling", @"drop", @"standup", @"spinner", @"saucer", @"rampEnter", @"rampComplete",
+    NSArray *mustHappen = @[ @"bumper", @"sling", @"drop", @"standup", @"spinner", @"saucer", @"rampEnter", @"rampComplete", @"rampL", @"rampR",
                              @"laneA", @"laneB", @"laneC", @"orbitR", @"inlaneLeft", @"inlaneRight", @"outlaneLeft", @"outlaneRight",
-                             @"standL1", @"standR1", @"captiveTarget", @"kickback", @"magnet", @"fanfare:multiball", @"fanfare:gameOver" ];
+                             @"standL1", @"standR1", @"captiveTarget", @"magnet", @"fanfare:multiball", @"fanfare:gameOver" ];
     for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@ never happened", key);
     XCTAssertGreaterThan(bestScore, 50000);
     NSUInteger drains = [stats.hits countForObject:@"drain"];

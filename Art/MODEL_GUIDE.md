@@ -1,30 +1,33 @@
 # Blender hardware kit
 
-Visual target: `Art/References/premium-pinball-target.png` (the user's selected reference).
+Visual target: `Art/Concepts/premium-directions.png`.
 Editable master: `Art/Models/premium-hardware.blend`.
-Game meshes: `GameData/Models/premium/*.dae`.
+COLLADA sources: `Art/Models/premium/*.dae`. Shipped scenes: `GameData/Models/premium/*.scn`.
 
-These models were created through Blender 5.2.2 LTS's installed MCP add-on, in an isolated background
-session. No modeling dependencies, remote models, or large caches were downloaded. The master packs
-the original Orbital atlas so it stays editable without external image paths.
+iOS SceneKit cannot read COLLADA at runtime, and a missing or unreadable model silently falls back
+to procedural geometry. The game therefore only loads compiled `.scn` files.
 
-The kit contains:
+Kit parts, built to unit radius (or unit half length) and scaled by the table:
 
-- `bumper-base`: bevelled foot, rubber cushion, recessed actuator, twenty collar flutes and rolled lip.
-- `bumper-cap`: curved enamel crown, concentric machined rings, jewel bezel and actual raised jewel.
-- `insert-bezel`: recessed dark socket, thin decorative bezel and inner lens retainer.
-- `aurora-ramp`: folded U-channel, rolled edges, narrow enamel navigation strip and flange rivets.
+- `bumper-base`, `bumper-cap`: stepped flange, cushion, a ring of lit jewels around the cap, enamel crown and raised jewel.
+- `insert-bezel`, `insert-arrow`: round and triangular bezels with clear lenses over the painted insert.
+- `post`, `flipper`, `target`, `flasher-cage`.
+- `gear`, `medallion`, `piston`, `bracket`: decor, placed from the table's `decor` list.
 
-The bumper/insert assets have unit radius and are scaled to each table element. The ramp uses the
-table's exact Catmull–Rom sampling (six subdivisions per authored segment) in metres. Blender is Z-up;
-the exporter converts positions and smooth normals to SceneKit's Y-up coordinates. UVs and material
-names survive export. `PBModelLibrary` clones geometry for each instance, and `PBTableScene` maps
-`metal`, `channel`, `accent`, `rubber`, `dark`, `cap_art`, and `ramp_art` to the selected skin's materials.
-Both cap artwork states are selected directly from the atlas, including on the modeled jewel.
+Table-specific parts, in table coordinates, so **rebuild them whenever the JSON moves**:
 
-`modelKit: "premium"` in a skin palette selects these meshes. Missing assets fall back to procedural
-geometry; skins without a kit keep procedural hardware. Table-specific ramps are named
-`<table-id>-<ramp-id>.dae`. If a ramp path changes, regenerate its mesh before shipping.
+- `<table>-<ramp>`: clear channel on the physics spline, rolled rims, bolted clamps, end flanges and supports.
+- `<table>-walls`: guide plates with enamel inlay and rivets.
+- `<table>-plastics`: art plates, housings, frames and standoffs.
+- `<table>-dmd`: the display frame.
+
+Blender is Z-up; the exporter converts to SceneKit's Y-up. Each asset is merged to one mesh per material
+role, and `PBTableScene` binds `metal`, `accent`, `rubber`, `dark`, `glass`, `lens`, `glow`, `cap_art`,
+`wall_art`, `plastic_art`, `block_art`, `flipper_art`, `target_art` and `flipper_rubber` to the selected skin.
+`Art/Models/manifest.json` records each model's real radius; `PinballCoreTests` checks the overlap test's
+footprints still cover them, and that every decor model and ramp used by the table exists.
+
+`modelKit: "premium"` in a skin palette selects these meshes. Skins without a kit keep procedural hardware.
 
 ## Reproduce via Blender MCP
 
@@ -41,12 +44,14 @@ In another terminal, from the repository root:
 
 ```bash
 python3 tools/blender_mcp.py tools/build_hardware_models.py
+tools/compile_models.sh
 ```
 
 The script creates its own scene, saves the compressed `.blend` master, exports standard COLLADA,
 and writes triangle counts and sizes to `Art/Models/manifest.json`. Its small exporter is included
 because this Blender version no longer bundles its legacy COLLADA exporter. No export plugin is needed.
-Stop the dedicated bridge with Ctrl-C when done.
+Stop the dedicated bridge with Ctrl-C when done. Started with `--port 9876` instead, the same session
+also serves the `blender` MCP tools.
 
 Build the Mac target and use `tools/render_preview.sh` to validate imported models, skin crops, bumper
 collision → authored hit state → idle, and actual game screenshots. `*-hit.png` previews show the

@@ -21,6 +21,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// A square additive sprite for a lit lamp: soft halo around the tinted icon. Caller releases.
 + (CGImageRef)newLitLampWithIcon:(CGImageRef)icon color:(simd_float3)color CF_RETURNS_RETAINED;
 
+/// The same for a triangular insert pointing along +x: the scene rotates the sprite. Caller releases.
++ (CGImageRef)newLitArrowWithColor:(simd_float3)color CF_RETURNS_RETAINED;
+
 /// Round soft glow, for flashers and bumper flashes. Caller releases.
 + (CGImageRef)newGlowWithColor:(simd_float3)color CF_RETURNS_RETAINED;
 

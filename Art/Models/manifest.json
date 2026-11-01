@@ -3,24 +3,106 @@
   "transport": "Blender MCP",
   "assets": {
     "bumper-base": {
-      "objects": 26,
-      "triangles": 10660,
-      "bytes": 861314
+      "objects": 60,
+      "triangles": 5648,
+      "radius": 1.12,
+      "bytes": 398287
     },
     "bumper-cap": {
       "objects": 6,
-      "triangles": 7708,
-      "bytes": 592150
+      "triangles": 4064,
+      "radius": 0.83,
+      "bytes": 266896
     },
     "insert-bezel": {
       "objects": 3,
-      "triangles": 3200,
-      "bytes": 245136
+      "triangles": 1008,
+      "radius": 1.1,
+      "bytes": 69787
     },
-    "aurora-ramp": {
-      "objects": 14,
-      "triangles": 3504,
-      "bytes": 286121
+    "insert-arrow": {
+      "objects": 3,
+      "triangles": 399,
+      "radius": 1.0758,
+      "bytes": 35855
+    },
+    "post": {
+      "objects": 4,
+      "triangles": 408,
+      "radius": 1.0,
+      "bytes": 28884
+    },
+    "flipper": {
+      "objects": 4,
+      "triangles": 568,
+      "radius": 1.09,
+      "bytes": 42311
+    },
+    "target": {
+      "objects": 2,
+      "triangles": 26,
+      "radius": 0.6278,
+      "bytes": 5909
+    },
+    "flasher-cage": {
+      "objects": 8,
+      "triangles": 344,
+      "radius": 1.05,
+      "bytes": 29955
+    },
+    "gear": {
+      "objects": 9,
+      "triangles": 1014,
+      "radius": 1.0211,
+      "bytes": 98511
+    },
+    "medallion": {
+      "objects": 10,
+      "triangles": 782,
+      "radius": 1.0,
+      "bytes": 55351
+    },
+    "piston": {
+      "objects": 5,
+      "triangles": 228,
+      "radius": 1.076,
+      "bytes": 16679
+    },
+    "bracket": {
+      "objects": 5,
+      "triangles": 198,
+      "radius": 1.0949,
+      "bytes": 18094
+    },
+    "aurora-walls": {
+      "objects": 93,
+      "triangles": 4402,
+      "radius": 0.9929,
+      "bytes": 340740
+    },
+    "aurora-plastics": {
+      "objects": 32,
+      "triangles": 1594,
+      "radius": 0.6785,
+      "bytes": 127783
+    },
+    "aurora-rampL": {
+      "objects": 35,
+      "triangles": 3360,
+      "radius": 0.9762,
+      "bytes": 255562
+    },
+    "aurora-rampR": {
+      "objects": 35,
+      "triangles": 3360,
+      "radius": 0.9671,
+      "bytes": 253573
+    },
+    "aurora-dmd": {
+      "objects": 21,
+      "triangles": 1240,
+      "radius": 1.1035,
+      "bytes": 86873
     }
   }
 }

@@ -7,10 +7,10 @@ Tables are JSON; skins contain a hardware atlas, palette, and optionally a separ
 Table geometry is generated from JSON, with optional Blender-authored hardware kits. All sound is synthesized.
 
 The default **Orbital** skin pairs illustrated space art with ivory/vermilion enamel and champagne trim.
-**Abyss** uses deep-sea illustration, seafoam enamel and brass. Both include authored idle/hit bumper caps,
-layered bumper skirts, plastic edge trim, fasteners, and ramp rails. Classic and Neon remain available.
-The selected visual reference is saved in `Art/References/premium-pinball-target.png`; the editable
-Blender master and rebuild instructions are in `Art/Models/` and [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
+**Abyss** uses deep-sea illustration, seafoam enamel and brass. Both follow the concepts in
+`Art/Concepts/premium-directions.png`: a table that uses the phone's edges as its own, two clear hook ramps,
+jewelled bumpers with authored idle/hit caps, riveted guide plates and arrow inserts. Classic and Neon remain
+available. The editable Blender master and rebuild instructions are in `Art/Models/` and [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
 
 ```bash
 open Pinball.xcodeproj
@@ -70,9 +70,18 @@ tunnel at a generic physics step.
 2. Point the table test at it and run `PinballCoreTests`. An autopilot plays 25 simulated minutes and
    fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
 3. `python3 tools/skin_tool.py template <table>` draws that table's guide for painting skins.
+4. Rebuild the table-specific meshes ([Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md)) for it.
+
+`testNoTableHasOverlappingElements` runs on every JSON in `GameData/Tables`, with no setup. It projects each
+drawn part through the overhead camera, at its drawn size, and fails on parts covering each other (flipper
+sweeps and ramps included), solids closer than a ball's width, or anything off the table or on the apron. Parts
+may only touch where one is built onto another. Collide-only walls (`"style": "none"`) are never seen, so they
+are exempt, which is how a wall can run under a ramp.
 
 Wall surfaces facing up the table need a slope, or a ball can come to rest on them, and gaps need more
-than a ball's width (0.05). Rollover roles come from id prefixes: `orbit*`, `outlane*`, `inlane*`.
+than a ball's width (0.05). The outer wall is invisible and follows the screen, with corners matching the phone's.
+`decor` lists static kit models, and a lamp's `"shape": "arrow"` with `"angle"` makes a triangular insert pointing
+at its shot. Rollover roles come from id prefixes: `orbit*`, `outlane*`, `inlane*`.
 
 ## Skins
 

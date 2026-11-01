@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Checks for the scene format: run by `make test`, with no Blender or Xcode needed."""
+import json
+import math
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shim import ROOT, geometry  # noqa: E402
+import mesher  # noqa: E402
+import prefabs  # noqa: E402
+import table_xml  # noqa: E402
+import compile_scenes  # noqa: E402
+
+
+def built(xml, names=None):
+    kit = {e.get('id'): e for e in ET.fromstring(f'<kit>{xml}</kit>')}
+    return prefabs.Builder(kit).build(next(iter(kit)), names)
+
+
+# A button is a circle with modifiers: extruded, bevelled, and every normal points outward.
+button = built('<prefab id="b"><let name="R" value=".5"/><circle radius="{R*2}" role="accent" segments="16"><extrude amount=".2"/><bevel amount=".02"/></circle></prefab>')
+assert abs(max(math.hypot(v[0], v[1]) for v in button.vertices) - 1) < 1e-6, 'expressions size shapes'
+assert abs(max(v[2] for v in button.vertices) - .2) < 1e-6, 'extrude sets height'
+normals = mesher.corner_normals(button)
+for (face, vertex), normal in normals.items():
+    v = button.vertices[vertex]
+    assert normal[0] * v[0] + normal[1] * v[1] + normal[2] * v[2] > 0, 'faces point outward'
+# Modifiers run in order, and prefabs nest with their own variables.
+nested = built('<prefab id="a"><use prefab="c" r="2" at="1,0"/></prefab><prefab id="c"><lathe role="metal" segments="8" points="{r},0 {r},1"/></prefab>')
+assert abs(max(v[0] for v in nested.vertices) - 3) < 1e-6, '<use> passes variables and position'
+try:
+    built('<prefab id="x"><blob role="metal"/></prefab>')
+    raise AssertionError('unknown elements must fail')
+except ValueError:
+    pass
+try:
+    built('<prefab id="x"><circle radius="{__import__}" role="metal"/></prefab>')
+    raise AssertionError('expressions must stay arithmetic')
+except (KeyError, ValueError):
+    pass
+# Concave polygons triangulate into the same area.
+ell = [(0, 0, 0), (2, 0, 0), (2, 1, 0), (1, 1, 0), (1, 2, 0), (0, 2, 0)]
+area = sum(abs((ell[b][0] - ell[a][0]) * (ell[c][1] - ell[a][1]) - (ell[b][1] - ell[a][1]) * (ell[c][0] - ell[a][0])) * .5 for a, b, c in mesher.triangulate(ell, list(range(6))))
+assert abs(area - 3) < 1e-9, 'concave triangulation covers the outline'
+# Tables survive XML both ways, and the checked-in JSON is what the scenes compile to.
+for path in sorted((ROOT / 'Scenes').glob('*.xml')):
+    if path.stem == 'kit':
+        continue
+    table = table_xml.read(path)
+    with tempfile.TemporaryDirectory() as temporary:
+        copy = Path(temporary) / 'table.xml'
+        table_xml.write(table, copy)
+        assert table_xml.read(copy) == table, f'{path.stem}: XML round trip'
+    compiled = compile_scenes.table_json(table)
+    shipped = json.loads((ROOT / f"GameData/Tables/{table['id']}.json").read_text())
+    assert json.dumps(compiled, sort_keys=True) == json.dumps(shipped, sort_keys=True), f"{path.stem}: run `make scenes`: GameData/Tables is out of date"
+print('SCENES PASSED')

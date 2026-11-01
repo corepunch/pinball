@@ -1,3 +1,5 @@
+> **Superseded by [SCENES.md](SCENES.md).** Tables and parts now come from `Scenes/*.xml` with no Blender. The Blender steps below remain for reference until the add-on is removed; the materials and comparison notes still apply.
+
 # Blender hardware kit
 
 Visual target: `Art/Concepts/cadet-inspired-redesign.png`. Space Cadet reference: `Art/Concepts/space-cadet-resource-reference.png`.

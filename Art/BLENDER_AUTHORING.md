@@ -1,3 +1,5 @@
+> **Superseded by [SCENES.md](SCENES.md).** `Scenes/*.xml` is now the source of the game's tables and meshes. Exporting from Blender overwrites the compiled output; edit the XML instead.
+
 # Pinball Builder
 
 Editable level source: [Models/pinball-levels.blend](Models/pinball-levels.blend).

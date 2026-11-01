@@ -103,6 +103,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         [_interface showScreen:PBMenuHome];
         _menuPaused = !_game.autopilot;
         view.overlaySKScene = _interface;
+        _interface.deferChanges = YES;
         [self viewDidResize];
 
         view.delegate = self;

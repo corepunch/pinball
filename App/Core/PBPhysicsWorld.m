@@ -27,6 +27,7 @@ static const float kActiveCooldown = 0.07f;
 static const float kStuckSeconds = 3.5f;
 static const float kRampTableGravity = 0.4f;
 static const int kStuckShovesBeforeRescue = 3;
+static const float kSaucerEjectSpread = 0.14f;  // Radians either way.
 
 typedef NS_ENUM(uint8_t, PBColliderKind) {
     PBColliderStatic,
@@ -506,7 +507,12 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         PBBall *ball = &_balls[i];
         if (ball->state == PBBallInSaucer && ball->holder == index) {
             ball->state = PBBallFree;
-            ball->velocity = saucer->direction * saucer->speed;
+            // A real scoop is never perfectly repeatable. Exactly the same eject every time can
+            // send the ball round the same path back into the scoop, for ever.
+            float spread = ([self randomUnit] - 0.5f) * 2.0f * kSaucerEjectSpread;
+            float cs = cosf(spread), sn = sinf(spread);
+            simd_float2 aim = simd_make_float2(saucer->direction.x * cs - saucer->direction.y * sn, saucer->direction.x * sn + saucer->direction.y * cs);
+            ball->velocity = aim * saucer->speed * (0.95f + 0.1f * [self randomUnit]);
             ball->stuckTime = 0;
             [self emit:PBEventSaucerEject element:index ball:i magnitude:saucer->speed at:ball->position];
         }

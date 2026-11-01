@@ -42,7 +42,27 @@ static SKColor *PBBrass(void) { return [SKColor colorWithRed:0.65 green:0.49 blu
 static SKColor *PBMuted(void) { return [SKColor colorWithRed:0.49 green:0.59 blue:0.60 alpha:1]; }
 static SKColor *PBRed(void) { return [SKColor colorWithRed:0.88 green:0.23 blue:0.14 alpha:1]; }
 
-static SKShapeNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
+/// A CoreGraphics path as a sprite, its fill and stroke drawn into a texture.
+static SKSpriteNode *PBPathSprite(CGPathRef path, CGSize size, SKColor *fill, SKColor *stroke, CGFloat lineWidth) {
+    const CGFloat scale = 3;
+    size_t width = (size_t)ceil(size.width * scale), height = (size_t)ceil(size.height * scale);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef c = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(space);
+    CGContextScaleCTM(c, scale, scale);
+    CGContextTranslateCTM(c, size.width * .5, size.height * .5);
+    CGContextAddPath(c, path);
+    if (fill) { CGContextSetFillColorWithColor(c, fill.CGColor); CGContextDrawPath(c, kCGPathFill); }
+    CGContextAddPath(c, path);
+    if (stroke && lineWidth > 0) { CGContextSetStrokeColorWithColor(c, stroke.CGColor); CGContextSetLineWidth(c, lineWidth); CGContextSetLineJoin(c, kCGLineJoinRound); CGContextDrawPath(c, kCGPathStroke); }
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    SKSpriteNode *sprite = [SKSpriteNode spriteNodeWithTexture:[SKTexture textureWithCGImage:image] size:size];
+    CGImageRelease(image);
+    CGContextRelease(c);
+    return sprite;
+}
+
+static SKSpriteNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
     CGMutablePathRef path = CGPathCreateMutable();
     for (int i = 0; i < 10; i++) {
         CGFloat r = i % 2 ? radius * 0.42 : radius, a = M_PI_2 + i * M_PI / 5;
@@ -50,12 +70,9 @@ static SKShapeNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
         else CGPathAddLineToPoint(path, NULL, r * cos(a), r * sin(a));
     }
     CGPathCloseSubpath(path);
-    SKShapeNode *star = [SKShapeNode shapeNodeWithPath:path];
+    SKSpriteNode *star = PBPathSprite(path, CGSizeMake(radius * 2 + 4, radius * 2 + 4), earned ? [SKColor colorWithRed:1.0 green:0.76 blue:0.28 alpha:1] : [PBInk() colorWithAlphaComponent:0.9], PBBrass(), 0.8);
     CGPathRelease(path);
     star.position = position;
-    star.lineWidth = 0.8;
-    star.strokeColor = PBBrass();
-    star.fillColor = earned ? [SKColor colorWithRed:1.0 green:0.76 blue:0.28 alpha:1] : [PBInk() colorWithAlphaComponent:0.9];
     return star;
 }
 
@@ -135,6 +152,11 @@ static NSString *PBScoreString(int64_t score) {
 
 @implementation PBUIKey
 - (void)refresh {
+    PBGameUI *ui = (PBGameUI *)self.scene;
+    if ([ui isKindOfClass:PBGameUI.class] && ![ui onRenderThread]) {
+        [ui applyChange:^{ [self refresh]; }];
+        return;
+    }
     NSUInteger state = !self.enabled ? 4 : self.pressed ? 2 : self.selected ? 1 : 0;
     if (self.slicedFace) [self.slicedFace setState:state];
     else self.face.texture = self.states[state];
@@ -156,6 +178,9 @@ static NSString *PBScoreString(int64_t score) {
     NSInteger _liveEffects;
     NSString *_message;
     NSInteger _ball, _ballCount, _levelPage;
+    NSRecursiveLock *_changesLock;
+    NSMutableArray<dispatch_block_t> *_changes;
+    BOOL _applyingChanges;
 }
 
 static const NSInteger kLevelsPerPage = 12;
@@ -173,6 +198,8 @@ static const NSInteger kLevelsPerPage = 12;
         _logicalHeight = 874;
         _inputViewSize = CGSizeMake(402, 874);
         _keys = [NSMutableArray array];
+        _changesLock = [NSRecursiveLock new];
+        _changes = [NSMutableArray array];
         _pressedKeys = [NSMapTable strongToStrongObjectsMapTable];
         _capturedPointers = [NSHashTable hashTableWithOptions:NSHashTableStrongMemory];
         _root = [SKNode node];
@@ -223,13 +250,15 @@ static const NSInteger kLevelsPerPage = 12;
 - (void)layoutForViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom {
     if (size.width <= 0 || size.height <= 0) return;
     _inputViewSize = size;
-    self.size = size;
     CGFloat scale = size.width / 402.0;
-    _root.xScale = _root.yScale = scale;
     _logicalHeight = size.height / scale;
     _topInset = top / scale;
     _bottomInset = bottom / scale;
-    [self render];
+    [self applyChange:^{
+        self.size = size;
+        self->_root.xScale = self->_root.yScale = scale;
+        [self rebuildNodes];
+    }];
 }
 
 - (void)didChangeSize:(CGSize)oldSize {
@@ -253,17 +282,15 @@ static const NSInteger kLevelsPerPage = 12;
     return label;
 }
 
-- (SKShapeNode *)panel:(CGSize)size at:(CGPoint)position parent:(SKNode *)parent {
-    SKShapeNode *panel = [SKShapeNode shapeNodeWithRectOfSize:size cornerRadius:12];
+- (SKNode *)panel:(CGSize)size at:(CGPoint)position parent:(SKNode *)parent {
+    CGPathRef outer = CGPathCreateWithRoundedRect(CGRectMake(-size.width * .5, -size.height * .5, size.width, size.height), 12, 12, NULL);
+    SKSpriteNode *panel = PBPathSprite(outer, CGSizeMake(size.width + 4, size.height + 4), PBInk(), PBBrass(), 1.2);
+    CGPathRelease(outer);
     panel.position = position;
-    panel.fillColor = PBInk();
-    panel.strokeColor = PBBrass();
-    panel.lineWidth = 1.2;
     [parent addChild:panel];
-    SKShapeNode *inner = [SKShapeNode shapeNodeWithRectOfSize:CGSizeMake(size.width - 10, size.height - 10) cornerRadius:8];
-    inner.strokeColor = [PBBrass() colorWithAlphaComponent:0.28];
-    inner.lineWidth = 0.7;
-    [panel addChild:inner];
+    CGPathRef line = CGPathCreateWithRoundedRect(CGRectMake(-size.width * .5 + 5, -size.height * .5 + 5, size.width - 10, size.height - 10), 8, 8, NULL);
+    [panel addChild:PBPathSprite(line, size, nil, [PBBrass() colorWithAlphaComponent:0.28], 0.7)];
+    CGPathRelease(line);
     return panel;
 }
 
@@ -313,11 +340,32 @@ static const NSInteger kLevelsPerPage = 12;
     [self render];
 }
 
-/// SceneKit draws this overlay on its render thread, so the node tree only changes under its lock.
+/// SceneKit draws this overlay on its render thread, and SCNTransaction's lock doesn't cover it: a node
+/// changed from the main thread mid-frame crashes SpriteKit's renderer (SKCRenderer). So once running,
+/// changes queue here and are applied by -update:, which runs on that thread just before each draw.
+- (void)applyChange:(dispatch_block_t)change {
+    [_changesLock lock];
+    if (!_deferChanges || _applyingChanges) change();
+    else [_changes addObject:[change copy]];
+    [_changesLock unlock];
+}
+
+- (BOOL)onRenderThread {
+    return !_deferChanges || _applyingChanges;
+}
+
+- (void)update:(NSTimeInterval)currentTime {
+    [_changesLock lock];
+    _applyingChanges = YES;
+    NSArray *changes = _changes.copy;
+    [_changes removeAllObjects];
+    for (dispatch_block_t change in changes) change();
+    _applyingChanges = NO;
+    [_changesLock unlock];
+}
+
 - (void)render {
-    [SCNTransaction lock];
-    [self rebuildNodes];
-    [SCNTransaction unlock];
+    [self applyChange:^{ [self rebuildNodes]; }];
 }
 
 - (void)rebuildNodes {
@@ -342,8 +390,9 @@ static const NSInteger kLevelsPerPage = 12;
     [self panel:CGSizeMake(362, height) at:CGPointZero parent:_menu];
     // Small cabinet fasteners, part of the panel construction rather than UI symbols.
     for (NSNumber *x in @[@-167, @167]) for (NSNumber *sign in @[@-1, @1]) {
-        SKShapeNode *rivet = [SKShapeNode shapeNodeWithCircleOfRadius:2];
-        rivet.fillColor = PBBrass(); rivet.strokeColor = SKColor.clearColor;
+        CGPathRef dot = CGPathCreateWithEllipseInRect(CGRectMake(-2, -2, 4, 4), NULL);
+        SKSpriteNode *rivet = PBPathSprite(dot, CGSizeMake(6, 6), PBBrass(), nil, 0);
+        CGPathRelease(dot);
         rivet.position = CGPointMake(x.doubleValue, sign.doubleValue * (height * 0.5 - 14));
         [_menu addChild:rivet];
     }
@@ -691,7 +740,8 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 - (void)showImpactAtPoint:(CGPoint)point color:(SKColor *)color sparks:(NSInteger)sparks points:(int64_t)points {
     if (_screen != PBMenuPlaying || _liveEffects > 14) return;
     CGPoint at = [self logicalPoint:point];
-    _liveEffects++;
+    [self applyChange:^{
+    self->_liveEffects++;
     __weak PBGameUI *weakSelf = self;
     SKAction *finish = [SKAction runBlock:^{ PBGameUI *me = weakSelf; if (me) me->_liveEffects--; }];
     SKNode *effect = [SKNode node];
@@ -742,32 +792,34 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
         [number runAction:[SKAction group:@[ pop, rise, fade ]]];
     }
     [effect runAction:[SKAction sequence:@[ [SKAction waitForDuration:.95], finish, [SKAction removeFromParent] ]]];
+    }];
 }
 
 - (void)showMessage:(NSString *)message {
-    [SCNTransaction lock];
     _message = message;
-    if (_messageSprite) {
-        NSString *text = message ?: _levelGoal ?: @"";
+    [self applyChange:^{
+    if (self->_messageSprite) {
+        NSString *text = message ?: self.levelGoal ?: @"";
         const NSUInteger columns = 20;
         if (text.length > columns) text = [text substringToIndex:columns];
-        [self showLED:text on:_messageSprite columns:text.length right:NO pitch:2.05 color:message ? _messageColor : PBLEDColor() maxWidth:290];
+        [self showLED:text on:self->_messageSprite columns:text.length right:NO pitch:2.05 color:message ? self.messageColor : PBLEDColor() maxWidth:290];
     }
-    [SCNTransaction unlock];
+    }];
 }
 
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
          ballCount:(NSInteger)ballCount {
-    [SCNTransaction lock];
     _score = score; _best = best; _ball = ball; _ballCount = ballCount;
-    if (_scoreSprite) {
+    NSInteger multiplier = _bonusMultiplier;
+    [self applyChange:^{
+    if (self->_scoreSprite) {
         NSString *digits = [NSString stringWithFormat:@"%lld", score];
-        [self showLED:digits on:_scoreSprite columns:digits.length right:NO pitch:3.9 color:PBLEDColor() maxWidth:230];
+        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.9 color:PBLEDColor() maxWidth:230];
         NSString *balls = [NSString stringWithFormat:@"BALL %ld/%ld", (long)MAX(1, ball), (long)ballCount];
-        if (_bonusMultiplier > 1) balls = [NSString stringWithFormat:@"X%ld %@", (long)_bonusMultiplier, balls];
-        [self showLED:balls on:_ballSprite columns:balls.length right:NO pitch:1.9 color:PBLEDColor() maxWidth:104];
+        if (multiplier > 1) balls = [NSString stringWithFormat:@"X%ld %@", (long)multiplier, balls];
+        [self showLED:balls on:self->_ballSprite columns:balls.length right:NO pitch:1.9 color:PBLEDColor() maxWidth:104];
     }
-    [SCNTransaction unlock];
+    }];
 }
 
 - (CGPoint)logicalPoint:(CGPoint)point {
@@ -782,13 +834,19 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 - (BOOL)pointerBegan:(id)pointer atPoint:(CGPoint)point {
     if (self.hidden) return NO;
     CGPoint logical = [self logicalPoint:point];
-    for (PBUIKey *key in _keys.reverseObjectEnumerator) {
-        if (key.enabled && [self key:key contains:logical]) {
-            [_capturedPointers addObject:pointer];
-            [_pressedKeys setObject:key forKey:pointer];
-            key.pressed = YES; [key refresh];
-            return YES;
-        }
+    // The render thread replaces these keys when it rebuilds a screen.
+    [_changesLock lock];
+    NSArray<PBUIKey *> *keys = _keys.copy;
+    PBUIKey *pressed = nil;
+    for (PBUIKey *key in keys.reverseObjectEnumerator) {
+        if (key.enabled && [self key:key contains:logical]) { pressed = key; break; }
+    }
+    [_changesLock unlock];
+    if (pressed) {
+        [_capturedPointers addObject:pointer];
+        [_pressedKeys setObject:pressed forKey:pointer];
+        pressed.pressed = YES; [pressed refresh];
+        return YES;
     }
     if (_screen != PBMenuPlaying) { [_capturedPointers addObject:pointer]; return YES; }
     return NO;
@@ -819,7 +877,10 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 }
 
 - (void)cancelPointers {
-    for (PBUIKey *key in _keys) { key.pressed = NO; [key refresh]; }
+    [_changesLock lock];
+    NSArray<PBUIKey *> *keys = _keys.copy;
+    [_changesLock unlock];
+    for (PBUIKey *key in keys) { key.pressed = NO; [key refresh]; }
     [_pressedKeys removeAllObjects];
     [_capturedPointers removeAllObjects];
 }

@@ -26,6 +26,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL newRecord;
 @property (nonatomic, readonly) PBMenuScreen screen;
 - (instancetype)initWithBundle:(NSBundle *)bundle;
+/// Set once SceneKit is drawing this overlay: changes then wait for -update: on its render thread.
+@property (nonatomic) BOOL deferChanges;
+- (void)applyChange:(dispatch_block_t)change;
+- (BOOL)onRenderThread;
 - (void)layoutForViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom;
 - (void)showScreen:(PBMenuScreen)screen;
 /// A moment's news from the game, or nil to go back to showing the level's goal.

@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews scenes
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -22,8 +22,13 @@ help:
 	@echo "list-devices   - List paired devices and simulators"
 	@echo "simulator      - Build for the iOS Simulator"
 	@echo "simulator-run  - Build, install and launch in the Simulator (SIMULATOR='iPhone 17')"
+	@echo "scenes         - Build tables and meshes from Scenes/*.xml"
 	@echo "test           - Run the headless tests on this Mac"
 	@echo "previews       - Render Art/Previews from the real scene"
+
+scenes:
+	python3 tools/scene/compile_scenes.py
+	tools/compile_models.sh
 
 iphone:
 	@team="$(TEAM)"; \
@@ -76,6 +81,7 @@ simulator-run: simulator
 	xcrun simctl launch --terminate-running-process "$(SIMULATOR)" $(BUNDLE_ID)
 
 test:
+	python3 tools/scene/test_scenes.py
 	xcodebuild -project $(PROJECT) -scheme PinballCoreTests -destination platform=macOS -derivedDataPath Build/Mac test
 
 previews:

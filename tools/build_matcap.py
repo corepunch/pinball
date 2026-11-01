@@ -39,11 +39,11 @@ glints_b = numpy.clip(numpy.cos(3 * angle - 1.3), 0, 1) ** 2
 broken_c = .5 + .5 * numpy.cos(2 * angle - 1.1)
 
 tone = .54 + .18 * y
-tone += .85 * band(d - .1, .018) * glints         # Fine glints on the floor's gentle curve.
+tone += .5 * band(d - .1, .045) * glints         # Fine glints on the floor's gentle curve.
 tone -= .12 * band(d - .17, .03)
-tone += 1.0 * band(d - .25, .026) * glints_b      # Where the floor starts to bank.
+tone += .7 * band(d - .25, .055) * glints_b      # Where the floor starts to bank.
 tone -= .2 * band(d - .4, .07)                    # Dark valley, for contrast along the walls.
-tone += 1.0 * band(d - .6, .03) * broken_c        # The bright streak on banked parts.
+tone += .85 * band(d - .6, .06) * broken_c        # The bright streak on banked parts.
 tone -= .22 * band(d - .8, .075)                  # Dark before the edge.
 tone += .85 * band(x + .36, .1) * band(y - .62, .14)  # Hot window highlight, upper left.
 tone += .5 * band(x - .46, .05) * band(y - .55, .3)   # Slim strip, upper right.

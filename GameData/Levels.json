@@ -1,19 +1,19 @@
 {
   "levels": [
-    { "id": "l01", "name": "First Light", "table": "aurora", "skin": "orbital", "goal": "score", "count": 30000, "stars": [80000, 160000] },
-    { "id": "l02", "name": "Pop Goes the Comet", "table": "aurora", "skin": "orbital", "goal": "bumpers", "count": 5, "stars": [90000, 200000] },
-    { "id": "l03", "name": "Drop Zone", "table": "aurora", "skin": "orbital", "goal": "drops", "count": 6, "stars": [100000, 220000] },
-    { "id": "l04", "name": "Up and Over", "table": "aurora", "skin": "orbital", "goal": "ramps", "count": 1, "stars": [110000, 240000] },
-    { "id": "l05", "name": "Deep Water", "table": "meridian", "skin": "abyss", "goal": "score", "count": 80000, "stars": [180000, 420000] },
-    { "id": "l06", "name": "Bumper Reef", "table": "meridian", "skin": "abyss", "goal": "bumpers", "count": 20, "stars": [190000, 430000] },
-    { "id": "l07", "name": "The Scoop", "table": "meridian", "skin": "abyss", "goal": "saucers", "count": 2, "stars": [200000, 440000] },
-    { "id": "l08", "name": "Twin Rails", "table": "meridian", "skin": "abyss", "goal": "ramps", "count": 2, "stars": [220000, 460000] },
-    { "id": "l09", "name": "Long Orbit", "table": "aurora", "skin": "abyss", "goal": "score", "count": 120000, "stars": [200000, 360000] },
-    { "id": "l10", "name": "Spin Cycle", "table": "aurora", "skin": "abyss", "goal": "spinners", "count": 5, "stars": [150000, 340000] },
-    { "id": "l11", "name": "Sunken Bank", "table": "aurora", "skin": "abyss", "goal": "drops", "count": 12, "stars": [160000, 350000] },
-    { "id": "l12", "name": "Full Bank", "table": "meridian", "skin": "orbital", "goal": "drops", "count": 20, "stars": [300000, 560000] },
-    { "id": "l13", "name": "Lock and Load", "table": "meridian", "skin": "orbital", "goal": "multiballs", "count": 1, "stars": [400000, 650000] },
-    { "id": "l14", "name": "Mother Lode", "table": "meridian", "skin": "orbital", "goal": "jackpots", "count": 1, "stars": [450000, 700000] },
-    { "id": "l15", "name": "Grand Tour", "table": "meridian", "skin": "orbital", "goal": "score", "count": 500000, "stars": [650000, 900000] }
+    {"id": "l01", "name": "First Light", "table": "aurora", "skin": "orbital", "goal": "score", "count": 15000, "stars": [50000, 120000]},
+    {"id": "l02", "name": "Pop Goes the Comet", "table": "aurora", "skin": "orbital", "goal": "bumpers", "count": 3, "stars": [60000, 140000]},
+    {"id": "l03", "name": "Drop Zone", "table": "aurora", "skin": "orbital", "goal": "drops", "count": 4, "stars": [70000, 150000]},
+    {"id": "l04", "name": "Up and Over", "table": "aurora", "skin": "orbital", "goal": "ramps", "count": 1, "stars": [110000, 240000]},
+    {"id": "l05", "name": "Deep Water", "table": "meridian", "skin": "abyss", "goal": "score", "count": 80000, "stars": [180000, 420000]},
+    {"id": "l06", "name": "Bumper Reef", "table": "meridian", "skin": "abyss", "goal": "bumpers", "count": 20, "stars": [190000, 430000]},
+    {"id": "l07", "name": "The Scoop", "table": "meridian", "skin": "abyss", "goal": "saucers", "count": 2, "stars": [200000, 440000]},
+    {"id": "l08", "name": "Twin Rails", "table": "meridian", "skin": "abyss", "goal": "ramps", "count": 2, "stars": [220000, 460000]},
+    {"id": "l09", "name": "Long Orbit", "table": "aurora", "skin": "abyss", "goal": "score", "count": 80000, "stars": [140000, 300000]},
+    {"id": "l10", "name": "Spin Cycle", "table": "aurora", "skin": "abyss", "goal": "spinners", "count": 5, "stars": [150000, 340000]},
+    {"id": "l11", "name": "Sunken Bank", "table": "aurora", "skin": "abyss", "goal": "drops", "count": 9, "stars": [120000, 280000]},
+    {"id": "l12", "name": "Full Bank", "table": "meridian", "skin": "orbital", "goal": "drops", "count": 20, "stars": [300000, 560000]},
+    {"id": "l13", "name": "Lock and Load", "table": "meridian", "skin": "orbital", "goal": "multiballs", "count": 1, "stars": [400000, 650000]},
+    {"id": "l14", "name": "Mother Lode", "table": "meridian", "skin": "orbital", "goal": "jackpots", "count": 1, "stars": [450000, 700000]},
+    {"id": "l15", "name": "Grand Tour", "table": "meridian", "skin": "orbital", "goal": "score", "count": 500000, "stars": [650000, 900000]}
   ]
 }

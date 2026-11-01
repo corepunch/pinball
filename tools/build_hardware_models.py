@@ -352,6 +352,34 @@ def smooth_path(points):
     return out + [p[-1]]
 
 
+def loft_path(points, spacing=.006):
+    """The physics spline, relaxed and evenly resampled, so a loft along it bends without kinks."""
+    p = [Vector(v) for v in points]
+    at = lambda n: p[max(0, min(n, len(p) - 1))]
+    dense = []
+    for i in range(len(p) - 1):
+        p0, p1, p2, p3 = at(i - 1), at(i), at(i + 1), at(i + 2)
+        for step in range(24):
+            t = step / 24
+            dense.append(.5 * ((2 * p1) + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (3 * p1 - p0 - 3 * p2 + p3) * t * t * t))
+    dense.append(p[-1])
+    for _ in range(90):
+        dense = [dense[0]] + [dense[i] * .5 + (dense[i - 1] + dense[i + 1]) * .25 for i in range(1, len(dense) - 1)] + [dense[-1]]
+    out, walked = [dense[0]], 0.0
+    for a, b in zip(dense, dense[1:]):
+        length = (b - a).xy.length
+        while length > 0 and walked + length >= spacing:
+            t = (spacing - walked) / length
+            a = a + (b - a) * t
+            length = (b - a).xy.length
+            walked = 0.0
+            out.append(a.copy())
+        walked += length
+    if (out[-1] - dense[-1]).xy.length > spacing * .3:
+        out.append(dense[-1])
+    return out
+
+
 def faceted_lens(name, outline, z, role, rise=None):
     """A shallow moulded dome over a counter-clockwise outline, UVs across its bounding box."""
     centre = Vector((sum(p[0] for p in outline) / len(outline), sum(p[1] for p in outline) / len(outline)))
@@ -522,71 +550,28 @@ for table_index, table in enumerate(TABLES):
         # Outline is counter-clockwise, so "left of travel" is inward.
         sweep(f'{name} frame', [(*p, base) for p in outline], [(-.0024, 0), (-.0024, wall_height + .002), (-.0008, wall_height + .0032), (.0008, wall_height + .0032), (.0024, wall_height + .002), (.0024, 0)], 'accent', closed=True, sharp=80)
 
-    # From the construction drawing: a flat channel floor between channel walls, broad brass side
-    # rails, a retaining rail held above them, clamps across the rails, and mounting brackets.
-    # The floor's lowest line follows the physics surface exactly.
+    # One smooth loft of one simple profile: a thick rounded rail each side of a dished floor.
+    # Anything finer than a pixel at phone size aliases, so there are no other details.
     for ramp in table['ramps']:
         asset(f"{table['id']}-{ramp['id']}", (table_index * 3, 3, 0))
-        path = [Vector((*centred(p.x, p.y), p.z)) for p in smooth_path(ramp['points'])]
-        half = ramp['width'] * .5 + .002
-        wall = .022
-        rail = .0118
-
-        def normal_at(i):
-            tangent = (path[min(i + 1, len(path) - 1)] - path[max(i - 1, 0)]).xy.normalized()
-            return Vector((-tangent.y, tangent.x))
-        stops = (-1, -.8, -.6, -.4, -.2, 0, .2, .4, .6, .8, 1)
-        floor = [(u * half, .009 * u * u) for u in stops]
-        sweep('Channel floor', path, [(-half, wall)] + floor + [(half, wall)], 'ramp_floor', sharp=80)
-        for u in (-.5, .5):
-            z = .009 * u * u
-            sweep(f'Floor line {u}', path, [(u * half - .0007, z + .0003), (u * half, z + .001), (u * half + .0007, z + .0003)], 'accent', sharp=89)
-        for side in (-1, 1):
-            # The side rail, crowned so its top sweeps the MatCap's streaks along every bend.
-            # Broad enough to read as the concept's heavy rail: it overhangs the floor's unused edge.
-            over = .009
-            crown = [(-over, wall - .005), (-over + .0012, wall - .001), (-over + (rail + over) * .25, wall + .0016), (-over + (rail + over) * .5, wall + .0028), (-over + (rail + over) * .75, wall + .0016), (rail - .0012, wall - .001), (rail, wall - .004), (rail, -.002)]
-            section = [(side * (half + x), z) for x, z in crown]
-            # Sections run toward the left of travel, or their faces point inward and get culled.
-            sweep(f'Side rail {side}', path, section if side > 0 else section[::-1], 'accent', sharp=70)
-            # Retaining rail: a fine wire on standoffs, held above the side rail.
-            lift = .0145
-            o = side * (half + rail * .5)
-            sweep(f'Retaining rail {side}', path, [(o + .0013 * math.cos(a), wall + lift + .0013 * math.sin(a)) for a in (math.pi + i * math.pi * 2 / 8 for i in range(9))], 'metal', sharp=89)
-            for i in range(4, len(path) - 2, 9):
-                cylinder(f'Standoff {i} {side}', .0012, path[i].z + wall, path[i].z + wall + lift, 'metal', tuple(path[i].xy + normal_at(i) * o), 6, 0)
-        # Clamps across each rail, one small bolt each.
-        for i in range(7, len(path) - 4, 14):
-            a, b = path[i], path[i + 1]
-            end = a + (b - a).normalized() * .009
-            for side in (-1, 1):
-                section = [(side * (half - .001), wall + .001), (side * (half - .001), wall + .0042), (side * (half + rail + .001), wall + .0042), (side * (half + rail + .001), -.001)]
-                sweep(f'Clamp {i} {side}', [a, end], section if side > 0 else section[::-1], 'accent', sharp=30)
-                bolt(f'Clamp bolt {i} {side}', .0026, a.z + wall + .0036, tuple((a.xy + end.xy) * .5 + normal_at(i) * side * (half + rail * .5)))
-        # Lit inserts set into the outer rails, as on the track reference.
-        for i in range(16, len(path) - 8, 24):
-            tangent = (path[i + 1] - path[i]).xy.normalized()
-            for side in (-1, 1):
-                normal = normal_at(i)
-                c = path[i].xy + normal * side * (half + rail * .5)
-                c = path[i].xy + normal * side * (half + (rail - .009) * .5)
-                corners = [c + tangent * .015, c - tangent * .01 + normal * .0072, c - tangent * .01 - normal * .0072]
-                prism_top(f'Rail insert {i} {side}', [tuple(q) for q in corners], path[i].z + wall + .0034, 'sling_lens')
-        # Square ends, as the track's open section.
+        path = [Vector((*centred(p.x, p.y), p.z)) for p in loft_path(ramp['points'])]
+        half = ramp['width'] * .5
+        wall, r = .022, .0105
+        c = half + .003
+        floor_edge = half - .004
+        right = [(-c - r, -.002)] + [(-c + r * math.cos(a), wall + r * math.sin(a)) for a in (math.pi - k * math.pi / 8 for k in range(9))]
+        floor = [(u * floor_edge, .011 * u * u) for u in (-1, -.75, -.5, -.25, 0, .25, .5, .75, 1)]
+        left = [(-x, z) for x, z in right[::-1]]
+        section = right + floor + left
+        roles = ['accent'] * (len(right) - 1) + ['ramp_floor'] * (len(right) + len(floor) - 1 - (len(right) - 1) + 0)
+        roles = ['accent'] * (len(right) - 1) + ['ramp_floor'] * (len(floor) + 1) + ['accent'] * (len(left) - 1)
+        sweep('Loft', path, section, 'accent', band_roles=roles, sharp=89)
+        # A thick band closes each end.
         for index, step in ((0, 1), (len(path) - 1, -1)):
-            a, b = path[index], path[index + step]
-            end = a + (b - a).normalized() * .007
-            section = [(-half - rail - .001, -.001), (-half - rail - .001, wall + .004), (half + rail + .001, wall + .004), (half + rail + .001, -.001)]
-            sweep(f'End band {index}', [a, end] if step > 0 else [end, a], [(-half - rail - .001, wall - .004), (-half - rail - .001, wall + .004), (-half + .001, wall + .004), (-half + .001, wall - .004)], 'accent', sharp=30)
-            sweep(f'End band r {index}', [a, end] if step > 0 else [end, a], [(half - .001, wall - .004), (half - .001, wall + .004), (half + rail + .001, wall + .004), (half + rail + .001, wall - .004)][::-1], 'accent', sharp=30)
-        # Mounting brackets: a leg down to a bolted foot, wherever the track runs high.
-        for i in range(12, len(path) - 8, 12):
-            if path[i].z < .05:
-                continue
-            for side in (-1, 1):
-                spot = path[i].xy + normal_at(i) * side * (half + rail * .5)
-                cylinder(f'Leg {i} {side}', .0036, 0, path[i].z, 'accent', tuple(spot), 10, .0005)
-                lathe(f'Foot {i} {side}', [(.0062, 0), (.0062, .0025), (.0042, .004)], 'accent', 14, tuple(spot), sharp=70)
+            a = path[index]
+            end = path[index + step * 3]
+            sweep(f'End band {index}', [a, end] if step > 0 else [end, a],
+                  [(x, z + .0025) for x, z in right[1:]] + [(x, z + .0025) for x, z in floor] + [(x, z + .0025) for x, z in left[:-1]], 'accent', sharp=89)
 
 
 # ------------------------------------------------------------------------------------ Export

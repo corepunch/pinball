@@ -116,73 +116,6 @@
    ]
   },
   {
-   "id": "rampSideLL",
-   "style": "wall",
-   "height": 0.024,
-   "radius": 0.005,
-   "layers": [
-    "playfield",
-    "ramp"
-   ],
-   "points": [
-    [
-     0.155,
-     0.72
-    ],
-    [
-     0.183,
-     0.82
-    ],
-    [
-     0.188,
-     0.98
-    ]
-   ]
-  },
-  {
-   "id": "rampSideLR",
-   "style": "wall",
-   "height": 0.024,
-   "radius": 0.005,
-   "layers": [
-    "playfield",
-    "ramp"
-   ],
-   "points": [
-    [
-     0.31,
-     0.7
-    ],
-    [
-     0.277,
-     0.82
-    ],
-    [
-     0.282,
-     0.98
-    ]
-   ]
-  },
-  {
-   "id": "rampBackL",
-   "style": "none",
-   "height": 0.06,
-   "radius": 0.006,
-   "layers": [
-    "playfield"
-   ],
-   "points": [
-    [
-     0.125,
-     1.1
-    ],
-    [
-     0.285,
-     0.98
-    ]
-   ]
-  },
-  {
    "id": "rampSideRL",
    "style": "wall",
    "height": 0.024,
@@ -520,6 +453,73 @@
      1.095
     ]
    ]
+  },
+  {
+   "id": "rampSideLL",
+   "style": "wall",
+   "height": 0.024,
+   "radius": 0.005,
+   "layers": [
+    "playfield",
+    "ramp"
+   ],
+   "points": [
+    [
+     0.205,
+     1.13
+    ],
+    [
+     0.2625,
+     1.231
+    ],
+    [
+     0.18,
+     1.4
+    ]
+   ]
+  },
+  {
+   "id": "rampSideLR",
+   "style": "wall",
+   "height": 0.024,
+   "radius": 0.005,
+   "layers": [
+    "playfield",
+    "ramp"
+   ],
+   "points": [
+    [
+     0.375,
+     1.17
+    ],
+    [
+     0.3375,
+     1.269
+    ],
+    [
+     0.26,
+     1.44
+    ]
+   ]
+  },
+  {
+   "id": "rampBackL",
+   "style": "none",
+   "height": 0.024,
+   "radius": 0.005,
+   "layers": [
+    "playfield"
+   ],
+   "points": [
+    [
+     0.18,
+     1.4
+    ],
+    [
+     0.26,
+     1.44
+    ]
+   ]
   }
  ],
  "posts": [
@@ -560,12 +560,6 @@
    "r": 0.013
   },
   {
-   "id": "postRampLR",
-   "x": 0.31,
-   "y": 0.7,
-   "r": 0.013
-  },
-  {
    "id": "postRampRL",
    "x": 0.645,
    "y": 0.7,
@@ -590,18 +584,23 @@
    "r": 0.01
   },
   {
-   "id": "mStudSideL",
-   "x": 0.345,
-   "y": 1.47,
-   "r": 0.016,
-   "model": "mech-stud"
+   "id": "postMouthLL",
+   "x": 0.205,
+   "y": 1.13,
+   "r": 0.013
   },
   {
-   "id": "mStudSideR",
-   "x": 0.61,
-   "y": 1.47,
-   "r": 0.016,
-   "model": "mech-stud"
+   "id": "postMouthLR",
+   "x": 0.375,
+   "y": 1.17,
+   "r": 0.013
+  },
+  {
+   "id": "mTowerC",
+   "x": 0.395,
+   "y": 1.52,
+   "r": 0.018,
+   "model": "mech-tower"
   }
  ],
  "flippers": [
@@ -636,19 +635,19 @@
   {
    "id": "bumperA",
    "x": 0.4975,
-   "y": 1.86,
+   "y": 1.84,
    "r": 0.08
   },
   {
    "id": "bumperB",
-   "x": 0.3675,
-   "y": 1.68,
+   "x": 0.3,
+   "y": 1.7,
    "r": 0.08
   },
   {
    "id": "bumperC",
-   "x": 0.618,
-   "y": 1.68,
+   "x": 0.665,
+   "y": 1.7,
    "r": 0.08
   }
  ],
@@ -924,64 +923,64 @@
    "width": 0.074,
    "mouth": [
     [
-     0.188,
-     0.82
+     0.2625,
+     1.231
     ],
     [
-     0.272,
-     0.82
+     0.3375,
+     1.269
     ]
    ],
    "points": [
     [
-     0.23,
-     0.82,
-     0.0
-    ],
-    [
-     0.235,
-     0.98,
-     0.075
+     0.3,
+     1.25,
+     0
     ],
     [
      0.225,
-     1.16,
-     0.125
+     1.4,
+     0.035
     ],
     [
-     0.19,
-     1.668,
-     0.15
+     0.13,
+     1.6,
+     0.07
     ],
     [
-     0.115,
-     1.838,
-     0.155
+     0.085,
+     1.78,
+     0.09
     ],
     [
      0.09,
-     1.9,
-     0.15
+     1.95,
+     0.095
     ],
     [
-     0.12,
-     2.0,
-     0.14
+     0.1186,
+     2.0189,
+     0.095
     ],
     [
-     0.2,
-     2.05,
-     0.125
+     0.1875,
+     2.0475,
+     0.09
     ],
     [
-     0.272,
-     2.015,
-     0.11
+     0.2564,
+     2.0189,
+     0.085
     ],
     [
      0.285,
-     1.93,
-     0.095
+     1.95,
+     0.08
+    ],
+    [
+     0.285,
+     1.885,
+     0.075
     ]
    ],
    "plasticUntil": 9
@@ -1003,55 +1002,65 @@
     [
      0.725,
      0.82,
-     0.0
+     0
     ],
     [
-     0.72,
+     0.724,
      0.98,
      0.075
     ],
     [
-     0.735,
+     0.74,
      1.16,
-     0.125
+     0.12
     ],
     [
-     0.77,
-     1.668,
-     0.15
+     0.79,
+     1.4,
+     0.145
     ],
     [
      0.855,
-     1.838,
+     1.62,
      0.155
     ],
     [
-     0.865,
-     1.9,
+     0.875,
+     1.78,
+     0.155
+    ],
+    [
+     0.88,
+     1.92,
      0.15
     ],
     [
-     0.835,
-     2.0,
+     0.8566,
+     1.9766,
      0.14
     ],
     [
-     0.775,
-     2.05,
-     0.125
+     0.8,
+     2.0,
+     0.13
     ],
     [
-     0.712,
-     2.015,
+     0.7434,
+     1.9766,
+     0.12
+    ],
+    [
+     0.72,
+     1.92,
      0.11
     ],
     [
-     0.705,
-     1.93,
-     0.095
+     0.72,
+     1.855,
+     0.1
     ]
    ],
-   "plasticUntil": 9
+   "plasticUntil": 11
   }
  ],
  "lamps": [
@@ -1272,14 +1281,14 @@
   },
   {
    "id": "lampRamp",
-   "x": 0.23,
-   "y": 0.775,
+   "x": 0.305,
+   "y": 1.165,
    "size": 0.03,
    "color": "magenta",
    "icon": 7,
    "bind": "rampHot",
    "shape": "arrow",
-   "angle": 90
+   "angle": 115
   },
   {
    "id": "lampRampR",
@@ -1567,116 +1576,6 @@
    "aspect": 1
   },
   {
-   "id": "mLaneStackL",
-   "model": "arrow-stack",
-   "x": 0.062,
-   "y": 1.36,
-   "size": 0.052,
-   "angle": 90,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.56
-  },
-  {
-   "id": "mLaneStackR",
-   "model": "arrow-stack",
-   "x": 0.876,
-   "y": 1.36,
-   "size": 0.052,
-   "angle": 90,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.56
-  },
-  {
-   "id": "mLaneStack2L",
-   "model": "arrow-stack",
-   "x": 0.062,
-   "y": 1.13,
-   "size": 0.052,
-   "angle": 90,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.56
-  },
-  {
-   "id": "mLaneStack2R",
-   "model": "arrow-stack",
-   "x": 0.876,
-   "y": 1.13,
-   "size": 0.052,
-   "angle": 90,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.56
-  },
-  {
-   "id": "mLaneLampL",
-   "model": "bullet-cyan",
-   "x": 0.062,
-   "y": 1.245,
-   "size": 0.024,
-   "angle": 0,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 1
-  },
-  {
-   "id": "mLaneLampR",
-   "model": "bullet-cyan",
-   "x": 0.876,
-   "y": 1.245,
-   "size": 0.024,
-   "angle": 180,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 1
-  },
-  {
-   "id": "mLaneLamp2L",
-   "model": "bullet-amber",
-   "x": 0.062,
-   "y": 1.47,
-   "size": 0.02,
-   "angle": 0,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 1
-  },
-  {
-   "id": "mLaneLamp2R",
-   "model": "bullet-amber",
-   "x": 0.876,
-   "y": 1.47,
-   "size": 0.02,
-   "angle": 180,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 1
-  },
-  {
-   "id": "mPistonL",
-   "model": "mech-piston",
-   "x": 0.325,
-   "y": 1.31,
-   "size": 0.058,
-   "angle": 84,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.34
-  },
-  {
-   "id": "mPistonR",
-   "model": "mech-piston",
-   "x": 0.63,
-   "y": 1.31,
-   "size": 0.058,
-   "angle": 96,
-   "base": 0,
-   "height": 0.012,
-   "aspect": 0.34
-  },
-  {
    "id": "mCentre0",
    "model": "bullet-amber",
    "x": 0.4775,
@@ -1714,6 +1613,138 @@
    "model": "bullet-cyan",
    "x": 0.4775,
    "y": 1.35,
+   "size": 0.022,
+   "angle": 0,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 1
+  },
+  {
+   "id": "mLaneA",
+   "model": "arrow-stack",
+   "x": 0.062,
+   "y": 1.13,
+   "size": 0.052,
+   "angle": 90,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.56
+  },
+  {
+   "id": "mLaneB",
+   "model": "bullet-cyan",
+   "x": 0.062,
+   "y": 1.245,
+   "size": 0.024,
+   "angle": 0,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 1
+  },
+  {
+   "id": "mLaneC",
+   "model": "arrow-stack",
+   "x": 0.062,
+   "y": 1.36,
+   "size": 0.052,
+   "angle": 90,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.56
+  },
+  {
+   "id": "mLaneD",
+   "model": "bullet-amber",
+   "x": 0.062,
+   "y": 1.47,
+   "size": 0.02,
+   "angle": 0,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 1
+  },
+  {
+   "id": "mRightA",
+   "model": "arrow-stack",
+   "x": 0.876,
+   "y": 1.2,
+   "size": 0.052,
+   "angle": 90,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.56
+  },
+  {
+   "id": "mRightB",
+   "model": "bullet-amber",
+   "x": 0.876,
+   "y": 1.32,
+   "size": 0.022,
+   "angle": 0,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 1
+  },
+  {
+   "id": "mFreeA",
+   "model": "arrow-stack",
+   "x": 0.205,
+   "y": 0.98,
+   "size": 0.056,
+   "angle": 90,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.56
+  },
+  {
+   "id": "mFreeC",
+   "model": "bullet-amber",
+   "x": 0.27,
+   "y": 1.03,
+   "size": 0.022,
+   "angle": 0,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 1
+  },
+  {
+   "id": "mHighA",
+   "model": "mech-bracket",
+   "x": 0.37,
+   "y": 1.42,
+   "size": 0.06,
+   "angle": 105,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.46
+  },
+  {
+   "id": "mHighB",
+   "model": "arrow-stack",
+   "x": 0.3,
+   "y": 1.52,
+   "size": 0.04,
+   "angle": 60,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.56
+  },
+  {
+   "id": "mRightC",
+   "model": "mech-piston",
+   "x": 0.64,
+   "y": 1.33,
+   "size": 0.055,
+   "angle": 80,
+   "base": 0,
+   "height": 0.012,
+   "aspect": 0.34
+  },
+  {
+   "id": "mRightD",
+   "model": "bullet-cyan",
+   "x": 0.625,
+   "y": 1.46,
    "size": 0.022,
    "angle": 0,
    "base": 0,

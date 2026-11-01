@@ -313,7 +313,6 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         CGImageRelease(amberImage);
         // Solid sheet metal unless the skin makes it glass.
         SCNMaterial *rampFloor = [self matcapWithColor:_skin.rampGlassColor];
-        rampFloor.doubleSided = YES;
         if (_skin.rampOpacity < 1) {
             rampFloor.transparency = _skin.rampOpacity;
             rampFloor.writesToDepthBuffer = NO;

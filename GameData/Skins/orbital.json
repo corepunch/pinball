@@ -230,11 +230,11 @@
     "roughness": 0.24,
     "playfieldReflectivity": 0.15,
     "bloom": 0.16,
-    "rampOpacity": 0.8,
+    "rampOpacity": 0.88,
     "rampGlass": [
-      0.66,
-      0.63,
-      0.56
+      0.74,
+      0.72,
+      0.68
     ]
   },
   "modelKit": "premium",

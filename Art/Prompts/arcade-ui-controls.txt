@@ -1,0 +1,23 @@
+Use case: stylized-concept. Asset type: production pinball game UI sprite atlas, opaque enamel arcade controls with transparent surround. Create ONE complete atlas containing ALL controls and ALL authored interaction states together. Exact regular grid: 12 columns and 5 rows, 2400 pixels wide by 1000 pixels tall, equal 200x200 cells, no gaps between cells and NO grid lines. All art is strictly inside each cell with transparent clearance, straight-on camera, identical stationary front-face footprints across state rows, consistent upper-left studio lighting. No perspective, no tilt, no glass or transparent controls, no frosted blur, no Liquid Glass, no words, no letters, no labels, no numbers.
+Columns left to right:
+1 right-facing play triangle;
+2 pause two bars;
+3 settings cog;
+4 trophy cup;
+5 left-facing back arrow;
+6 speaker with two sound-wave arcs;
+7 muted speaker with diagonal slash;
+8 circular restart arrow;
+9 question mark help symbol;
+10 close X;
+11 BLANK wide red enamel rectangular text-button face, NO glyph;
+12 BLANK wide midnight navy enamel rectangular text-button face, NO glyph.
+Columns 1–10 are square-ish shallow rounded enamel keycaps centered in their cells, face occupies 144x144 pixels, outer brass rim, soft small contact shadow entirely inside cell. Recessed ivory glyphs, readable at small game UI sizes, inward bevel with dark top-left inner walls and thin bottom-right highlight, not raised symbols. Opaque deep petrol/navy enamel with restrained highlights and champagne brass trim, tasteful 1960s arcade hardware. Absolutely no pale glass pill UI.
+Columns 11–12 are horizontal wide rectangular blank enamel buttons centered in the same 200x200 cell, face occupies 184 pixels wide by 60 pixels high, a lightly rounded rectangular silhouette with thin brass rim and very shallow bevel. Entire remainder of each cell transparent. NO glyph or text in these last two columns. Consistent button footprint and positioning down all five rows.
+State rows top to bottom:
+Row 1 NORMAL: deep navy faces on glyph keys, ivory recessed symbols, brass rims; blank column11 vermilion red; blank column12 navy.
+Row 2 SELECTED: persistent vermilion red accent on glyph keys, warm ivory glyphs and brighter champagne rim. Blank column11 remains red with brighter rim; blank column12 selected red.
+Row 3 PRESSED: independently paint deeper recessed shading, slightly darker faces, recessed glyph cavities visibly deeper and glyph cavity down by only 1 pixel, every BODY stays exactly registered with other rows. Blank11 darker vermilion, blank12 darker navy.
+Row 4 HOVER: independently paint brighter upper-left reflection and slightly brighter warm rim, same silhouettes and body size. Blank11 brighter red, blank12 brighter navy.
+Row 5 DISABLED: independently paint desaturated charcoal enamel, muted gray ivory glyphs, dull brass, lower contrast. Same geometry, same positioning, readable symbol.
+Meticulous requirements: exactly sixty cells: 12 columns by5 rows. Exact symbol order, every symbol in every state; all five rows contain the same controls. Genuine alpha transparency everywhere outside painted buttons and their modest shadows. No checkerboard drawn into image. Do not merge cells. Do not add title, background panels, decorative illustrations, or other assets. This is final game UI texture artwork, polished and tactile, controlled highlights, not shiny gel.

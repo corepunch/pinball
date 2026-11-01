@@ -79,11 +79,12 @@ static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PB
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc < 3) {
-            fprintf(stderr, "usage: render_preview /path/to/Pinball.app output-directory [skin] [--tilt-animation]\n");
+            fprintf(stderr, "usage: render_preview resource-bundle output-directory [skin] [--tilt-animation]\n");
             return 2;
         }
         [NSApplication sharedApplication];
         NSBundle *bundle = [NSBundle bundleWithPath:[NSString stringWithUTF8String:argv[1]]];
+        PBRequire(bundle != nil, @"invalid resource bundle");
         NSString *output = [NSString stringWithUTF8String:argv[2]];
         [[NSFileManager defaultManager] createDirectoryAtPath:output withIntermediateDirectories:YES attributes:nil error:NULL];
         NSError *error;

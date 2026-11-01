@@ -35,17 +35,16 @@ tools/export_premium_art.sh
 ```
 
 To validate every skin source and atlas crop and render real SceneKit previews (requires macOS with
-Metal GPU access):
+Metal GPU access, no app build required):
 
 ```bash
-xcodebuild -project Pinball.xcodeproj -scheme Pinball-macOS -configuration Debug build
-tools/render_preview.sh "$PWD/Build/Products/Debug/Pinball.app" "$PWD/Art/Previews" orbital
-tools/render_preview.sh "$PWD/Build/Products/Debug/Pinball.app" "$PWD/Art/Previews" abyss
+tools/render_preview.sh "$PWD/Art/Previews" orbital
+tools/render_preview.sh "$PWD/Art/Previews" abyss
 ```
 
 Omit the last argument to render all skins. These are actual game scene renders, not concept mockups.
-Run `-PBSkin orbital` or `-PBSkin abyss` to choose a set directly, or press **S** in the Mac preview /
-tap with three fingers on iPhone to cycle. Orbital is Aurora's default; saved skin preferences persist.
+Run `-PBSkin orbital` or `-PBSkin abyss` to choose a set directly in the iPhone app, or
+tap with three fingers to cycle. Orbital is Aurora's default; saved skin preferences persist.
 
 ## Painting a legacy single-atlas skin with ChatGPT
 
@@ -60,7 +59,7 @@ Then install the result:
 python3 tools/skin_tool.py ingest ~/Downloads/my_art.png volcano
 ```
 
-It appears in the game right away: press `S` in the Mac preview, or tap with three fingers on iPhone.
+It appears in the game right away: tap with three fingers on iPhone to cycle skins.
 
 ## The prompt
 

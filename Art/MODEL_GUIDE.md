@@ -53,9 +53,10 @@ because this Blender version no longer bundles its legacy COLLADA exporter. No e
 Stop the dedicated bridge with Ctrl-C when done. Started with `--port 9876` instead, the same session
 also serves the `blender` MCP tools.
 
-Build the Mac target and use `tools/render_preview.sh` to validate imported models, skin crops, bumper
+Use the standalone `tools/render_preview.sh` to validate imported models, skin crops, bumper
 collision → authored hit state → idle, and actual game screenshots. `*-hit.png` previews show the
-fixture collision with a real simulated ball. Physics tests are still run through `PinballCoreTests`.
+fixture collision with a real simulated ball. The tool reads `GameData/` directly with no app build.
+Physics tests are still run through `PinballCoreTests`.
 Actual iPhone GPU performance should be checked on device before shipping.
 
 For motion-lighting QA, the preview tool also exports opposite-tilt PNGs and checks smoothing, tilt
@@ -63,5 +64,5 @@ limits, invalid samples, and neutral restoration. Append `--tilt-animation` afte
 export a looping close-up GIF of the actual hardware under a simulated phone tilt:
 
 ```bash
-tools/render_preview.sh "$PWD/Build/Products/Debug/Pinball.app" /tmp/pinball-lighting orbital --tilt-animation
+tools/render_preview.sh /tmp/pinball-lighting orbital --tilt-animation
 ```

@@ -7,13 +7,18 @@ the JSON's coordinates, so they follow the physics exactly: rebuild after moving
 """
 import bmesh
 import bpy
+import importlib
 import json
 import math
+import sys
 from pathlib import Path
 from mathutils import Vector
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+import ramp_paths
+importlib.reload(ramp_paths)  # The Blender session outlives edits to it.
 OUT = ROOT / "Art/Models/premium"  # tools/compile_models.sh turns these into the shipped .scn files.
 OUT.mkdir(parents=True, exist_ok=True)
 (ROOT / "Art/Models").mkdir(parents=True, exist_ok=True)
@@ -352,32 +357,56 @@ def smooth_path(points):
     return out + [p[-1]]
 
 
-def loft_path(points, spacing=.006):
-    """The physics spline, relaxed and evenly resampled, so a loft along it bends without kinks."""
-    p = [Vector(v) for v in points]
-    at = lambda n: p[max(0, min(n, len(p) - 1))]
-    dense = []
-    for i in range(len(p) - 1):
-        p0, p1, p2, p3 = at(i - 1), at(i), at(i + 1), at(i + 2)
-        for step in range(24):
-            t = step / 24
-            dense.append(.5 * ((2 * p1) + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (3 * p1 - p0 - 3 * p2 + p3) * t * t * t))
-    dense.append(p[-1])
-    for _ in range(90):
-        dense = [dense[0]] + [dense[i] * .5 + (dense[i - 1] + dense[i + 1]) * .25 for i in range(1, len(dense) - 1)] + [dense[-1]]
-    out, walked = [dense[0]], 0.0
-    for a, b in zip(dense, dense[1:]):
-        length = (b - a).xy.length
-        while length > 0 and walked + length >= spacing:
-            t = (spacing - walked) / length
-            a = a + (b - a) * t
-            length = (b - a).xy.length
-            walked = 0.0
-            out.append(a.copy())
-        walked += length
-    if (out[-1] - dense[-1]).xy.length > spacing * .3:
-        out.append(dense[-1])
-    return out
+def clear_of_parts(table, x, y, radius):
+    """Whether a foot plate on the playfield sits clear of what is drawn there."""
+    spots = [(b['x'], b['y'], b['r'] * 1.1) for b in table['bumpers']] + [(q['x'], q['y'], q['r']) for q in table['posts']]
+    spots += [(l['x'], l['y'], l['size'] * 1.1) for l in table['lamps']] + [(r['x'], r['y'], r['r']) for r in table['rollovers']]
+    spots += [(d['x'], d['y'], d['size']) for d in table['decor']] + [(q['x'], q['y'], q['r'] * 1.15) for q in table['saucers']]
+    if any(math.hypot(x - a, y - b) < radius + r for a, b, r in spots):
+        return False
+    for wall in table['walls']:
+        if wall['style'] == 'none' or 'ramp' in wall.get('layers', ()):
+            continue
+        line = table_path(wall['points'])
+        if ramp_paths.distance_to_polyline((x, y), line) < radius + wall['radius']:
+            return False
+    return True
+
+
+def bevelled_block(name, centre, tangent, across, along, z0, z1, role):
+    """A chamfered block on a ramp. across and along are (low, high) from centre, in its own frame."""
+    normal = Vector((-tangent.y, tangent.x))
+    b = min(.0012, (z1 - z0) * .4)
+
+    def ring(inset, z):
+        corners = ((across[0] + inset, along[0] + inset), (across[1] - inset, along[0] + inset),
+                   (across[1] - inset, along[1] - inset), (across[0] + inset, along[1] - inset))
+        # Counter-clockwise seen from above, with across on the normal and along on the tangent.
+        return [(*(centre + normal * a + tangent * c), z) for a, c in corners[::-1]]
+    vertices = ring(0, z0) + ring(0, z1 - b) + ring(b, z1)
+    faces = []
+    for k in range(2):
+        for i in range(4):
+            j = (i + 1) % 4
+            faces.append((k * 4 + i, k * 4 + j, (k + 1) * 4 + j, (k + 1) * 4 + i))
+    faces.append((8, 9, 10, 11))
+    return solid(name, vertices, faces, role, sharp=30)
+
+
+def floor_arrow(name, path, index, direction, sheet_z, half_width=.0125, length=.03):
+    """The reference's lit red triangle, set into the channel floor and pointing along it."""
+    a, b = path[max(index - 1, 0)], path[min(index + 1, len(path) - 1)]
+    tangent = (b - a).xy.normalized()
+    normal = Vector((-tangent.y, tangent.x))
+    slope = (b.z - a.z) / max((b - a).xy.length, 1e-6)
+    centre = path[index].xy
+    corners = [(direction * length * .6, 0), (-direction * length * .4, half_width), (-direction * length * .4, -half_width)]
+    if direction < 0:
+        corners = corners[::-1]
+    vertices = [(*(centre + tangent * t + normal * n), path[index].z + slope * t + sheet_z(n)) for t, n in corners]
+    uvs = [(.5, 1), (0, 0), (1, 0)]
+    solid(f'{name} lens', vertices, [(0, 1, 2)], 'sling_lens', uvs, 90)
+    sweep(f'{name} frame', [Vector(v) for v in vertices], [(-.0022, -.001), (-.0022, .0012), (.0022, .0012), (.0022, -.001)], 'accent', closed=True, sharp=70)
 
 
 def faceted_lens(name, outline, z, role, rise=None):
@@ -550,28 +579,88 @@ for table_index, table in enumerate(TABLES):
         # Outline is counter-clockwise, so "left of travel" is inward.
         sweep(f'{name} frame', [(*p, base) for p in outline], [(-.0024, 0), (-.0024, wall_height + .002), (-.0008, wall_height + .0032), (.0008, wall_height + .0032), (.0024, wall_height + .002), (.0024, 0)], 'accent', closed=True, sharp=80)
 
-    # One smooth loft of one simple profile: a thick rounded rail each side of a dished floor.
-    # Anything finer than a pixel at phone size aliases, so there are no other details.
+    # The channel from the modelling reference: running floor, steel retaining walls and broad brass
+    # rails as one smooth loft, then chunky parts only. Anything under about four table-thousandths
+    # is finer than a pixel at phone size, and aliases.
     for ramp in table['ramps']:
+        found = ramp_paths.problems(ramp)
+        if found:
+            raise RuntimeError(f"{table['id']}/{ramp['id']} is not smooth: {found}; see tools/ramp_paths.py")
         asset(f"{table['id']}-{ramp['id']}", (table_index * 3, 3, 0))
-        path = [Vector((*centred(p.x, p.y), p.z)) for p in loft_path(ramp['points'])]
-        half = ramp['width'] * .5
-        wall, r = .022, .0105
-        c = half + .003
-        floor_edge = half - .004
-        right = [(-c - r, -.002)] + [(-c + r * math.cos(a), wall + r * math.sin(a)) for a in (math.pi - k * math.pi / 8 for k in range(9))]
-        floor = [(u * floor_edge, .011 * u * u) for u in (-1, -.75, -.5, -.25, 0, .25, .5, .75, 1)]
-        left = [(-x, z) for x, z in right[::-1]]
-        section = right + floor + left
-        roles = ['accent'] * (len(right) - 1) + ['ramp_floor'] * (len(right) + len(floor) - 1 - (len(right) - 1) + 0)
-        roles = ['accent'] * (len(right) - 1) + ['ramp_floor'] * (len(floor) + 1) + ['accent'] * (len(left) - 1)
-        sweep('Loft', path, section, 'accent', band_roles=roles, sharp=89)
-        # A thick band closes each end.
-        for index, step in ((0, 1), (len(path) - 1, -1)):
-            a = path[index]
-            end = path[index + step * 3]
-            sweep(f'End band {index}', [a, end] if step > 0 else [end, a],
-                  [(x, z + .0025) for x, z in right[1:]] + [(x, z + .0025) for x, z in floor] + [(x, z + .0025) for x, z in left[:-1]], 'accent', sharp=89)
+        path = [Vector((*centred(p[0], p[1]), p[2])) for p in ramp_paths.loft_path(ramp['points'])]
+        tangents = [Vector(t) for t in ramp_paths.tangents(path)]
+        normals = [Vector((-t.y, t.x)) for t in tangents]
+        half, w = ramp['width'] * .5, ramp_paths.RAIL_WIDTH
+        top = .024
+        step = ramp_paths.SPACING
+
+        def sheet_z(n):
+            return .016 * (n / half) ** 2
+
+        crown = [(-half - w, -.002), (-half - w, top - .003)]
+        crown += [(-half - w * (1 - t), top - .003 + .0055 * math.sin(math.pi * t) ** .6) for t in (.08, .25, .5, .75, .92)]
+        crown += [(-half, top - .003)]
+        wall = [(-half + .0015, .0175), (-half + .004, sheet_z(half - .004))]
+        floor = [(u * (half - .004), sheet_z(u * (half - .004))) for u in (-.75, -.5, -.25, 0, .25, .5, .75)]
+        right = crown + wall
+        section = right + floor + [(-x, z) for x, z in right[::-1]]
+        n_crown, n_wall, n_floor = len(crown) - 1, len(wall), len(floor) + 1
+        roles = ['accent'] * n_crown + ['metal'] * n_wall + ['ramp_floor'] * n_floor + ['metal'] * n_wall + ['accent'] * n_crown
+        sweep('Channel', path, section, 'accent', band_roles=roles, sharp=89)
+
+        def clamp(i, label, along=.008, tall=.0075):
+            for side in (-1, 1):
+                across = (-.0015, w + .004) if side > 0 else (-w - .004, .0015)
+                centre = path[i].xy + normals[i] * side * half
+                bevelled_block(f'{label} {i} {side}', centre, tangents[i], across, (-along, along), path[i].z + top - .007, path[i].z + top + tall, 'accent')
+                bolt(f'{label} bolt {i} {side}', .0054, path[i].z + top + tall - .0005, tuple(centre + normals[i] * side * (w * .5 + .001)))
+
+        def mount(i, side, offset=None, force=False):
+            """A support down to a bolted foot plate on the playfield."""
+            spot = path[i].xy + normals[i] * side * (half + (w * .5 if offset is None else offset))
+            if not force and not clear_of_parts(table, spot.x + SIZE[0] * .5, spot.y + SIZE[1] * .5, .012):
+                return False
+            lathe(f'Foot {i} {side}', [(.012, 0), (.012, .0028), (.0095, .0048), (.0065, .0055)], 'accent', 24, tuple(spot), sharp=70)
+            bolt(f'Foot pin {i} {side}', .0048, .005, tuple(spot))
+            if path[i].z > .012:
+                lathe(f'Column {i} {side}', [(.0058, .004), (.0058, path[i].z + .004), (.0074, path[i].z + .008), (.0074, path[i].z + top - .004)], 'accent', 14, tuple(spot), sharp=70)
+            return True
+
+        # Clamps along the way, with supports where the channel runs high.
+        count = len(path)
+        every = round(.17 / step)
+        margin = round(.08 / step)
+        for i in range(margin, count - margin, every):
+            clamp(i, 'Clamp')
+            if path[i].z > .05:
+                for side in (-1, 1):
+                    mount(i, side)
+
+        # Entrance: a sill at floor level, heavy cheeks bound to round foot plates either side.
+        length = round(.03 / step)
+        bevelled_block('Entrance sill', path[0].xy, tangents[0], (-half + .001, half - .001), (-.004, .004), -.001, .0045, 'accent')
+        for side in (-1, 1):
+            across = (-.001, w + .007) if side > 0 else (-w - .007, .001)
+            centre = (path[0].xy + path[length].xy) * .5 + normals[length // 2] * side * half
+            bevelled_block(f'Entrance cheek {side}', centre, tangents[length // 2], across, (-.018, .018), -.001, path[length].z + top + .0045, 'accent')
+            bolt(f'Entrance bolt {side}', .0062, path[length].z + top + .004, tuple(centre + normals[length // 2] * side * (w * .5 + .002)))
+            spot = path[0].xy + normals[0] * side * (half + w + .017) + tangents[0] * .002
+            bevelled_block(f'Entrance bracket {side}', path[0].xy + tangents[0] * .002, tangents[0], (half + w, half + w + .013) if side > 0 else (-half - w - .013, -half - w), (-.0075, .0075), 0, .0042, 'accent')
+            lathe(f'Entrance foot {side}', [(.0135, 0), (.0135, .003), (.0105, .0052), (.007, .006)], 'accent', 28, tuple(spot), sharp=70)
+            bolt(f'Entrance pin {side}', .0058, .0055, tuple(spot))
+        floor_arrow('Entrance arrow', path, round(.075 / step), 1, sheet_z)
+
+        # Exit: cheeks and a band across the channel's end, on its own pair of supports.
+        last = count - 1
+        back = last - length
+        bevelled_block('Exit band', path[last].xy, tangents[last], (-half - w - .002, half + w + .002), (-.002, .0035), path[last].z - .018, path[last].z + .0035, 'accent')
+        for side in (-1, 1):
+            across = (-.001, w + .006) if side > 0 else (-w - .006, .001)
+            centre = (path[last].xy + path[back].xy) * .5 + normals[last - length // 2] * side * half
+            bevelled_block(f'Exit cheek {side}', centre, tangents[last - length // 2], across, (-.016, .016), path[last].z + top - .009, path[last].z + top + .0065, 'accent')
+            bolt(f'Exit bolt {side}', .0058, path[last].z + top + .006, tuple(centre + normals[last - length // 2] * side * (w * .5 + .0015)))
+            mount(last - length // 2, side)
+        floor_arrow('Exit arrow', path, count - 1 - round(.06 / step), 1, sheet_z)
 
 
 # ------------------------------------------------------------------------------------ Export

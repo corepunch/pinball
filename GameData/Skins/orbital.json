@@ -198,14 +198,14 @@
     0.75
   ],
   "metal": [
-    1.0,
+    1,
     0.97,
     0.9
   ],
   "accent": [
-    1.0,
-    0.8,
-    0.5
+    1,
+    0.86,
+    0.62
   ],
   "flipperRubber": [
     0.58,
@@ -229,13 +229,15 @@
     "metalness": 0.88,
     "roughness": 0.24,
     "playfieldReflectivity": 0.15,
-    "bloom": 0.16,
-    "rampOpacity": 0.88,
+    "bloom": 0.34,
+    "rampOpacity": 1.0,
     "rampGlass": [
-      0.74,
-      0.72,
-      0.68
-    ]
+      1,
+      0.98,
+      0.94
+    ],
+    "matcap": "courtyard",
+    "rampMatcap": "studio"
   },
   "modelKit": "premium",
   "slingLens": [

@@ -43,7 +43,14 @@ static NSString *const kPBMatcapModifier =
     @"pbN = (pbRoom * float4(pbN, 0.0)).xyz;\n"
     @"pbN = normalize((scn_frame.viewTransform * float4(pbN, 0.0)).xyz);\n"
     @"float2 pbUV = float2(pbN.x, -pbN.y) * 0.492 + 0.5;\n"
-    @"_surface.diffuse.rgb *= pbMatcap.sample(pbSampler, pbUV).rgb;\n";
+    // Deep shadows and clipped peaks: a metal's highlights go past its own colour, toward white,
+    // and over 1 they feed the bloom.
+    @"float3 pbRoomColor = pbMatcap.sample(pbSampler, pbUV).rgb;\n"
+    @"float pbLight = dot(pbRoomColor, float3(0.2126, 0.7152, 0.0722));\n"
+    @"float pbCap = smoothstep(0.04, 0.86, pbLight);\n"
+    @"float3 pbHue = pbRoomColor / max(pbLight, 0.02);\n"
+    @"float3 pbTint = _surface.diffuse.rgb;\n"
+    @"_surface.diffuse.rgb = pbTint * pbHue * (0.06 + 1.1 * pbCap) + mix(pbTint * pbHue, float3(1.0), 0.45) * 1.4 * pow(pbCap, 5.0);\n";
 
 /// Chrome ball that mirrors the playfield it actually sits over. A reflection ray that
 /// hits the table is traced into the playfield texture, so the reflection moves correctly
@@ -211,13 +218,13 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return material;
 }
 
-- (SCNMaterial *)matcapWithColor:(simd_float3)color {
+- (SCNMaterial *)matcapNamed:(NSString *)name color:(simd_float3)color {
     SCNMaterial *material = [SCNMaterial material];
     material.lightingModelName = SCNLightingModelConstant;
     material.diffuse.contents = [self color:color];
     material.shaderModifiers = @{ SCNShaderModifierEntryPointSurface: kPBMatcapModifier };
-    NSURL *url = [_skin.resourceBundle URLForResource:@"matcap-metal" withExtension:@"png" subdirectory:@"GameData/Materials"];
-    NSAssert(url, @"Missing metal MatCap");
+    NSURL *url = [_skin.resourceBundle URLForResource:[@"matcap-" stringByAppendingString:name] withExtension:@"png" subdirectory:@"GameData/Materials"];
+    NSAssert(url, @"Missing MatCap %@", name);
     SCNMaterialProperty *capture = [SCNMaterialProperty materialPropertyWithContents:url];
     capture.mipFilter = SCNFilterModeLinear;
     [material setValue:capture forKey:@"pbMatcap"];
@@ -229,12 +236,12 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
 // One shared material each, so a tilt updates only a handful of materials per frame.
 - (SCNMaterial *)accentMetal {
-    if (!_accentMaterial) _accentMaterial = [self matcapWithColor:_skin.accentColor];
+    if (!_accentMaterial) _accentMaterial = [self matcapNamed:_skin.hardwareMatcap color:_skin.accentColor];
     return _accentMaterial;
 }
 
 - (SCNMaterial *)metal {
-    if (!_metalMaterial) _metalMaterial = [self matcapWithColor:_skin.metalColor];
+    if (!_metalMaterial) _metalMaterial = [self matcapNamed:_skin.hardwareMatcap color:_skin.metalColor];
     return _metalMaterial;
 }
 
@@ -312,7 +319,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         amberLens.emission.intensity = 0.3;
         CGImageRelease(amberImage);
         // Solid sheet metal unless the skin makes it glass.
-        SCNMaterial *rampFloor = [self matcapWithColor:_skin.rampGlassColor];
+        SCNMaterial *rampFloor = [self matcapNamed:_skin.rampMatcap color:_skin.rampGlassColor];
         if (_skin.rampOpacity < 1) {
             rampFloor.transparency = _skin.rampOpacity;
             rampFloor.writesToDepthBuffer = NO;
@@ -422,6 +429,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     _camera.bloomBlurRadius = 9.0;
     _camera.vignettingIntensity = 0.35;
     _camera.vignettingPower = 1.2;
+    _camera.contrast = 0.3;
+    _camera.saturation = 1.18;
     _camera.colorFringeStrength = 0.0;
     _camera.colorFringeIntensity = 0.0;
     // No screen-space ambient occlusion: it renders the whole frame black with this scene

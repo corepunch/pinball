@@ -1,3 +1,4 @@
+#import <SceneKit/SceneKit.h>
 #import "PBGameUI.h"
 #import <ImageIO/ImageIO.h>
 
@@ -311,7 +312,14 @@ static const NSInteger kLevelsPerPage = 12;
     [self render];
 }
 
+/// SceneKit draws this overlay on its render thread, so the node tree only changes under its lock.
 - (void)render {
+    [SCNTransaction lock];
+    [self rebuildNodes];
+    [SCNTransaction unlock];
+}
+
+- (void)rebuildNodes {
     [_root removeAllChildren];
     [_keys removeAllObjects];
     _scoreLabel = _ballLabel = _messageLabel = nil;
@@ -545,19 +553,23 @@ static const NSInteger kLevelsPerPage = 12;
 }
 
 - (void)showMessage:(NSString *)message {
+    [SCNTransaction lock];
     _message = message;
     _messageLabel.text = message ?: _levelGoal ?: @"";
     _messageLabel.fontColor = message ? _messageColor : PBMuted();
+    [SCNTransaction unlock];
 }
 
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
          ballCount:(NSInteger)ballCount {
+    [SCNTransaction lock];
     _score = score; _best = best; _ball = ball; _ballCount = ballCount;
     _scoreLabel.text = PBScoreString(score);
     _scoreLabel.xScale = 1;
     if (_scoreLabel.frame.size.width > 68) _scoreLabel.xScale = 68 / _scoreLabel.frame.size.width;
     NSString *balls = [NSString stringWithFormat:@"%ld/%ld", (long)MAX(1, ball), (long)ballCount];
     _ballLabel.text = _bonusMultiplier > 1 ? [NSString stringWithFormat:@"X%ld  %@", (long)_bonusMultiplier, balls] : balls;
+    [SCNTransaction unlock];
 }
 
 - (CGPoint)logicalPoint:(CGPoint)point {

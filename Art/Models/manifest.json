@@ -117,16 +117,16 @@
       "bytes": 169574
     },
     "aurora-rampL": {
-      "objects": 4,
-      "triangles": 10464,
-      "radius": 1.0105,
-      "bytes": 793218
+      "objects": 105,
+      "triangles": 17122,
+      "radius": 1.0061,
+      "bytes": 1334191
     },
     "aurora-rampR": {
-      "objects": 4,
-      "triangles": 13432,
-      "radius": 0.9611,
-      "bytes": 1017086
+      "objects": 141,
+      "triangles": 23114,
+      "radius": 0.9577,
+      "bytes": 1789578
     },
     "meridian-flipper": {
       "objects": 9,
@@ -147,16 +147,16 @@
       "bytes": 169603
     },
     "meridian-rampL": {
-      "objects": 4,
-      "triangles": 14160,
-      "radius": 1.0104,
-      "bytes": 1081085
+      "objects": 141,
+      "triangles": 23686,
+      "radius": 1.0101,
+      "bytes": 1851533
     },
     "meridian-rampR": {
-      "objects": 4,
-      "triangles": 10240,
-      "radius": 0.9971,
-      "bytes": 770406
+      "objects": 105,
+      "triangles": 16966,
+      "radius": 0.9932,
+      "bytes": 1309973
     }
   }
 }

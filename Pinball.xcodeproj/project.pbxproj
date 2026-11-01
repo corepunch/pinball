@@ -1,0 +1,399 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C38F9030DAAB10B73F2FBC28 /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = 152334A6A39876BCCCA20528 /* Resources */; };
+		5FB19508FCEE98C9D26EE60A /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = 152334A6A39876BCCCA20528 /* Resources */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		152334A6A39876BCCCA20528 /* GameData */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GameData; path = Pinball/GameData; sourceTree = "<group>"; };
+		00A224569790C2C7DCE923C8 /* Pinball.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0348BC8AF721A9CC9D80091 /* Pinball.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0229E2DDF9CC94FC38CB5901 /* PinballCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PinballCoreTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CB7B0B76498788E719B59D9D /* Pinball/Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Pinball/Shared;
+			sourceTree = "<group>";
+		};
+		BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Pinball/Shared/Core;
+			sourceTree = "<group>";
+		};
+		96732AE231EEA8E205809224 /* Pinball/iOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Pinball/iOS;
+			sourceTree = "<group>";
+		};
+		7B46074D0475A1081CB562ED /* Pinball/macOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Pinball/macOS;
+			sourceTree = "<group>";
+		};
+		74C0354F987B4FC0FDE2C044 /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXGroup section */
+		518DA81DB9B99529C0C0AEBE = {
+			isa = PBXGroup;
+			children = (
+				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
+				BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */,
+				96732AE231EEA8E205809224 /* Pinball/iOS */,
+				7B46074D0475A1081CB562ED /* Pinball/macOS */,
+				74C0354F987B4FC0FDE2C044 /* Tests */,
+				152334A6A39876BCCCA20528 /* Resources */,
+				547D009064F7C3F13BEF3460 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		547D009064F7C3F13BEF3460 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				00A224569790C2C7DCE923C8 /* Pinball.app */,
+				A0348BC8AF721A9CC9D80091 /* Pinball.app */,
+				0229E2DDF9CC94FC38CB5901 /* PinballCoreTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3AE1C06DA943C6A469037DEC /* Pinball-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 67E0EEA0E981025C4D29B879;
+			buildPhases = (
+				B67A41655B03E4FC2FFB36A9 /* Sources */,
+				42BEFC1B5048A823D8E60510 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
+				96732AE231EEA8E205809224 /* Pinball/iOS */,
+			);
+			name = Pinball-iOS;
+			productName = Pinball-iOS;
+			productReference = 00A224569790C2C7DCE923C8 /* Pinball.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9B8425A2D881CE85F0936410 /* Pinball-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1C894E657349F523703FFFFD;
+			buildPhases = (
+				D5544F5CE83F66A2443D82EB /* Sources */,
+				1FFF2204D4523F3F664AFB59 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CB7B0B76498788E719B59D9D /* Pinball/Shared */,
+				7B46074D0475A1081CB562ED /* Pinball/macOS */,
+			);
+			name = Pinball-macOS;
+			productName = Pinball-macOS;
+			productReference = A0348BC8AF721A9CC9D80091 /* Pinball.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2A3F06EE7E7F9E0B2307100E /* PinballCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1375308A644F603CF9A4BDE5;
+			buildPhases = (
+				A7FC0D5042744395B5D117E4 /* Sources */,
+				9941A94A0CF4F0A0F964D116 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BE2C40F1581B22E024FD54CA /* Pinball/Shared/Core */,
+				74C0354F987B4FC0FDE2C044 /* Tests */,
+			);
+			name = PinballCoreTests;
+			productName = PinballCoreTests;
+			productReference = 0229E2DDF9CC94FC38CB5901 /* PinballCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = 7C58EB60E8206789E14CE8D3;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 518DA81DB9B99529C0C0AEBE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 547D009064F7C3F13BEF3460 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3AE1C06DA943C6A469037DEC /* Pinball-iOS */,
+				9B8425A2D881CE85F0936410 /* Pinball-macOS */,
+				2A3F06EE7E7F9E0B2307100E /* PinballCoreTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase / PBXSourcesBuildPhase section */
+		B67A41655B03E4FC2FFB36A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		42BEFC1B5048A823D8E60510 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C38F9030DAAB10B73F2FBC28 /* Resources in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D5544F5CE83F66A2443D82EB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1FFF2204D4523F3F664AFB59 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FB19508FCEE98C9D26EE60A /* Resources in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7FC0D5042744395B5D117E4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9941A94A0CF4F0A0F964D116 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End build phases */
+
+/* Begin XCBuildConfiguration section */
+		62A1C54EC2B8E5C493143E31 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pinball;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball;
+				PRODUCT_NAME = Pinball;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4F6FA2DE1E7A257129C01155 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pinball;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball;
+				PRODUCT_NAME = Pinball;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		F571B8C77206C303C81DFF85 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.preview;
+				PRODUCT_NAME = Pinball;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA7D7ADCF4011AB5B0C481BE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.preview;
+				PRODUCT_NAME = Pinball;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		E35AD4B5265BED1D116BC883 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Pinball/Shared/Core";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.tests;
+				PRODUCT_NAME = PinballCoreTests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		634F495AED87B09DB7CAA5B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Pinball/Shared/Core";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.igorchernakov.pinball.tests;
+				PRODUCT_NAME = PinballCoreTests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		06125DCB1954C4F7EEE69894 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		AACF5BDB2BC481EB947517D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		67E0EEA0E981025C4D29B879 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				62A1C54EC2B8E5C493143E31 /* Debug */,
+				4F6FA2DE1E7A257129C01155 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1C894E657349F523703FFFFD = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F571B8C77206C303C81DFF85 /* Debug */,
+				EA7D7ADCF4011AB5B0C481BE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1375308A644F603CF9A4BDE5 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E35AD4B5265BED1D116BC883 /* Debug */,
+				634F495AED87B09DB7CAA5B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7C58EB60E8206789E14CE8D3 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				06125DCB1954C4F7EEE69894 /* Debug */,
+				AACF5BDB2BC481EB947517D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

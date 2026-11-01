@@ -1,0 +1,23 @@
+{
+  "canvas": [2048, 3072],
+  "bleed": 8,
+  "slots": {
+    "playfield":   { "rect": [0, 0, 1417, 3072],     "kind": "image",  "label": "PLAYFIELD" },
+    "bumper_cap":  { "rect": [1437, 20, 285, 285],   "kind": "disc",   "label": "POP BUMPER CAP (top view)" },
+    "slingshot":   { "rect": [1743, 20, 285, 285],   "kind": "image",  "label": "SLINGSHOT PLASTIC" },
+    "wall_top":    { "rect": [1437, 325, 285, 285],  "kind": "tile",   "label": "WALL TOP (seamless tile)" },
+    "side_rail":   { "rect": [1743, 325, 285, 285],  "kind": "tile",   "label": "CABINET RAIL (seamless tile)" },
+    "flipper":     { "rect": [1437, 630, 591, 150],  "kind": "image",  "label": "FLIPPER BAT (pivot at left)" },
+    "ramp":        { "rect": [1437, 800, 285, 600],  "kind": "tile-v", "label": "RAMP SURFACE (ball rolls up)" },
+    "plastic":     { "rect": [1743, 800, 285, 285],  "kind": "image",  "label": "UPPER PLASTIC ART" },
+    "drop_target": { "rect": [1743, 1105, 135, 135], "kind": "image",  "label": "DROP" },
+    "standup":     { "rect": [1893, 1105, 135, 135], "kind": "image",  "label": "STAND" },
+    "spinner":     { "rect": [1743, 1260, 135, 135], "kind": "image",  "label": "SPIN" },
+    "gate":        { "rect": [1893, 1260, 135, 135], "kind": "image",  "label": "APRON" },
+    "environment": { "rect": [1437, 1420, 591, 295], "kind": "image",  "label": "CHROME REFLECTION (overhead room / neon)" },
+    "inserts":     { "rect": [1437, 1735, 591, 591], "kind": "grid4",  "label": "16 LAMP ICONS: white on black" },
+    "dmd_bezel":   { "rect": [1437, 2346, 591, 148], "kind": "image",  "label": "DISPLAY BEZEL (leave center dark)" },
+    "detail":      { "rect": [1437, 2514, 285, 285], "kind": "tile",   "label": "FINE DETAIL (seamless neutral grey)" }
+  },
+  "inserts": ["chevron", "star", "x2", "x3", "x5", "diamond", "bolt", "arrow-up", "dot", "ring", "bar", "hex", "shield", "crown", "gem", "sun"]
+}

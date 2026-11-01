@@ -17,10 +17,11 @@ def sync_group(path):
 """
 
 TARGETS = [
-    dict(name="Pinball-iOS", product="Pinball.app", type="com.apple.product-type.application",
-         groups=["Shared", "iOS"], resources=True,
+    dict(name="Pinball", product="Pinball.app", type="com.apple.product-type.application",
+         groups=["App"], resources=True,
          settings={
              "SDKROOT": "iphoneos", "TARGETED_DEVICE_FAMILY": "1", "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+             "SUPPORTS_MACCATALYST": "NO", "SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD": "NO",
              "PRODUCT_NAME": "Pinball", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball",
              "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "1", "MARKETING_VERSION": "1.0",
              "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
@@ -31,25 +32,17 @@ TARGETS = [
              "INFOPLIST_KEY_CFBundleDisplayName": "Pinball",
              "LD_RUNPATH_SEARCH_PATHS": '"@executable_path/Frameworks"',
              "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
-         }),
-    dict(name="Pinball-macOS", product="Pinball.app", type="com.apple.product-type.application",
-         groups=["Shared", "macOS"], resources=True,
-         settings={
-             "SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0",
-             "PRODUCT_NAME": "Pinball", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball.preview",
-             "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "1", "MARKETING_VERSION": "1.0",
-             "INFOPLIST_KEY_NSPrincipalClass": "NSApplication",
-             "LD_RUNPATH_SEARCH_PATHS": '"@executable_path/../Frameworks"',
-             "ENABLE_HARDENED_RUNTIME": "NO",
-             "CODE_SIGN_IDENTITY": '"-"',
+             "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+             "CODE_SIGN_ENTITLEMENTS": "Config/Pinball.entitlements",
+             "OTHER_LDFLAGS": '("$(inherited)", "-framework", GameKit, "-framework", SpriteKit)',
          }),
     dict(name="PinballCoreTests", product="PinballCoreTests.xctest", type="com.apple.product-type.bundle.unit-test",
-         groups=["Shared/Core", "Tests"], resources=False,
+         groups=["App/Core", "App/GameCenter/Scoring", "App/UI/Model", "Tests"], resources=False,
          settings={
              "SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0",
              "PRODUCT_NAME": "PinballCoreTests", "PRODUCT_BUNDLE_IDENTIFIER": "com.igorchernakov.pinball.tests",
              "GENERATE_INFOPLIST_FILE": "YES", "CODE_SIGN_IDENTITY": '"-"',
-             "HEADER_SEARCH_PATHS": '"$(SRCROOT)/Shared/Core"',
+             "HEADER_SEARCH_PATHS": '"$(SRCROOT)/App/Core"',
          }),
 ]
 
@@ -76,7 +69,7 @@ def config(name, build, settings):
 objs = {k: "" for k in ("groups", "products", "phases", "targets", "configs", "lists", "buildfiles", "main", "sync")}
 
 group_paths = sorted({g for t in TARGETS for g in t["groups"]})
-# Core lives inside Shared, so Core's group for tests must not also sit in the app's list twice.
+# The app compiles its whole tree; tests compile only the selected logic modules.
 for p in group_paths:
     objs["sync"] += sync_group(p)
 
@@ -99,7 +92,7 @@ for t in TARGETS:
         res_files = f"\t\t\t\t{bf} /* Resources in Resources */,\n"
     objs["phases"] += f"\t\t{res} /* Resources */ = {{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n{res_files}\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}};\n"
     groups = "".join(f"\t\t\t\t{uid('group:'+g)} /* {g} */,\n" for g in t["groups"])
-    # Core is inside Shared on disk; the test target compiles only Core plus Tests.
+    # Test groups reference the same source files without compiling the app host.
     objs["targets"] += f"""\t\t{tid} /* {n} */ = {{
 \t\t\tisa = PBXNativeTarget;
 \t\t\tbuildConfigurationList = {uid('list:'+n)};
@@ -150,6 +143,10 @@ objs["lists"] += f"""\t\t{uid('list:proj')} = {{
 """
 
 main_children = "".join(f"\t\t\t\t{uid('group:'+g)} /* {g} */,\n" for g in group_paths)
+game_center_targets = "".join(
+    f"\t\t\t\t\t{uid('target:'+t['name'])} = {{SystemCapabilities = {{com.apple.GameCenter = {{enabled = 1; }}; }}; }};\n"
+    for t in TARGETS if t["resources"]
+)
 pbx = f"""// !$*UTF8*$!
 {{
 \tarchiveVersion = 1;
@@ -193,6 +190,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t{uid('project')} /* Project object */ = {{
 \t\t\tisa = PBXProject;
 \t\t\tattributes = {{
+\t\t\t\tTargetAttributes = {{
+{game_center_targets}\t\t\t\t}};
 \t\t\t\tBuildIndependentTargetsInParallel = 1;
 \t\t\t\tLastUpgradeCheck = 2700;
 \t\t\t}};

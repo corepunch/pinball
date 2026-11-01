@@ -1,0 +1,17 @@
+{
+  "canvas": [1920, 819],
+  "rowTop": 42,
+  "rowStep": 146,
+  "rowHeight": 144,
+  "states": ["normal", "selected", "pressed", "hover", "disabled"],
+  "nineSliceInsets": {
+    "primary": [32, 64, 32, 64],
+    "secondary": [32, 64, 32, 64]
+  },
+  "slots": {
+    "play": [28, 134], "pause": [162, 134], "settings": [296, 134],
+    "trophy": [430, 134], "back": [564, 134], "sound": [698, 134],
+    "muted": [832, 134], "restart": [966, 134], "help": [1100, 134],
+    "close": [1234, 134], "primary": [1372, 256], "secondary": [1636, 256]
+  }
+}

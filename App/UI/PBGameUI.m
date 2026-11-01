@@ -1,13 +1,18 @@
 #import "PBGameUI.h"
 #import <ImageIO/ImageIO.h>
 
-static SKTexture *PBTextureAtURL(NSURL *url) {
+static CGImageRef PBCreateImageAtURL(NSURL *url) {
     CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
     NSCAssert(source, @"Could not read UI artwork: %@", url);
-    if (!source) return nil;
+    if (!source) return NULL;
     CGImageRef image = CGImageSourceCreateImageAtIndex(source, 0, NULL);
     CFRelease(source);
     NSCAssert(image, @"Could not decode UI artwork: %@", url);
+    return image;
+}
+
+static SKTexture *PBTextureAtURL(NSURL *url) {
+    CGImageRef image = PBCreateImageAtURL(url);
     if (!image) return nil;
     SKTexture *texture = [SKTexture textureWithCGImage:image];
     CGImageRelease(image);
@@ -137,7 +142,8 @@ static NSString *PBScoreString(int64_t score) {
         NSURL *layoutURL = [bundle URLForResource:@"controls" withExtension:@"json" subdirectory:@"GameData/UI"];
         NSURL *titleURL = [bundle URLForResource:@"title-art" withExtension:@"png" subdirectory:@"GameData/UI"];
         NSAssert(atlasURL && layoutURL && titleURL, @"Missing custom UI artwork");
-        SKTexture *atlas = PBTextureAtURL(atlasURL);
+        CGImageRef atlasPixels = PBCreateImageAtURL(atlasURL);
+        SKTexture *atlas = [SKTexture textureWithCGImage:atlasPixels];
         _titleArt = PBTextureAtURL(titleURL);
         NSDictionary *layout = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:layoutURL] options:0 error:NULL];
         _nineSliceInsets = layout[@"nineSliceInsets"];
@@ -152,12 +158,23 @@ static NSString *PBScoreString(int64_t score) {
                 CGFloat h = [layout[@"rowHeight"] doubleValue];
                 CGRect rect = CGRectMake([slot[0] doubleValue] / width, 1 - (y + h) / height,
                                          [slot[1] doubleValue] / width, h / height);
-                SKTexture *texture = [SKTexture textureWithRect:rect inTexture:atlas];
+                SKTexture *texture;
+                if (_nineSliceInsets[name]) {
+                    // Upload the exact authored cell before subdividing it: nested
+                    // atlas subtextures lose their expected UVs in the overlay.
+                    CGImageRef cell = CGImageCreateWithImageInRect(atlasPixels,
+                        CGRectMake([slot[0] doubleValue], y, [slot[1] doubleValue], h));
+                    texture = [SKTexture textureWithCGImage:cell];
+                    CGImageRelease(cell);
+                } else {
+                    texture = [SKTexture textureWithRect:rect inTexture:atlas];
+                }
                 texture.filteringMode = SKTextureFilteringLinear;
                 [states addObject:texture];
             }
             textures[name] = states;
         }
+        CGImageRelease(atlasPixels);
         _textures = textures;
         [self showScreen:PBMenuHome];
     }

@@ -27,6 +27,8 @@ Resizable text-button faces use nine-slicing, with source-pixel cap insets store
 (left, bottom, right, top). Nine SpriteKit patches explicitly preserve corner dimensions in the
 SceneKit overlay: corners scale uniformly to the control height, edges stretch along one axis, and
 the center fills the remaining area. All five authored states share the same patch geometry.
+Each wide cell is uploaded directly from its fixed source rectangle before subdivision, preserving
+its authored pixels and avoiding nested atlas UVs in the overlay.
 Corners and rim thickness stay consistent across narrow toggles and wide action buttons. Fixed icon
 keys retain their original proportions so the glyphs remain intact.
 The sampled artwork has true alpha around opaque enamel faces. At gameplay sizes the shallow

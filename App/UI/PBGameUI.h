@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)showLevelPageForLevel:(NSInteger)index;
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
          ballCount:(NSInteger)ballCount;
+/// A hit on the table: sparks at this view point and, with points, a score flying up from it.
+- (void)showImpactAtPoint:(CGPoint)point color:(SKColor *)color sparks:(NSInteger)sparks points:(int64_t)points;
 /// Points use view coordinates with a top-left origin.
 - (BOOL)pointerBegan:(id)pointer atPoint:(CGPoint)point;
 - (BOOL)pointerMoved:(id)pointer atPoint:(CGPoint)point;

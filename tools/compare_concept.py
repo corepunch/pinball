@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PANELS = {'orbital': 18, 'abyss': 401}
 PANE = (760, 900)
 # The camera puts the table's foot on the image's lower edge.
-FORESHORTEN = math.cos(math.radians(18))
+FORESHORTEN = math.cos(math.radians(30))
 
 # name: (concept x0, y0, x1, y1 relative to the panel), (table x0, y0, x1, y1)
 AREAS = {

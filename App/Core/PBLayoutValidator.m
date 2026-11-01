@@ -4,7 +4,7 @@
 
 #import "PBLayoutValidator.h"
 
-const float PBTableCameraTilt = 18.0f;
+const float PBTableCameraTilt = 30.0f;
 const float PBBumperFootprintScale = 1.08f;
 const float PBLampFootprintScale = 1.12f;
 const float PBPostFootprintScale = 1.05f;
@@ -186,7 +186,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     for (PBSpotDef *bumper in t.bumpers) {
         PBPart *part = [self addPart:bumper.identifier role:PBPartBumper];
         part.solid = YES;
-        [self addUprightTo:part from:bumper.position to:bumper.position radius:bumper.radius * PBBumperFootprintScale height:bumper.radius * 1.5f];
+        [self addUprightTo:part from:bumper.position to:bumper.position radius:bumper.radius * PBBumperFootprintScale height:bumper.radius * 1.42f];
     }
     for (PBEdgeDef *sling in t.slingshots) {
         PBPart *part = [self addPart:sling.identifier role:PBPartStructure];
@@ -213,7 +213,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     // Drop targets and gates move or let the ball through, so they make no gap of their own.
     edges(t.dropTargets, 0.008f, 0.05f, NO);
     edges(t.standups, 0.012f, 0.05f, YES);
-    edges(t.spinners, 0.004f, 0.05f, NO);
+    edges(t.spinners, 0.008f, 0.07f, NO);
     edges(t.gates, 0.004f, 0.05f, NO);
 
     for (PBLampDef *lamp in t.lamps) {
@@ -263,7 +263,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     }
     for (PBRampDef *ramp in t.ramps) {
         PBPart *part = [self addPart:ramp.identifier role:PBPartRamp];
-        float half = ramp.width * 0.5f + 0.015f;  // Out to the side rails.
+        float half = ramp.width * 0.5f + ramp.railWidth;
         // The ramp ends are cut square: leave the capsule's round caps out of its footprint.
         float length = 0;
         for (NSInteger i = 1; i < ramp.pointCount; i++) length += simd_distance([ramp pointAtIndex:i].xy, [ramp pointAtIndex:i - 1].xy);
@@ -275,7 +275,11 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
             along += step;
             if (midpoint < half * 0.75f || midpoint > length - half * 0.75f) continue;
             // The rims stand above the floor and are what the player sees.
-            PBCapsule capsule = { [self project:a.xy height:a.z + 0.024f], [self project:b.xy height:b.z + 0.024f], half, NO };
+            float entry = MAX(0, 1 - midpoint / MAX(ramp.transitionLength, .001f));
+            float exit = MAX(0, 1 - (length - midpoint) / MAX(ramp.transitionLength, .001f));
+            float width = half * (1 + (ramp.entranceFlare - 1) * entry * entry * (3 - 2 * entry)
+                                   + (ramp.exitFlare - 1) * exit * exit * (3 - 2 * exit));
+            PBCapsule capsule = { [self project:a.xy height:a.z + ramp.wallHeight], [self project:b.xy height:b.z + ramp.wallHeight], width, NO };
             [part.capsules appendBytes:&capsule length:sizeof(capsule)];
         }
     }
@@ -402,7 +406,9 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         for (NSInteger i = 0; i < part.count; i++) {
             PBCapsule c = part.items[i];
             simd_float2 low = simd_min(c.a, c.b) - c.radius, high = simd_max(c.a, c.b) + c.radius;
-            float over = MAX(MAX(MAX(-low.x, high.x - size.x), high.y - size.y), _table.apronY - low.y);
+            // The tilted board leaves room above its far end on a phone, where the indicators sit.
+            float top = MAX(size.y, size.x * 2.16f / cosf(PBTableCameraTilt * (float)M_PI / 180.0f));
+            float over = MAX(MAX(MAX(-low.x, high.x - size.x), high.y - top), _table.apronY - low.y);
             if (over > 0) {
                 [self report:issues kind:PBLayoutIssueOutOfBounds first:part second:nil amount:over at:(c.a + c.b) * 0.5f];
                 break;

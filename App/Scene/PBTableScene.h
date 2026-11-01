@@ -20,8 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Fits the camera so the table fills the view, for this view's height/width ratio.
 - (void)fitCameraToAspect:(CGFloat)heightOverWidth;
-/// Rebuilds the top rail to follow the screen's top corners. The radius is in screen widths.
-- (void)fitBorderToCornerRadius:(CGFloat)radius;
 
 /// Call once per frame after the game has updated, on the render thread.
 - (void)syncWithGame:(PBGame *)game elapsed:(double)elapsed;
@@ -29,6 +27,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// Relative device attitude (x right, y screen-up, z out of screen). Render thread only.
 /// Moves illumination/reflections while the camera, table and physics stay fixed.
 - (void)updateLightingForAttitude:(simd_quatf)attitude elapsed:(double)elapsed;
+
+/// Where a point on the table is, for effects drawn over the scene.
+- (SCNVector3)worldPointAt:(simd_float2)position height:(float)height;
+/// The colour a hit on this kind of part sparks in.
+- (simd_float3)impactColorForEvent:(PBEventKind)kind;
 
 @end
 

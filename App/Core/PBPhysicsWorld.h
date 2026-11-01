@@ -58,6 +58,7 @@ typedef struct {
     float zVelocity;
     simd_quatf orientation;  // Visual rolling only.
     float stuckTime;
+    int stuckCount;
     simd_float2 stuckAnchor;
     float holdTimer;
     int16_t holder;       // Saucer or magnet index while held.

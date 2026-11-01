@@ -25,6 +25,8 @@ static const float kSlingSpeed = 2.5f;
 static const float kSlingThreshold = 0.25f;
 static const float kActiveCooldown = 0.07f;
 static const float kStuckSeconds = 3.5f;
+static const float kRampTableGravity = 0.4f;
+static const int kStuckShovesBeforeRescue = 3;
 
 typedef NS_ENUM(uint8_t, PBColliderKind) {
     PBColliderStatic,
@@ -190,7 +192,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     PBTableDefinition *t = _table;
     NSInteger capacity = 64;
     for (PBWallDef *wall in t.walls) capacity += wall.points.count + 1;
-    for (PBRampDef *ramp in t.ramps) capacity += ramp.pointCount * 2 + 2;
+    for (PBRampDef *ramp in t.ramps) capacity += ramp.pointCount * 2 + 2 + (NSInteger)ramp.supportColumns.count;
     capacity += (NSInteger)(t.posts.count + t.bumpers.count + t.slingshots.count + t.dropTargets.count + t.standups.count + t.gates.count);
     _colliders = calloc((size_t)capacity, sizeof(PBCollider));
     _activeCooldown = calloc((size_t)capacity, sizeof(float));
@@ -210,6 +212,13 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         if (wall.closed) add(p[wall.points.count - 1], p[0], wall.radius, bounce, (uint32_t)wall.layers, PBColliderStatic, -1);
     }
     for (PBSpotDef *post in t.posts) add(post.position, post.position, post.radius, 0.72f, PBLayerPlayfield, PBColliderStatic, -1);
+    for (PBRampDef *ramp in t.ramps) {
+        if (ramp.supportBase > _ballRadius * 2) continue;
+        for (NSArray<NSNumber *> *column in ramp.supportColumns) {
+            simd_float2 p = simd_make_float2(column[0].floatValue, column[1].floatValue);
+            add(p, p, ramp.supportRadius, .42f, PBLayerPlayfield, PBColliderStatic, -1);
+        }
+    }
 
     [t.bumpers enumerateObjectsUsingBlock:^(PBSpotDef *b, NSUInteger i, BOOL *stop) {
         add(b.position, b.position, b.radius, 0.3f, PBLayerPlayfield, PBColliderBumper, (NSInteger)i);
@@ -408,6 +417,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     ball->layers = PBLayerPlayfield;
     ball->ramp = -1;
     ball->stuckTime = 0;
+    ball->stuckCount = 0;
     if (_rolloverCount) memset(&_rolloverInside[index * _rolloverCount], 0, (size_t)_rolloverCount);
     return index;
 }
@@ -632,7 +642,11 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 
     simd_float2 acceleration = simd_make_float2(0.0f, -_gravity);
     float groundZ = 0.0f;
-    if (ball->ramp >= 0) acceleration += [self rampForceForBall:ball groundZ:&groundZ];
+    if (ball->ramp >= 0) {
+        // The ramp's own slope does the work of slowing it, so a good shot carries over the top.
+        acceleration *= kRampTableGravity;
+        acceleration += [self rampForceForBall:ball groundZ:&groundZ];
+    }
 
     for (NSInteger m = 0; m < _magnetCount; m++) [self applyMagnet:m toBall:index dt:dt];
     if (ball->state != PBBallFree) return;
@@ -661,15 +675,27 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 
     // Ball search: a ball that has stayed in one small spot, even if jittering, gets a shove.
     if (ball->captive || [self isBallInLane:ball] || simd_distance(ball->position, ball->stuckAnchor) > 0.03f) {
+        // A shove moves it a little, so only real travel clears the count of failed shoves.
+        if (simd_distance(ball->position, ball->stuckAnchor) > 0.12f || ball->captive) ball->stuckCount = 0;
         ball->stuckAnchor = ball->position;
         ball->stuckTime = 0;
     } else {
         ball->stuckTime += dt;
         if (ball->stuckTime > kStuckSeconds) {
             ball->stuckTime = 0;
-            float angle = 2.0f * (float)M_PI * [self randomUnit];
-            ball->velocity = simd_make_float2(cosf(angle), sinf(angle)) * 1.6f;
             [self emit:PBEventBallStuck element:0 ball:index magnitude:0 at:ball->position];
+            if (++ball->stuckCount >= kStuckShovesBeforeRescue) {
+                // Shoving hasn't freed it, so it is somewhere a ball shouldn't be: serve it again.
+                ball->stuckCount = 0;
+                ball->position = simd_make_float2(_plungerSpot.x, _plungerY + _ballRadius + 0.002f);
+                ball->velocity = simd_make_float2(0.0f, 0.0f);
+                ball->layers = PBLayerPlayfield;
+                ball->ramp = -1;
+                ball->stuckAnchor = ball->position;
+            } else {
+                float angle = 2.0f * (float)M_PI * [self randomUnit];
+                ball->velocity = simd_make_float2(cosf(angle), sinf(angle)) * 1.6f;
+            }
         }
     }
 

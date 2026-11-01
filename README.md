@@ -3,13 +3,15 @@
 3D pinball in Objective-C and SceneKit, for iPhone. Straight-down camera, table fills the screen.
 
 Tables are JSON; skins contain a hardware atlas, palette, and optionally a separate playfield painting.
-Table geometry is generated from JSON, with optional Blender-authored hardware kits. All sound is synthesized.
+Complete tables can be authored in Blender with the Pinball Builder curve modifier and gameplay properties, then exported to JSON and compiled SceneKit models. All sound is synthesized.
 
 The default **Orbital** skin pairs illustrated space art with ivory/vermilion enamel and champagne trim.
 **Abyss** uses deep-sea illustration, seafoam enamel and brass. Both follow the concepts in
-`Art/Concepts/premium-directions.png`: a table that uses the phone's edges as its own, two clear hook ramps, jewelled bumpers
-with authored idle/hit caps, riveted guide plates and arrow inserts. Classic and Neon remain available. The editable
-Blender master and rebuild instructions are in `Art/Models/` and [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
+`Art/Concepts/cadet-inspired-redesign.png`: a table that uses the phone's edges as its own, deep hook channels
+with evenly spaced four-phase chevron lights, jewelled bumpers with authored idle/hit caps, low molded guide
+housings and larger, fewer inserts. The ball is 20% larger, with clearances and progression retuned for it.
+Backgrounds are full-bleed illustrations without printed rulers, compasses, borders or title panels. Classic and Neon remain available. The editable
+Open `Art/Models/pinball-levels.blend` for the complete editable tables. The installable add-on and workflow are in [Art/BLENDER_AUTHORING.md](Art/BLENDER_AUTHORING.md); hardware rebuild details are in [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
 
 ```bash
 open Pinball.xcodeproj

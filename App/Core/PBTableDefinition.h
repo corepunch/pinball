@@ -48,6 +48,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 /// A point element: posts, bumpers, rollovers, saucers, kickbacks, magnets, captive balls, flashers.
 @interface PBSpotDef : PBElementDef
 @property (nonatomic) simd_float2 position;
+/// A rollover shows a grey plate. Set by the Pinball Rollover Bar modifier in the level file.
+@property (nonatomic) BOOL hasPlate;
 @property (nonatomic) float radius;
 @property (nonatomic) simd_float2 direction;
 @property (nonatomic) float speed;
@@ -77,6 +79,14 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 
 @interface PBRampDef : PBElementDef
 @property (nonatomic) float width;
+@property (nonatomic) float wallHeight;
+@property (nonatomic) float railWidth;
+@property (nonatomic) float entranceFlare;
+@property (nonatomic) float exitFlare;
+@property (nonatomic) float transitionLength;
+@property (nonatomic, copy) NSArray<NSArray<NSNumber *> *> *supportColumns;
+@property (nonatomic) float supportRadius;
+@property (nonatomic) float supportBase;
 @property (nonatomic) simd_float2 mouthA;
 @property (nonatomic) simd_float2 mouthB;
 @property (nonatomic) NSInteger plasticUntil;

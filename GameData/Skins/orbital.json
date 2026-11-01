@@ -144,7 +144,7 @@
           0,
           0,
           851,
-          1556
+          1848
         ],
         "file": "orbital-playfield.jpg",
         "canvas": [
@@ -152,6 +152,76 @@
           1848
         ],
         "bleed": 0
+      },
+      "ramp_chase_off": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          0,
+          0,
+          397,
+          396
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_1": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          397,
+          0,
+          396,
+          396
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_2": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          793,
+          0,
+          397,
+          396
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_3": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          1190,
+          0,
+          396,
+          396
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_4": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          1586,
+          0,
+          397,
+          396
+        ],
+        "bleed": 1
       }
     }
   },
@@ -199,13 +269,13 @@
   ],
   "metal": [
     1,
-    0.97,
+    0.975,
     0.9
   ],
   "accent": [
     1,
-    0.86,
-    0.62
+    0.9,
+    0.71
   ],
   "flipperRubber": [
     0.58,
@@ -232,11 +302,11 @@
     "bloom": 0.34,
     "rampOpacity": 1.0,
     "rampGlass": [
-      1,
-      0.98,
-      0.94
+      0.035,
+      0.065,
+      0.115
     ],
-    "matcap": "courtyard",
+    "matcap": "studio",
     "rampMatcap": "studio",
     "rampBlur": 2.5,
     "rampGloss": 0.1

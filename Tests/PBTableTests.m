@@ -61,6 +61,68 @@
     return [PBLayoutValidator issuesForTable:[[PBTableDefinition alloc] initWithJSONData:data error:NULL]];
 }
 
+- (void)testBlenderSamplesAndModifierDimensionsSurviveLoading {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *ramp = json[@"ramps"][0];
+    NSMutableDictionary *settings = [ramp[@"authoring"] mutableCopy];
+    settings[@"path_sampled"] = @YES;
+    settings[@"wall_height"] = @0.047;
+    settings[@"rail_width"] = @0.009;
+    ramp[@"authoring"] = settings;
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBRampDef *loaded = table.ramps[0];
+    XCTAssertEqual(loaded.pointCount, [ramp[@"points"] count], @"Blender's samples must not be smoothed again");
+    XCTAssertEqualWithAccuracy(loaded.wallHeight, .047, 1e-6);
+    XCTAssertEqualWithAccuracy(loaded.railWidth, .009, 1e-6);
+    for (NSInteger i = 0; i < loaded.pointCount; i++) {
+        NSArray *p = ramp[@"points"][(NSUInteger)i];
+        XCTAssertEqualWithAccuracy([loaded pointAtIndex:i].x, [p[0] floatValue], 1e-6);
+        XCTAssertEqualWithAccuracy([loaded pointAtIndex:i].y, [p[1] floatValue], 1e-6);
+        XCTAssertEqualWithAccuracy([loaded pointAtIndex:i].z, [p[2] floatValue], 1e-6);
+    }
+}
+
+- (void)testBallDoesNotSettleBetweenRampAndDropTargetHousing {
+    // A hidden wall under the ramp used to end just below the housing's corner, leaving a dip.
+    for (NSArray *drop in @[ @[ @"aurora", @0.70, @1.08 ], @[ @"meridian", @0.25, @1.08 ] ]) {
+        PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:drop[0]] options:0 error:NULL] error:NULL];
+        PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+        NSInteger ball = [world spawnBallAtPlunger];
+        simd_float2 start = simd_make_float2([drop[1] floatValue], [drop[2] floatValue]);
+        [world placeBall:ball at:start velocity:simd_make_float2(0, 0)];
+        for (int i = 0; i < 180 && world.balls[ball].state == PBBallFree; i++) [world advanceBy:1.0 / 60.0];
+        XCTAssertLessThan(world.balls[ball].position.y, 0.9, @"%@: the ball must roll on past the housing", drop[0]);
+    }
+}
+
+- (void)testABallTheSearchCannotFreeIsServedAgain {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    // A closed box around the ball: no shove can get it out.
+    json[@"walls"] = [json[@"walls"] arrayByAddingObject:@{ @"id": @"box", @"style": @"none", @"radius": @0.006, @"height": @0.05, @"closed": @YES,
+        @"points": @[ @[ @0.45, @0.9 ], @[ @0.55, @0.9 ], @[ @0.55, @1.0 ], @[ @0.45, @1.0 ] ] }];
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(0.5, 0.95) velocity:simd_make_float2(0, 0)];
+    for (int i = 0; i < 60 * 15; i++) [world advanceBy:1.0 / 60.0];
+    XCTAssertGreaterThan(world.balls[ball].position.x, 0.9, @"it must end up back in the shooter lane");
+}
+
+- (void)testGeneratedColumnIsAnActualPlayfieldCollider {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    json[@"physics"][@"gravity"] = @0;
+    for (NSString *key in @[ @"walls", @"posts", @"bumpers", @"slingshots", @"dropTargets", @"standups", @"rollovers", @"spinners", @"saucers", @"gates", @"kickbacks", @"magnets", @"captiveBalls" ]) json[key] = @[];
+    NSMutableDictionary *ramp = json[@"ramps"][0];
+    ramp[@"authoring"][@"columns"] = @[ @[ @0.5, @1.2, @0.1 ] ];
+    json[@"ramps"] = @[ ramp ];
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.4, 1.2) velocity:simd_make_float2(1, 0)];
+    for (int i = 0; i < 8; i++) [world advanceBy:1.0 / 60.0];
+    XCTAssertLessThan(world.balls[ball].velocity.x, 0, @"the ball must bounce off the generated shaft");
+}
+
 - (BOOL)issues:(NSArray<PBLayoutIssue *> *)issues contain:(NSString *)first and:(NSString *)second kind:(PBLayoutIssueKind)kind {
     for (PBLayoutIssue *issue in issues) {
         if (issue.kind != kind) continue;
@@ -141,7 +203,12 @@
         NSMutableArray<NSString *> *models = [NSMutableArray array];
         for (PBDecorDef *decor in table.decor) [models addObject:decor.model];
         for (PBSpotDef *post in table.posts) if (post.model) [models addObject:post.model];
-        for (PBRampDef *ramp in table.ramps) [models addObject:[NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier]];
+        for (PBRampDef *ramp in table.ramps) {
+            NSString *model = [NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier];
+            [models addObject:model];
+            XCTAssertLessThanOrEqual([assets[model][@"triangles"] integerValue], 6000,
+                                     @"%@ exceeds the complete ramp triangle budget", model);
+        }
         for (NSString *part in @[ @"flipper", @"walls", @"plastics" ]) [models addObject:[NSString stringWithFormat:@"%@-%@", table.identifier, part]];
         for (NSString *model in models) {
             XCTAssertNotNil(assets[model], @"%@: %@ is not built", name, model);

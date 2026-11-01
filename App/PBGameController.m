@@ -18,15 +18,6 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 @interface PBGameController () <PBGameObserver>
 @end
 
-/// UIKit has no public API for the display's corner radius, so it goes by screen size, in points.
-/// A home-button phone or an iPad frames the table without reaching its corners: no rounding.
-static CGFloat PBScreenCornerRadius(CGSize size) {
-    if (size.height / size.width < 1.9) return 0;
-    NSNumber *known = @{ @375: @39.0, @390: @47.33, @393: @55.0, @402: @62.0, @414: @41.5,
-                         @428: @53.33, @430: @55.0, @440: @62.0 }[@((NSInteger)size.width)];
-    return known ? known.doubleValue : size.width * 0.15;
-}
-
 @implementation PBGameController {
     __weak SCNView *_view;
     PBTableDefinition *_table;
@@ -44,6 +35,11 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     PBGameUI *_interface;
     NSTimeInterval _lastUISnapshot;
     int64_t _startingHighScore;
+    simd_float2 _impactPosition;
+    PBEventKind _impactKind;
+    NSInteger _impactSparks;
+    BOOL _hasImpact;
+    int64_t _shownScore;
     NSMutableArray<id<PBGameObserver>> *_gameObservers;
     PBLevelCatalog *_catalog;   // Nil in free play: a table chosen at launch, or autopilot.
     PBLevelProgress *_progress;
@@ -304,7 +300,6 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     CGSize size = _view.bounds.size;
     if (size.width > 0) {
         [_tableScene fitCameraToAspect:size.height / size.width];
-        [_tableScene fitBorderToCornerRadius:PBScreenCornerRadius(size) / size.width];
     }
     UIEdgeInsets insets = _view.safeAreaInsets;
     [_interface layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
@@ -332,6 +327,7 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     [_tableScene updateLightingForAttitude:attitude elapsed:elapsed];
     [_game update:elapsed];
     [_tableScene syncWithGame:_game elapsed:elapsed];
+    [self showImpacts];
     if (!_game.autopilot && time - _lastUISnapshot > 0.1) {
         _lastUISnapshot = time;
         int64_t score = _game.rules.score, best = _game.rules.highScore;
@@ -352,7 +348,48 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
 
 #pragma mark - PBGameObserver
 
-- (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {}
+- (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
+    NSInteger sparks = 0;
+    switch (event->kind) {
+        case PBEventBumper: sparks = 26; break;
+        case PBEventSling: sparks = 16; break;
+        case PBEventDropTarget: sparks = 22; break;
+        case PBEventStandup: sparks = 20; break;
+        case PBEventRampComplete: sparks = 30; break;
+        case PBEventSaucerCapture: case PBEventKickback: sparks = 24; break;
+        case PBEventRollover: case PBEventSpinner: sparks = 6; break;
+        case PBEventWallHit: sparks = event->magnitude > 2.2f ? 7 : 0; break;
+        default: return;
+    }
+    // Scoring runs just before this, in the same frame; the frame's score difference is shown once.
+    _impactPosition = event->position;
+    _impactKind = event->kind;
+    _impactSparks = MAX(_impactSparks, sparks);
+    _hasImpact = YES;
+}
+
+/// Sparks and a flying number at the frame's last hit, in place of a HUD-only score change.
+- (void)showImpacts {
+    int64_t score = _game.rules.score;
+    int64_t gained = score - _shownScore;
+    _shownScore = score;
+    if (!_hasImpact) return;
+    _hasImpact = NO;
+    NSInteger sparks = _impactSparks;
+    _impactSparks = 0;
+    if (_game.autopilot || _game.rules.phase != PBGamePhasePlaying) return;
+    SCNVector3 world = [_tableScene worldPointAt:_impactPosition height:0.04f];
+    SCNVector3 screen = [_view projectPoint:world];
+    simd_float3 tone = [_tableScene impactColorForEvent:_impactKind];
+    SKColor *color = [SKColor colorWithRed:tone.x green:tone.y blue:tone.z alpha:1];
+    // Spinners and passing rollovers score too often for every number to be worth showing.
+    int64_t points = gained >= 250 ? gained : 0;
+    if (sparks == 0 && points == 0) return;
+    CGPoint point = CGPointMake(screen.x, screen.y);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self->_interface showImpactAtPoint:point color:color sparks:sparks points:points];
+    });
+}
 - (void)game:(PBGame *)game flash:(NSString *)flasherIdentifier {}
 - (void)game:(PBGame *)game fanfare:(NSString *)name {
     if ([name isEqualToString:@"start"] && !game.autopilot) {

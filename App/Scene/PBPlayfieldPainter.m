@@ -14,11 +14,13 @@ static CGContextRef PBCreateContext(size_t width, size_t height) {
     return context;
 }
 
-/// An equilateral triangle around a centre, apex along angle. Corners are softened by the join.
+/// An arrowhead around a centre, apex along angle. Longer than wide: an equilateral triangle
+/// looks the same every 120 degrees, so it has no direction. Corners are softened by the join.
 static void PBAddArrowPath(CGContextRef c, CGPoint centre, CGFloat radius, CGFloat angle) {
+    const CGFloat along[3] = { 1.0, -0.5, -0.5 }, across[3] = { 0.0, 0.54, -0.54 };
     for (int i = 0; i < 3; i++) {
-        CGFloat a = angle + (CGFloat)i * 2.0 * M_PI / 3.0;
-        CGFloat x = centre.x + cos(a) * radius, y = centre.y + sin(a) * radius;
+        CGFloat x = centre.x + (cos(angle) * along[i] - sin(angle) * across[i]) * radius;
+        CGFloat y = centre.y + (sin(angle) * along[i] + cos(angle) * across[i]) * radius;
         if (i == 0) CGContextMoveToPoint(c, x, y); else CGContextAddLineToPoint(c, x, y);
     }
     CGContextClosePath(c);
@@ -153,21 +155,6 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
         CGContextStrokeEllipseInRect(c, CGRectMake(magnet.position.x - r, magnet.position.y - r, r * 2, r * 2));
     }
 
-    // Rollover wires.
-    CGContextSetLineCap(c, kCGLineCapRound);
-    for (PBSpotDef *rollover in table.rollovers) {
-        CGFloat r = rollover.radius * 0.7;
-        CGContextSetRGBStrokeColor(c, 0, 0, 0, 0.55);
-        CGContextSetLineWidth(c, 0.006);
-        CGContextMoveToPoint(c, rollover.position.x, rollover.position.y - r);
-        CGContextAddLineToPoint(c, rollover.position.x, rollover.position.y + r);
-        CGContextStrokePath(c);
-        CGContextSetRGBStrokeColor(c, 0.9, 0.9, 0.95, 1);
-        CGContextSetLineWidth(c, 0.0028);
-        CGContextMoveToPoint(c, rollover.position.x, rollover.position.y - r);
-        CGContextAddLineToPoint(c, rollover.position.x, rollover.position.y + r);
-        CGContextStrokePath(c);
-    }
     CGGradientRelease(fade);
     CGColorSpaceRelease(space);
 }

@@ -10,13 +10,25 @@ import bpy
 import importlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from mathutils import Vector
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tools'))
+CODE_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ.get('PB_PROJECT_ROOT',str(CODE_ROOT)))
+sys.path.insert(0, str(CODE_ROOT / 'tools'))
+sys.path.insert(0, str(CODE_ROOT / 'tools/blender_addons'))
+# The Blender session outlives edits to the add-on.
+if 'pinball_builder' in sys.modules:
+    sys.modules['pinball_builder'].unregister()
+    for module in [m for m in sys.modules if m.split('.')[0] == 'pinball_builder']:
+        del sys.modules[module]
+import pinball_builder as pb_builder
+from pinball_builder import modifier as pb_modifier
+from pinball_builder.geometry import TrackSpec, build_wall, clear_support, rail_geometry
+pb_builder.register()
 import ramp_paths
 importlib.reload(ramp_paths)  # The Blender session outlives edits to it.
 OUT = ROOT / "Art/Models/premium"  # tools/compile_models.sh turns these into the shipped .scn files.
@@ -25,7 +37,9 @@ OUT.mkdir(parents=True, exist_ok=True)
 if not bpy.app.background:
     raise RuntimeError('Run this generator in the dedicated background Blender MCP session')
 for previous in list(bpy.data.scenes):
-    if previous.get('workflow', '').startswith('Authored through the installed Blender MCP bridge'):
+    if (previous.get('workflow', '').startswith('Authored through the installed Blender MCP bridge')
+            or previous.get('ramp_detail') or previous.get('board_preview') or previous.get('pb_probe')
+            or previous.name.startswith('Pinball add-on probe')):
         for obj in list(previous.objects):
             bpy.data.objects.remove(obj, do_unlink=True)
         if len(bpy.data.scenes) > 1:
@@ -33,22 +47,26 @@ for previous in list(bpy.data.scenes):
 scene = bpy.data.scenes.new("Pinball • machined hardware")
 bpy.context.window.scene = scene
 scene.unit_settings.system = 'METRIC'
-scene['source_reference'] = 'Art/Concepts/premium-directions.png'
+scene['source_reference'] = 'Art/Concepts/cadet-inspired-redesign.png'
 scene['workflow'] = 'Authored through the installed Blender MCP bridge; tools/build_hardware_models.py'
+
+LATHE_FLIP = True
 
 # Each role is a material slot the game rebinds per skin; see PBTableScene's skinModel.
 ROLES = {
-    'metal': (.56, .61, .65, 1), 'accent': (.72, .48, .19, 1), 'dark': (.012, .019, .027, 1),
+    'cabinet_shell': (.018, .035, .065, 1), 'guide_glow': (1, .32, .04, 1), 'channel_liner': (.29, .35, .40, 1), 'plate_frame': (.62, .63, .66, 1), 'channel_entry': (.72, .6, .38, 1), 'channel_floor': (.52,.57,.61,1), 'channel_aluminum': (.66,.71,.75,1), 'channel_shell': (.35,.40,.44,1), 'channel_arrow': (1,.12,.025,1), 'metal': (.56, .61, .65, 1), 'accent': (.72, .48, .19, 1), 'dark': (.012, .019, .027, 1),
     'rubber': (.62, .58, .47, 1), 'black_rubber': (.012, .012, .014, 1), 'skirt_lamp': (1, .2, .08, 1), 'cap_art': (.7, .2, .12, 1), 'enamel': (.86, .78, .6, 1),
     'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1), 'glow_amber': (1, .65, .16, 1),
-    'jewel': (.2, .8, 1, 1), 'ramp_floor': (.86, .78, .6, .62), 'sling_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1),
+    'jewel': (.2, .8, 1, 1), 'ramp_floor': (.58, .62, .66, 1), 'sling_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1),
     'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
     'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
 }
 ATLAS_SLOTS = {'cap_art': 'bumper_cap', 'jewel': 'bumper_cap_lit', 'wall_art': 'wall_top', 'block_art': 'plastic',
                'flipper_art': 'flipper', 'target_art': 'drop_target'}
-METALLIC = ('metal', 'accent', 'ramp_floor')
-EMISSIVE = {'amber_lens': 1, 'skirt_lamp': 3, 'glow': 3, 'glow_amber': 3, 'jewel': 1, 'sling_lens': 1}
+for phase in range(4):
+    ROLES[f'ramp_step_{phase}'] = (.035, .10, .16, 1)
+METALLIC = ('metal', 'accent', 'ramp_floor', 'channel_liner', 'channel_entry', 'channel_floor', 'channel_aluminum', 'channel_shell')
+EMISSIVE = {'amber_lens': 1, 'skirt_lamp': 3, 'glow': 3, 'glow_amber': 3, 'jewel': 1, 'sling_lens': 1, 'guide_glow': 2, 'channel_arrow': .7}
 materials = {}
 palette = json.loads((ROOT / 'GameData/Skins/orbital.json').read_text())
 atlas = bpy.data.images.load(str(ROOT / 'Art/Masters/orbital-hardware.png'))
@@ -60,7 +78,7 @@ for role, color in ROLES.items():
     bsdf = nodes.get('Principled BSDF')
     bsdf.inputs['Base Color'].default_value = color
     bsdf.inputs['Metallic'].default_value = .9 if role in METALLIC else 0
-    bsdf.inputs['Roughness'].default_value = .2 if role in METALLIC else .3
+    bsdf.inputs['Roughness'].default_value = .32 if role.startswith('channel_') else .34 if role == 'ramp_floor' else (.2 if role in METALLIC else .3)
     if color[3] < 1:
         # Only for tools/render_board_blender.py: the game binds its own clear materials.
         bsdf.inputs['Alpha'].default_value = color[3]
@@ -79,7 +97,27 @@ for role, color in ROLES.items():
         links.new(texture.outputs['Color'], bsdf.inputs['Base Color'])
         if role in EMISSIVE:
             links.new(texture.outputs['Color'], bsdf.inputs['Emission Color'])
+    material['pb_surface_role'] = role
     materials[role] = material
+
+# The master uses the same authored deck textures as the game (Orbital is the preview theme).
+chase_image = bpy.data.images.load(str(ROOT / 'Art/Masters/ramp-chase.png'))
+for phase in range(4):
+    material = materials[f'ramp_step_{phase}']
+    nodes, links = material.node_tree.nodes, material.node_tree.links
+    uv, mapping, texture = nodes.new('ShaderNodeTexCoord'), nodes.new('ShaderNodeMapping'), nodes.new('ShaderNodeTexImage')
+    texture.image = chase_image
+    slot = palette['atlasLayout']['slots']['ramp_chase_1' if phase == 0 else 'ramp_chase_off']
+    x, y, w, h = slot['rect']
+    cw, ch = slot['canvas']
+    mapping.inputs['Location'].default_value = (x / cw, 1 - (y + h) / ch, 0)
+    mapping.inputs['Scale'].default_value = (w / cw, h / ch, 1)
+    links.new(uv.outputs['UV'], mapping.inputs['Vector'])
+    links.new(mapping.outputs['Vector'], texture.inputs['Vector'])
+    bsdf = nodes.get('Principled BSDF')
+    links.new(texture.outputs['Color'], bsdf.inputs['Base Color'])
+    links.new(texture.outputs['Color'], bsdf.inputs['Emission Color'])
+    bsdf.inputs['Emission Strength'].default_value = 1.15 if phase == 0 else .24
 
 assets = {}
 current = None
@@ -124,21 +162,168 @@ def solid(name, vertices, faces, role, uvs=None, sharp=38):
     return obj
 
 
+def object_for(name, mesh, role, location=(0, 0, 0)):
+    mesh.materials.append(materials[role])
+    obj = bpy.data.objects.new(name, mesh)
+    scene.collection.objects.link(obj)
+    obj.parent = assets[current][0]
+    obj.location = location
+    obj['surface_role'] = role
+    assets[current][1].append(obj)
+    return obj
+
+
+def planar_uv_group():
+    """Geometry Nodes that map the art from above: a round part's UVs follow its radius, and stay live."""
+    group = bpy.data.node_groups.get('Pinball Planar UV')
+    if group:
+        return group
+    group = bpy.data.node_groups.new('Pinball Planar UV', 'GeometryNodeTree')
+    group.interface.new_socket(name='Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
+    size = group.interface.new_socket(name='Art diameter', in_out='INPUT', socket_type='NodeSocketFloat')
+    size.default_value = 1
+    group.interface.new_socket(name='Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+    nodes, links = group.nodes, group.links
+    source, output = nodes.new('NodeGroupInput'), nodes.new('NodeGroupOutput')
+    position = nodes.new('GeometryNodeInputPosition')
+    inverse = nodes.new('ShaderNodeMath')
+    inverse.operation = 'DIVIDE'
+    inverse.inputs[0].default_value = 1
+    links.new(source.outputs['Art diameter'], inverse.inputs[1])
+    scale = nodes.new('ShaderNodeVectorMath')
+    scale.operation = 'SCALE'
+    links.new(position.outputs['Position'], scale.inputs[0])
+    links.new(inverse.outputs[0], scale.inputs['Scale'])
+    centre = nodes.new('ShaderNodeVectorMath')
+    centre.operation = 'ADD'
+    centre.inputs[1].default_value = (.5, .5, 0)
+    links.new(scale.outputs[0], centre.inputs[0])
+    store = nodes.new('GeometryNodeStoreNamedAttribute')
+    store.data_type = 'FLOAT2'
+    store.domain = 'CORNER'
+    store.inputs['Name'].default_value = 'UV'
+    links.new(source.outputs['Geometry'], store.inputs['Geometry'])
+    links.new(centre.outputs[0], store.inputs['Value'])
+    links.new(store.outputs['Geometry'], output.inputs['Geometry'])
+    return group
+
+
 def lathe(name, profile, role, segments=48, xy=(0, 0), planar=None, sharp=38):
-    """Profile runs (radius, height) up the outside and in over the top. planar maps UVs from above."""
-    vertices, faces, uvs = [], [], []
-    for radius, z in profile:
-        for s in range(segments):
-            a = s * 2 * math.pi / segments
-            vertices.append((xy[0] + radius * math.cos(a), xy[1] + radius * math.sin(a), z))
-            if planar:
-                uvs.append((.5 + radius * math.cos(a) / planar, .5 + radius * math.sin(a) / planar))
-    for row in range(len(profile) - 1):
-        for s in range(segments):
-            a = row * segments + s
-            b = row * segments + (s + 1) % segments
-            faces.append((a, b, b + segments, a + segments))
-    return solid(name, vertices, faces, role, uvs or None, sharp)
+    """A round part: a profile line, running (radius, height) up the outside and in over the top,
+    turned by a Screw modifier. Edit the line or the modifiers in the master. planar maps UVs from above."""
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata([(radius, 0, z) for radius, z in profile], [(i, i + 1) for i in range(len(profile) - 1)], [])
+    mesh.update()
+    obj = object_for(name, mesh, role, (xy[0], xy[1], 0))
+    screw = obj.modifiers.new('Turn the profile', 'SCREW')
+    screw.axis = 'Z'
+    screw.angle = math.tau
+    screw.screw_offset = 0
+    screw.steps = screw.render_steps = segments
+    screw.use_normal_calculate = False
+    screw.use_normal_flip = LATHE_FLIP
+    screw.use_smooth_shade = True
+    screw.use_merge_vertices = False
+    if planar:
+        art = obj.modifiers.new('Map the art', 'NODES')
+        art.node_group = planar_uv_group()
+        pb_modifier.set_input(art, art.node_group.interface.items_tree['Art diameter'].identifier, planar)
+    crease = obj.modifiers.new('Crisp edges', 'EDGE_SPLIT')
+    crease.split_angle = math.radians(sharp)
+    crease.use_edge_sharp = False
+    return obj
+
+
+def plate(name, outline, top, height, role, corner=0, chamfer=0, sharp=40):
+    """A flat part: an outline, rounded by a Bevel modifier, given height by Solidify, its edges by another Bevel."""
+    if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1]
+           for i in range(len(outline))) < 0:
+        outline = outline[::-1]
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata([(p[0], p[1], top) for p in outline], [], [tuple(range(len(outline)))])
+    mesh.update()
+    obj = object_for(name, mesh, role)
+    if corner:
+        rounded = obj.modifiers.new('Round the corners', 'BEVEL')
+        rounded.affect = 'VERTICES'
+        rounded.width = corner
+        rounded.segments = 4
+        rounded.limit_method = 'NONE'
+    solid_part = obj.modifiers.new('Height', 'SOLIDIFY')
+    solid_part.thickness = height
+    solid_part.offset = 1
+    solid_part.use_even_offset = False
+    if chamfer:
+        edges = obj.modifiers.new('Chamfer', 'BEVEL')
+        edges.width = chamfer
+        edges.segments = 1
+        edges.limit_method = 'ANGLE'
+        edges.angle_limit = math.radians(30)
+    crease = obj.modifiers.new('Crisp edges', 'EDGE_SPLIT')
+    crease.split_angle = math.radians(sharp)
+    crease.use_edge_sharp = False
+    return obj
+
+
+def trim_group():
+    """Geometry Nodes that give a line a rectangular section: the frame around a part."""
+    group = bpy.data.node_groups.get('Pinball Trim')
+    if group:
+        return group
+    group = bpy.data.node_groups.new('Pinball Trim', 'GeometryNodeTree')
+    group.interface.new_socket(name='Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
+    for label, value in (('Width', .1), ('Height', .1)):
+        group.interface.new_socket(name=label, in_out='INPUT', socket_type='NodeSocketFloat').default_value = value
+    material = group.interface.new_socket(name='Material', in_out='INPUT', socket_type='NodeSocketMaterial')
+    group.interface.new_socket(name='Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+    nodes, links = group.nodes, group.links
+    source, output = nodes.new('NodeGroupInput'), nodes.new('NodeGroupOutput')
+    section = nodes.new('GeometryNodeCurvePrimitiveQuadrilateral')
+    links.new(source.outputs['Width'], section.inputs['Width'])
+    links.new(source.outputs['Height'], section.inputs['Height'])
+    # The section stands on the line, rather than around it.
+    lift = nodes.new('GeometryNodeTransform')
+    half = nodes.new('ShaderNodeMath')
+    half.operation = 'MULTIPLY'
+    half.inputs[1].default_value = -.5
+    links.new(source.outputs['Height'], half.inputs[0])
+    offset = nodes.new('ShaderNodeCombineXYZ')
+    links.new(half.outputs[0], offset.inputs['Y'])
+    links.new(section.outputs[0], lift.inputs['Geometry'])
+    links.new(offset.outputs[0], lift.inputs['Translation'])
+    loft = nodes.new('GeometryNodeCurveToMesh')
+    links.new(source.outputs['Geometry'], loft.inputs['Curve'])
+    links.new(lift.outputs[0], loft.inputs['Profile Curve'])
+    outward = nodes.new('GeometryNodeFlipFaces')
+    links.new(loft.outputs[0], outward.inputs['Mesh'])
+    paint = nodes.new('GeometryNodeSetMaterial')
+    links.new(outward.outputs[0], paint.inputs['Geometry'])
+    links.new(source.outputs['Material'], paint.inputs['Material'])
+    links.new(paint.outputs[0], output.inputs['Geometry'])
+    return group
+
+
+def trim_line(name, outline, width, height, role, z=0, sharp=40):
+    """A frame from a closed line: a poly curve with a section given by modifiers."""
+    curve = bpy.data.curves.new(name, 'CURVE')
+    curve.dimensions = '3D'
+    spline = curve.splines.new('POLY')
+    spline.points.add(len(outline) - 1)
+    for point, p in zip(spline.points, outline):
+        point.co = (p[0], p[1], z, 1)
+    spline.use_cyclic_u = True
+    curve.materials.append(materials[role])
+    obj = bpy.data.objects.new(name, curve)
+    scene.collection.objects.link(obj)
+    obj.parent = assets[current][0]
+    obj['surface_role'] = role
+    assets[current][1].append(obj)
+    section = obj.modifiers.new('Section', 'NODES')
+    section.node_group = trim_group()
+    tree = section.node_group.interface.items_tree
+    for label, value in (('Width', width), ('Height', height), ('Material', materials[role])):
+        pb_modifier.set_input(section, tree[label].identifier, value)
+    return obj
 
 
 def cylinder(name, radius, bottom, top, role, xy=(0, 0), segments=24, bevel=None):
@@ -158,7 +343,7 @@ def ring(name, major, minor, z, role, xy=(0, 0), segments=48, sides=8):
     return lathe(name, profile[::-1] if False else profile, role, segments, xy, sharp=80)
 
 
-def sweep(name, path, section, role, closed=False, band_roles=None, sharp=38, uv_scale=None):
+def sweep(name, path, section, role, closed=False, band_roles=None, sharp=38, uv_scale=None, path_tangents=None):
     """Extrude section along path. Section points are (offset left of travel, height above
     the path point), running from the right foot over the top to the left foot."""
     n = len(path)
@@ -176,6 +361,9 @@ def sweep(name, path, section, role, closed=False, band_roles=None, sharp=38, uv
         miter = miter.normalized() if miter.length > 1e-4 else t1
         normal = Vector((-miter.y, miter.x))
         stretch = 1 / max(miter.dot(t1), .45)
+        if path_tangents is not None:
+            normal = Vector((-path_tangents[i][1], path_tangents[i][0]))
+            stretch = 1
         if i:
             along += (p - pts[i - 1]).length
         for j, (offset, z) in enumerate(section):
@@ -209,6 +397,35 @@ def prism_top(name, outline, z, role, inset=0):
     return solid(name, [(p[0], p[1], z) for p in outline], [tuple(range(len(outline)))], role, uvs, 90)
 
 
+def inset_polygon(outline, distance):
+    """A convex counter-clockwise polygon moved in by distance."""
+    out = []
+    n = len(outline)
+    for i in range(n):
+        p, a, b = Vector(outline[i]), Vector(outline[i - 1]), Vector(outline[(i + 1) % n])
+        t0, t1 = (p - a).normalized(), (b - p).normalized()
+        miter = (t0 + t1).normalized()
+        normal = Vector((-miter.y, miter.x))
+        out.append(p + normal * distance / max(normal.dot(Vector((-t1.y, t1.x))), .3))
+    return out
+
+
+def filleted(outline, radius, arc=8):
+    """A convex counter-clockwise polygon with round corners."""
+    out = []
+    n = len(outline)
+    for i in range(n):
+        p, a, b = Vector(outline[i]), Vector(outline[i - 1]), Vector(outline[(i + 1) % n])
+        t0, t1 = (p - a).normalized(), (b - p).normalized()
+        turn = math.acos(max(-1, min(1, t0.dot(t1))))
+        reach = radius * math.tan(turn * .5)
+        start, stop = p - t0 * reach, p + t1 * reach
+        centre = start + Vector((-t0.y, t0.x)) * radius
+        a0 = math.atan2((start - centre).y, (start - centre).x)
+        out.extend(tuple(centre + Vector((math.cos(a0 + turn * k / arc), math.sin(a0 + turn * k / arc))) * radius) for k in range(arc + 1))
+    return out
+
+
 # ---------------------------------------------------------------------------------- Kit parts
 
 X = 0
@@ -218,37 +435,29 @@ def next_slot():
     return (X, 0, 0)
 
 
-# From the construction drawing: base flange, skirt with lit slots, rubber ring, cap, jewel.
-# Tall enough that the camera's tilt shows the skirt below the ring.
+# A mushroom: a flared foot, a narrow waist, and a wide cap that overhangs them with a raised hub
+# holding the jewel. Tall enough that the camera's tilt shows the foot below the cap, and that the
+# cap throws a real shadow on the playfield. Every part is broad enough to read at phone size.
 asset('bumper-base', next_slot())
-lathe('Base flange', [(1.06, 0), (1.06, .05), (1.03, .08), (.94, .1)], 'accent', 64, sharp=70)
-for i in range(8):
-    a = 2 * math.pi * (i + .5) / 8
-    bolt(f'Flange bolt {i}', .034, .06, (1.0 * math.cos(a), 1.0 * math.sin(a)))
-lathe('Skirt', [(.92, .08), (.92, .72)], 'accent', 64, sharp=70)
-ring('Skirt band', .925, .018, .18, 'metal', segments=64, sides=6)
-for i in range(10):
-    a0 = 2 * math.pi * (i + .22) / 10
-    a1 = 2 * math.pi * (i + .78) / 10
-    quad = [(r * math.cos(a), r * math.sin(a), z) for a, r, z in ((a0, .93, .25), (a1, .93, .25), (a1, .93, .55), (a0, .93, .55))]
-    solid(f'Lit slot {i}', quad, [(0, 1, 2, 3)], 'skirt_lamp', sharp=90)
-lathe('Rubber ring', [(.86, .72), (.97, .75), (1.02, .86), (.97, .97), (.88, 1.01)], 'black_rubber', 64, sharp=80)
+lathe('Foot', [(.88, 0), (.88, .06), (.8, .11)], 'accent', 56, sharp=50)
+# Black under the cap: this is what makes the cap read as overhanging.
+lathe('Waist', [(.8, .1), (.56, .18), (.4, .27), (.3, .42), (.28, .62), (.34, .8), (.5, .92)], 'black_rubber', 40, sharp=80)
 
-CAP_PLANAR = 1.8
+CAP_PLANAR = 1.92
 asset('bumper-cap', next_slot())
-lathe('Cap • painted star', [(.9, 1.06), (.8, 1.11), (.64, 1.17), (.5, 1.21)], 'cap_art', 72, planar=CAP_PLANAR, sharp=80)
-lathe('Brass lip', [(.93, .98), (.93, 1.05), (.89, 1.09), (.85, 1.085)], 'accent', 72, sharp=70)
-lathe('Jewel collar', [(.5, 1.2), (.5, 1.25), (.46, 1.29), (.33, 1.31), (.3, 1.29)], 'accent', 56, sharp=70)
-for i in range(8):
-    a = 2 * math.pi * (i + .5) / 8
-    bolt(f'Collar bolt {i}', .026, 1.28, (.415 * math.cos(a), .415 * math.sin(a)))
-lathe('Jewel', [(.31, 1.27), (.3, 1.34), (.23, 1.43), (.12, 1.49), (.001, 1.51)], 'jewel', 40, planar=.64, sharp=80)
+# The UV-mapped part comes first: joining keeps the first object's UV layers.
+lathe('Cap • painted star', [(.92, 1.13), (.72, 1.16), (.5, 1.19)], 'cap_art', 64, planar=CAP_PLANAR, sharp=80)
+lathe('Cap edge', [(.46, .95), (.94, .98), (1.0, 1.02), (1.0, 1.1), (.95, 1.15), (.9, 1.15)], 'accent', 64, sharp=50)
+lathe('Hub', [(.56, 1.17), (.54, 1.25), (.48, 1.3), (.38, 1.3), (.34, 1.26), (.34, 1.2)], 'accent', 48, sharp=50)
+lathe('Jewel', [(.345, 1.21), (.335, 1.28), (.27, 1.35), (.15, 1.4), (.001, 1.42)], 'jewel', 36, planar=.69, sharp=80)
 
 asset('insert-bezel', next_slot())
-lathe('Recessed socket', [(1.08, -.02), (1.10, .01), (1.06, .05), (1.0, .055)], 'dark', 40)
-ring('Bevelled bezel', 1.04, .03, .05, 'accent', segments=40, sides=8)
-# A shallow clear lens over the printed insert, so each one catches a highlight like a jewel.
-lathe('Domed lens', [(1.0, .05), (.92, .13), (.7, .21), (.38, .265), (.001, .28)], 'lens', 36, sharp=80)
+# Broad raised chamfer, kept inside the existing collision-validator footprint.
+# Widen inward rather than growing adjacent inserts into one another.
+lathe('Recessed socket', [(1.10, -.025), (1.10, .015), (1.07, .04)], 'dark', 40)
+lathe('Machined brass bezel', [(1.095, .015), (1.095, .07), (1.055, .14),
+                             (.94, .17), (.86, .125), (.84, .08), (.84, .025)], 'accent', 48, sharp=50)
+lathe('Clear inset lens', [(.84, .055), (.77, .10), (.60, .145), (.32, .17), (.001, .18)], 'lens', 32, sharp=80)
 
 # Unit circumradius, apex on +x. The scene rotates it to the lamp's angle.
 triangle = []
@@ -256,11 +465,11 @@ for corner, a in enumerate((0, 2 * math.pi / 3, 4 * math.pi / 3)):
     centre = Vector((math.cos(a), math.sin(a))) * .78
     for s in range(7):
         b = a - math.pi / 3 + s * (2 * math.pi / 3) / 6
-        triangle.append((centre.x + .24 * math.cos(b), centre.y + .24 * math.sin(b), 0))
+        # Narrowed into an arrowhead: an equilateral triangle has no direction.
+        triangle.append((centre.x + .24 * math.cos(b), (centre.y + .24 * math.sin(b)) * .62, 0))
 asset('insert-arrow', next_slot())
-w = .04
-sweep('Triangular bezel', triangle, [(-w, -.02), (-w, .06), (-w * .3, .10), (w * .3, .10), (w, .06), (w, -.02)], 'accent', closed=True)
-sweep('Triangular socket', triangle, [(w, -.02), (w, .01), (w * 1.2, .012), (w * 1.2, -.02)], 'dark', closed=True)
+w = .065
+trim_line('Triangular bezel', triangle, w * 2, .1, 'accent')
 inner = [(p[0] * .93, p[1] * .93) for p in triangle]
 apex = len(inner)
 vertices = [(p[0], p[1], .05) for p in inner] + [(p[0] * .62, p[1] * .62, .2) for p in inner] + [(0, 0, .26)]
@@ -273,15 +482,24 @@ solid('Faceted lens', vertices, faces, 'lens', sharp=80)
 
 # Small polished studs: the walls they cap are thin lines.
 asset('post', next_slot())
-lathe('Collar', [(.62, 0), (.62, 2.4), (.56, 2.6)], 'accent', 20, sharp=80)
-lathe('Polished dome', [(.56, 2.5), (.5, 3.0), (.3, 3.4), (.001, 3.5)], 'metal', 18, sharp=80)
+lathe('Brass stop', [(1.0, 0), (1.0, .55), (.86, .75), (.62, .8)], 'accent', 20, sharp=60)
+lathe('Polished dome', [(.66, .74), (.58, .98), (.34, 1.14), (.001, 1.2)], 'metal', 16, sharp=80)
 
 asset('target', next_slot())
-d, t = .17, 1.0
-face = [(-.5, -d), (.5, -d), (.5, d), (-.5, d)]
-solid('Target art', [(x, y, t) for x, y in face], [(0, 1, 2, 3)], 'target_art', [(0, 0), (1, 0), (1, 1), (0, 1)], 90)
-sweep('Target frame', [(x * 1.06, y * 1.12, 0) for x, y in face],
-      [(-.05, 0), (-.05, t - .06), (-.02, t), (.03, t)], 'accent', closed=True, sharp=30)
+d = .17
+plate('Target block', [(-.53, -d * 1.12), (.53, -d * 1.12), (.53, d * 1.12), (-.53, d * 1.12)], 0, 1.0, 'accent', chamfer=.03)
+solid('Target art', [(-.5, -d, 1.002), (.5, -d, 1.002), (.5, d, 1.002), (-.5, d, 1.002)], [(0, 1, 2, 3)], 'target_art', [(0, 0), (1, 0), (1, 1), (0, 1)], 90)
+
+# Unit radius: a round target, a domed lens in a broad gold ring on a short solid body.
+asset('spot-target', next_slot())
+lathe('Target lens', [(.74, .62), (.56, .74), (.3, .82), (.001, .85)], 'sling_lens', 32, planar=2.0, sharp=80)
+lathe('Target body', [(1.0, 0), (1.0, .42), (.92, .6), (.76, .66), (.7, .6)], 'accent', 32, sharp=50)
+
+# Unit half length along y: a rollover switch's plate, a broad metal frame around a dark slot with a
+# gold wire down it. Flat enough for the ball to roll over. Space Cadet's lanes are built from these.
+asset('rollover-plate', next_slot())
+plate_object = object_for('Rollover bar', bpy.data.meshes.new('Rollover bar'), 'plate_frame')
+pb_modifier.attach_rollover_bar(plate_object, materials['plate_frame'], materials['dark'], 1, .46)
 
 asset('flasher-cage', next_slot())
 lathe('Foot ring', [(1.05, 0), (1.05, .1), (.92, .22)], 'accent', 32)
@@ -393,22 +611,6 @@ def bevelled_block(name, centre, tangent, across, along, z0, z1, role):
     return solid(name, vertices, faces, role, sharp=30)
 
 
-def floor_arrow(name, path, index, direction, sheet_z, half_width=.0125, length=.03):
-    """The reference's lit red triangle, set into the channel floor and pointing along it."""
-    a, b = path[max(index - 1, 0)], path[min(index + 1, len(path) - 1)]
-    tangent = (b - a).xy.normalized()
-    normal = Vector((-tangent.y, tangent.x))
-    slope = (b.z - a.z) / max((b - a).xy.length, 1e-6)
-    centre = path[index].xy
-    corners = [(direction * length * .6, 0), (-direction * length * .4, half_width), (-direction * length * .4, -half_width)]
-    if direction < 0:
-        corners = corners[::-1]
-    vertices = [(*(centre + tangent * t + normal * n), path[index].z + slope * t + sheet_z(n)) for t, n in corners]
-    uvs = [(.5, 1), (0, 0), (1, 0)]
-    solid(f'{name} lens', vertices, [(0, 1, 2)], 'sling_lens', uvs, 90)
-    sweep(f'{name} frame', [Vector(v) for v in vertices], [(-.0022, -.001), (-.0022, .0012), (.0022, .0012), (.0022, -.001)], 'accent', closed=True, sharp=70)
-
-
 def faceted_lens(name, outline, z, role, rise=None):
     """A shallow moulded dome over a counter-clockwise outline, UVs across its bounding box."""
     centre = Vector((sum(p[0] for p in outline) / len(outline), sum(p[1] for p in outline) / len(outline)))
@@ -474,9 +676,9 @@ lathe('Foot', [(1.0, 0), (1.0, .32), (.8, .55), (.62, .62)], 'accent', 18, sharp
 lathe('Stem', [(.62, .55), (.62, 2.2), (.86, 2.45), (.86, 2.8), (.62, 3.05)], 'accent', 18, sharp=70)
 lathe('Polished dome', [(.62, 3.0), (.56, 3.45), (.32, 3.82), (.001, 3.95)], 'metal', 18, sharp=80)
 asset('mech-tower', next_slot())
-lathe('Foot', [(1.0, 0), (1.0, .32), (.8, .55), (.7, .62)], 'accent', 18, sharp=70)
-lathe('Holder', [(.7, .55), (.7, 2.0), (.92, 2.25), (.92, 2.55), (.74, 2.7)], 'accent', 18, sharp=70)
-lathe('Lamp', [(.74, 2.6), (.72, 3.1), (.56, 3.6), (.3, 3.92), (.001, 4.0)], 'glow', 18, sharp=80)
+lathe('Moulded light socket', [(1.0, 0), (1.0, .45), (.78, .75), (.7, .85)], 'cabinet_shell', 20, sharp=65)
+lathe('Inset lens', [(.70, .78), (.65, 1.0), (.44, 1.16), (.001, 1.20)], 'glow', 20, sharp=80)
+
 
 
 for table_index, table in enumerate(TABLES):
@@ -521,37 +723,15 @@ for table_index, table in enumerate(TABLES):
     sweep('Inset frame', [(*p, height) for p in inset[::-1]], [(-.006, 0), (-.006, .007), (.006, .007), (.006, 0)], 'accent', closed=True, sharp=70)
     bolt('Tip bolt', rt * .42, height - .01, (1, 0))
 
-    # Every wall is a thin polished line. The concept has no heavy rails, and no fasteners on them.
+    # Every wall is a thick piece rising out of the board, with a gold trim, and it casts a shadow.
     asset(f"{table['id']}-walls", (table_index * 3, -3, 0))
-    r = .0032
     for wall in table['walls']:
         if wall['style'] not in ('wall', 'rail', 'rubber'):
             continue
-        path = table_path(wall['points'])
-        h = wall['height']
-        sweep(wall['id'], [(*centred(*p), 0) for p in path],
-              [(-r, 0), (-r, h - r * .9), (-r * .7, h - r * .3), (0, h), (r * .7, h - r * .3), (r, h - r * .9), (r, 0)], 'accent', sharp=80)
-        for k, end in enumerate((path[0], path[-1])):
-            lathe(f"{wall['id']} end {k}", [(r, 0), (r, h - r * .5), (r * .7, h + r * .2), (.0001, h + r * .4)], 'accent', 12, centred(*end), sharp=80)
-
-    # The dead corners below the inlanes: a domed kite-shaped guard on a thin foot rail.
-    # The table mirrors about the point midway between the flippers.
-    # Coordinates are relative to the left flipper's pivot, plus the (.3, .345) they were measured from.
-    pivot = table['flippers'][0]['pivot']
-    MIRROR = pivot[0] + table['flippers'][1]['pivot'][0]
-    for side, mirror in (('L', lambda x: x + pivot[0] - .3), ('R', lambda x: MIRROR - (x + pivot[0] - .3))):
-        rise = pivot[1] - .345
-        kite = [(.112, .352), (.158, .392), (.226, .362), (.238, .315), (.178, .272), (.118, .292)]
-        # Soften each corner, keeping the straight edges of the concept's plate.
-        kite = [q for a, b in zip(kite, kite[1:] + kite[:1]) for q in ((a[0] * .86 + b[0] * .14, a[1] * .86 + b[1] * .14), (a[0] * .14 + b[0] * .86, a[1] * .14 + b[1] * .86))]
-        outline = [centred(mirror(x), y + rise) for x, y in kite]
-        if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1] for i in range(len(outline))) < 0:
-            outline = outline[::-1]
-        faceted_lens(f'Guard {side} plate', outline, .004, 'accent', rise=.006)
-        sweep(f'Guard {side} rim', [(*p, 0) for p in outline], [(-.0016, 0), (-.0016, .0048), (0, .006), (.0016, .0048)], 'metal', closed=True, sharp=80)
-        bolt(f'Guard {side} bolt', .0095, .009, centred(mirror(.172), .33 + rise))
-        foot = [(.098, .278), (.112, .26), (.262, .26)]
-        sweep(f'Foot rail {side}', [(*centred(mirror(x), y + rise), 0) for x, y in foot], [(-.002, 0), (-.002, .004), (0, .0052), (.002, .004), (.002, 0)], 'accent', sharp=80)
+        data = build_wall([centred(*p) for p in table_path(wall['points'])], wall['radius'], wall['height'])
+        for role in sorted(set(data.roles)):
+            faces = [f for f, r in zip(data.faces, data.roles) if r == role]
+            solid(f"{wall['id']} • {role}", data.vertices, faces, role, sharp=50)
 
     asset(f"{table['id']}-plastics", (table_index * 3, -6, 0))
     plastic_shapes = [(p['id'], table_path(p['points']), p['height'], 'sling_lens') for p in table['plastics']]
@@ -563,104 +743,59 @@ for table_index, table in enumerate(TABLES):
         if sum(outline[i][0] * outline[(i + 1) % len(outline)][1] - outline[(i + 1) % len(outline)][0] * outline[i][1]
                for i in range(len(outline))) < 0:
             outline = outline[::-1]
+        if name == 'captiveHousing':
+            # A low docking pod with a recessed ball tray, not a tall skeletal cage.
+            x0, x1 = min(p[0] for p in outline), max(p[0] for p in outline)
+            y0, y1 = min(p[1] for p in outline), max(p[1] for p in outline)
+            tray = [(x0, y0), (x1, y0), (x1, y1 - .025), (x0, y1 - .025)]
+            prism_top('Docking pod tray', tray, .001, 'dark')
+            prism_top('Docking pod shell', outline, .020, 'dark')
+            sweep('Docking pod soft edge', [(*p, 0) for p in outline],
+                  [(-.0042, 0), (-.0042, .016), (0, .023), (.0042, .016), (.0042, 0)],
+                  'accent', closed=True, sharp=65)
+            continue
         if art == 'sling_lens':
-            # From the drawing: black bands between three brass posts, around a framed lit panel.
-            middle = Vector((sum(p[0] for p in outline) / len(outline), sum(p[1] for p in outline) / len(outline)))
-            panel = [tuple(middle + (Vector(p) - middle) * .62) for p in outline]
-            faceted_lens(f'{name} panel', panel, .008, art, rise=.004)
-            sweep(f'{name} panel frame', [(*p, 0) for p in panel], [(-.0022, 0), (-.0022, .009), (0, .0105), (.0022, .009), (.0022, 0)], 'accent', closed=True, sharp=70)
-            for a, b in zip(outline, outline[1:] + outline[:1]):
-                sweep(f'{name} band {a[0]:.3f}', [(a[0], a[1], 0), (b[0], b[1], 0)], [(-.0048, .003), (-.0048, .013), (-.0028, .0185), (.0028, .0185), (.0048, .013), (.0048, .003)], 'black_rubber', sharp=80)
-            for k, p in enumerate(outline):
-                lathe(f'{name} post {k}', [(.0088, 0), (.0088, .004), (.0066, .007), (.0066, .019), (.0056, .022)], 'accent', 18, tuple(p), sharp=70)
-                bolt(f'{name} post cap {k}', .0056, .021, tuple(p))
+            # A rounded block like a real bouncer: coloured base and top, a cream band between
+            # them, a cream line inset in the top, and a screw in each corner.
+            band, lip = .03, .037
+            body = filleted(outline, .014)
+            plate = filleted([tuple(q) for q in inset_polygon(outline, .002)], .012)
+            sweep(f'{name} base', [(*p, 0) for p in body], [(0, 0), (0, .006), (.0015, .0085)], 'sling_lens', closed=True, sharp=50)
+            sweep(f'{name} band', [(*p, 0) for p in plate], [(0, .007), (0, band)], 'enamel', closed=True, sharp=50)
+            sweep(f'{name} rim', [(*p, 0) for p in body], [(.002, band), (0, band + .002), (0, lip - .0025), (.0025, lip)], 'sling_lens', closed=True, sharp=50)
+            prism_top(f'{name} top', filleted([tuple(q) for q in inset_polygon(outline, .0025)], .0115), lip, 'sling_lens')
+            line = filleted([tuple(q) for q in inset_polygon(outline, .0065)], .0075)
+            sweep(f'{name} line', [(*p, 0) for p in line], [(0, lip + .0002), (.0042, lip + .0002)], 'enamel', closed=True, sharp=80)
+            # At the centres of the corners' arcs, so they always sit inside the outline.
+            for k, corner in enumerate(inset_polygon(outline, .0175)):
+                lathe(f'{name} screw {k}', [(.0058, lip), (.0058, lip + .0012), (.0042, lip + .0026), (.001, lip + .0032)], 'metal', 14, tuple(corner), sharp=70)
             continue
         prism_top(f'{name} art', outline, top, art)
         # Outline is counter-clockwise, so "left of travel" is inward.
-        sweep(f'{name} frame', [(*p, base) for p in outline], [(-.0024, 0), (-.0024, wall_height + .002), (-.0008, wall_height + .0032), (.0008, wall_height + .0032), (.0024, wall_height + .002), (.0024, 0)], 'accent', closed=True, sharp=80)
+        sweep(f'{name} frame', [(*p, base) for p in outline], [(-.0042, 0), (-.0042, wall_height + .002), (-.0014, wall_height + .0036), (.0014, wall_height + .0036), (.0042, wall_height + .002), (.0042, 0)], 'accent', closed=True, sharp=80)
 
-    # The channel from the modelling reference: running floor, steel retaining walls and broad brass
-    # rails as one smooth loft, then chunky parts only. Anything under about four table-thousandths
-    # is finer than a pixel at phone size, and aliases.
+    # One editable Curve + Pinball Ramp modifier. Supports and arrows are internal geometry.
     for ramp in table['ramps']:
+        spec = TrackSpec.from_dict({'width':ramp['width'], **ramp.get('authoring',{})})
+        spec.triangle_budget=min(6000,spec.triangle_budget)
         found = ramp_paths.problems(ramp)
-        if found:
-            raise RuntimeError(f"{table['id']}/{ramp['id']} is not smooth: {found}; see tools/ramp_paths.py")
-        asset(f"{table['id']}-{ramp['id']}", (table_index * 3, 3, 0))
-        path = [Vector((*centred(p[0], p[1]), p[2])) for p in ramp_paths.loft_path(ramp['points'])]
-        tangents = [Vector(t) for t in ramp_paths.tangents(path)]
-        normals = [Vector((-t.y, t.x)) for t in tangents]
-        half, w = ramp['width'] * .5, ramp_paths.RAIL_WIDTH
-        top = .024
-        step = ramp_paths.SPACING
-
-        def sheet_z(n):
-            return .016 * (n / half) ** 2
-
-        crown = [(-half - w, -.002), (-half - w, top - .003)]
-        crown += [(-half - w * (1 - t), top - .003 + .0055 * math.sin(math.pi * t) ** .6) for t in (.08, .25, .5, .75, .92)]
-        crown += [(-half, top - .003)]
-        wall = [(-half + .0015, .0175), (-half + .004, sheet_z(half - .004))]
-        floor = [(u * (half - .004), sheet_z(u * (half - .004))) for u in (-.75, -.5, -.25, 0, .25, .5, .75)]
-        right = crown + wall
-        section = right + floor + [(-x, z) for x, z in right[::-1]]
-        n_crown, n_wall, n_floor = len(crown) - 1, len(wall), len(floor) + 1
-        roles = ['accent'] * n_crown + ['ramp_floor'] * (n_wall + n_floor + n_wall) + ['accent'] * n_crown
-        sweep('Channel', path, section, 'accent', band_roles=roles, sharp=89)
-
-        def clamp(i, label, along=.008, tall=.0075):
-            for side in (-1, 1):
-                across = (-.0015, w + .004) if side > 0 else (-w - .004, .0015)
-                centre = path[i].xy + normals[i] * side * half
-                bevelled_block(f'{label} {i} {side}', centre, tangents[i], across, (-along, along), path[i].z + top - .007, path[i].z + top + tall, 'accent')
-                bolt(f'{label} bolt {i} {side}', .0054, path[i].z + top + tall - .0005, tuple(centre + normals[i] * side * (w * .5 + .001)))
-
-        def mount(i, side, offset=None, force=False):
-            """A support down to a bolted foot plate on the playfield."""
-            spot = path[i].xy + normals[i] * side * (half + (w * .5 if offset is None else offset))
-            if not force and not clear_of_parts(table, spot.x + SIZE[0] * .5, spot.y + SIZE[1] * .5, .012):
-                return False
-            lathe(f'Foot {i} {side}', [(.012, 0), (.012, .0028), (.0095, .0048), (.0065, .0055)], 'accent', 24, tuple(spot), sharp=70)
-            bolt(f'Foot pin {i} {side}', .0048, .005, tuple(spot))
-            if path[i].z > .012:
-                lathe(f'Column {i} {side}', [(.0058, .004), (.0058, path[i].z + .004), (.0074, path[i].z + .008), (.0074, path[i].z + top - .004)], 'accent', 14, tuple(spot), sharp=70)
-            return True
-
-        # Clamps along the way, with supports where the channel runs high.
-        count = len(path)
-        every = round(.17 / step)
-        margin = round(.08 / step)
-        for i in range(margin, count - margin, every):
-            clamp(i, 'Clamp')
-            if path[i].z > .05:
-                for side in (-1, 1):
-                    mount(i, side)
-
-        # Entrance: a sill at floor level, heavy cheeks bound to round foot plates either side.
-        length = round(.03 / step)
-        bevelled_block('Entrance sill', path[0].xy, tangents[0], (-half + .001, half - .001), (-.004, .004), -.001, .0045, 'accent')
-        for side in (-1, 1):
-            across = (-.001, w + .007) if side > 0 else (-w - .007, .001)
-            centre = (path[0].xy + path[length].xy) * .5 + normals[length // 2] * side * half
-            bevelled_block(f'Entrance cheek {side}', centre, tangents[length // 2], across, (-.018, .018), -.001, path[length].z + top + .0045, 'accent')
-            bolt(f'Entrance bolt {side}', .0062, path[length].z + top + .004, tuple(centre + normals[length // 2] * side * (w * .5 + .002)))
-            spot = path[0].xy + normals[0] * side * (half + w + .017) + tangents[0] * .002
-            bevelled_block(f'Entrance bracket {side}', path[0].xy + tangents[0] * .002, tangents[0], (half + w, half + w + .013) if side > 0 else (-half - w - .013, -half - w), (-.0075, .0075), 0, .0042, 'accent')
-            lathe(f'Entrance foot {side}', [(.0135, 0), (.0135, .003), (.0105, .0052), (.007, .006)], 'accent', 28, tuple(spot), sharp=70)
-            bolt(f'Entrance pin {side}', .0058, .0055, tuple(spot))
-        floor_arrow('Entrance arrow', path, round(.075 / step), 1, sheet_z)
-
-        # Exit: cheeks and a band across the channel's end, on its own pair of supports.
-        last = count - 1
-        back = last - length
-        bevelled_block('Exit band', path[last].xy, tangents[last], (-half - w - .002, half + w + .002), (-.002, .0035), path[last].z - .018, path[last].z + .0035, 'accent')
-        for side in (-1, 1):
-            across = (-.001, w + .006) if side > 0 else (-w - .006, .001)
-            centre = (path[last].xy + path[back].xy) * .5 + normals[last - length // 2] * side * half
-            bevelled_block(f'Exit cheek {side}', centre, tangents[last - length // 2], across, (-.016, .016), path[last].z + top - .009, path[last].z + top + .0065, 'accent')
-            bolt(f'Exit bolt {side}', .0058, path[last].z + top + .006, tuple(centre + normals[last - length // 2] * side * (w * .5 + .0015)))
-            mount(last - length // 2, side)
-        floor_arrow('Exit arrow', path, count - 1 - round(.06 / step), 1, sheet_z)
+        clearance = rail_geometry(spec)[0] - spec.corner_radius - table['physics']['ballRadius']
+        if ramp_paths.measure(ramp)['drift'] > clearance:
+            found.append('the larger ball would clip the channel walls along the relaxed spline')
+        if found:raise RuntimeError(f"{table['id']}/{ramp['id']}: {found}")
+        asset(f"{table['id']}-{ramp['id']}",(table_index*3,3,0))
+        root=assets[current][0]
+        curve=bpy.data.curves.new(current+' path','CURVE');curve.dimensions='3D'
+        points=ramp_paths.ramp_path(ramp)
+        spline=curve.splines.new('POLY');spline.points.add(len(points)-1)
+        for point,p in zip(spline.points,points):point.co=(*centred(p[0],p[1]),p[2],1)
+        controller=bpy.data.objects.new(current+' • Path',curve);scene.collection.objects.link(controller);controller.parent=root
+        controller['pb_kind']='ramps';controller['pb_id']=ramp['id']
+        pb_builder.configure_track(controller,spec)
+        _,generated=pb_builder.rebuild_track(controller,materials,lambda xy,r,tight=False:clear_support(table,(xy.x+SIZE[0]*.5,xy.y+SIZE[1]*.5),r,tight))
+        assets[current]=(root,[controller])
+        root['section']=generated.metadata['section'];root['arrow_count']=generated.metadata['arrow_count']
+        root['arrow_spacing']=spec.arrow_spacing;root['support_count']=generated.metadata['support_count']
 
 
 # ------------------------------------------------------------------------------------ Export
@@ -694,10 +829,11 @@ def export(name, root, objects):
         mesh.calc_loop_triangles()
         transform = inverse @ obj.matrix_world
         normal_matrix = transform.to_3x3().inverted().transposed()
-        role = obj['surface_role']
-        group = grouped.setdefault(role, {'positions': [], 'normals': [], 'uvs': [], 'lookup': {}, 'indices': []})
         uv = mesh.uv_layers.active
         for triangle in mesh.loop_triangles:
+            material=mesh.materials[triangle.material_index]
+            role=material.get('pb_surface_role',obj.get('surface_role',material.name))
+            group=grouped.setdefault(role,{'positions':[],'normals':[],'uvs':[],'lookup':{},'indices':[]})
             for loop in triangle.loops:
                 vertex = mesh.loops[loop].vertex_index
                 p = transform @ mesh.vertices[vertex].co
@@ -715,6 +851,9 @@ def export(name, root, objects):
                 reach = max(reach, math.hypot(p.x, p.y))
             triangle_count += 1
         evaluated.to_mesh_clear()
+
+    if name.rsplit('-', 1)[-1] in ('rampL', 'rampR') and triangle_count > 6000:
+        raise RuntimeError(f'{name}: {triangle_count} triangles exceeds mobile ramp budget of 6000')
 
     doc = Element('COLLADA', {'xmlns': NS, 'version': '1.4.1'})
     meta = child(doc, 'asset')
@@ -757,9 +896,13 @@ def export(name, root, objects):
         child(binding, 'instance_material', {'symbol': role, 'target': '#' + role + '-mat'})
     child(child(doc, 'scene'), 'instance_visual_scene', {'url': '#Scene'})
     ElementTree(doc).write(OUT / (name + '.dae'), encoding='utf-8', xml_declaration=True)
-    return {'objects': len(objects), 'triangles': triangle_count, 'radius': round(reach, 4), 'bytes': (OUT / (name + '.dae')).stat().st_size}
+    stats = {'objects': len(objects), 'triangles': triangle_count, 'radius': round(reach, 4), 'bytes': (OUT / (name + '.dae')).stat().st_size}
+    if 'arrow_count' in root:
+        stats.update(section=root['section'], arrow_count=root['arrow_count'], arrow_spacing=round(root['arrow_spacing'], 6))
+    return stats
 
 
+# Parts stay separate objects: joining would apply their modifiers, and the master could no longer edit them.
 bpy.context.view_layer.update()
 stale = {p.stem for p in OUT.glob('*.dae')} - set(assets)
 for name in stale:

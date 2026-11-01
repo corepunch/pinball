@@ -22,7 +22,14 @@ static const double kBallAddDelay = 0.8;
 @end
 @implementation PBGroupState @end
 
+static const NSInteger kBumpersForSuper = 25;
+static const double kSuperBumperSeconds = 15.0;
+static const double kRampComboSeconds = 8.0;
+
 @implementation PBRuleEngine {
+    NSInteger _bumperHits, _superBumperGeneration, _comboChain, _comboGeneration, _lastRamp;
+    int _superBumperTime;
+    BOOL _comboOpen;
     PBPhysicsWorld *_world;
     PBTableDefinition *_table;
     PBRulesDef *_rules;
@@ -224,6 +231,18 @@ static const double kBallAddDelay = 0.8;
     switch (event->kind) {
         case PBEventBumper:
             [self award:@"bumper"];
+            if (_superBumperTime > 0) [self award:@"bumper"];
+            if (++_bumperHits % kBumpersForSuper == 0) {
+                _superBumperGeneration++;
+                NSInteger generation = _superBumperGeneration;
+                _superBumperTime = 1;
+                [self showMessage:@"SUPER BUMPERS"];
+                __weak PBRuleEngine *weakSelf = self;
+                [self after:kSuperBumperSeconds do:^{
+                    PBRuleEngine *engine = weakSelf;
+                    if (engine && engine->_superBumperGeneration == generation) engine->_superBumperTime = 0;
+                }];
+            }
             _bonus += 1;
             _ringLit = (_ringLit + 1) % 13;
             break;
@@ -258,7 +277,7 @@ static const double kBallAddDelay = 0.8;
             [self handleSaucer:event->element];
             break;
         case PBEventRampComplete:
-            [self handleRampComplete];
+            [self handleRampComplete:event->element];
             break;
         case PBEventKickback:
             [self award:@"kickback"];
@@ -401,9 +420,26 @@ static const double kBallAddDelay = 0.8;
     if (_multiballActive) _jackpotLit = YES;
 }
 
-- (void)handleRampComplete {
+- (void)handleRampComplete:(NSInteger)ramp {
     [self award:@"ramp"];
     _bonus += 3;
+    // Another ramp straight after the last one is a combo, and the chain grows.
+    if (_comboOpen && ramp != _lastRamp) {
+        _comboChain++;
+        [self addScore:[_rules scoreFor:@"rampCombo"] * _comboChain];
+        [self showMessage:[NSString stringWithFormat:@"RAMP COMBO X%ld", (long)_comboChain]];
+    } else {
+        _comboChain = 0;
+    }
+    _lastRamp = ramp;
+    _comboOpen = YES;
+    _comboGeneration++;
+    NSInteger generation = _comboGeneration;
+    __weak PBRuleEngine *weakSelf = self;
+    [self after:kRampComboSeconds do:^{
+        PBRuleEngine *engine = weakSelf;
+        if (engine && engine->_comboGeneration == generation) { engine->_comboOpen = NO; engine->_comboChain = 0; }
+    }];
     if (_multiballActive && _jackpotLit) {
         _jackpotLit = NO;
         [self award:@"jackpot"];

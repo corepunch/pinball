@@ -6,8 +6,7 @@ primary buttons, and blue enamel icon keys. It uses no system material, blur, or
 The title artwork is the selected app-icon concept 10.
 
 Screens: home, level map, level goal, playing, paused, settings, how to play, results, end-game confirmation,
-restart confirmation. During play, the board fills the phone. The SpriteKit HUD shows score, ball and pause as small indicators either side of the camera cutout, with the level goal and game messages just below it; pause stays clear of the home indicator and
-the central top lanes. Menus scale to smaller phones while preserving button hit areas.
+restart confirmation. During play, the board fills the phone. The SpriteKit HUD shows score, ball and pause as small indicators either side of the camera cutout, with the level goal and game messages just below it. The score and pause sit inside the two corner flashers; the ball counter is bounded to keep clear of the camera and pause. Event text is measured and ellipsized within the 126-point opening above the lane inserts. Menus scale to smaller phones while preserving button hit areas.
 
 ## Artwork
 
@@ -63,6 +62,9 @@ zsh tools/render_ui_preview.sh "$PWD/Build/Products/Debug-iphoneos/Pinball.app" 
 
 Pass the actual built app path if Xcode uses a different products directory. This requires local
 macOS graphics access and existing Xcode tools, with no dependency downloads. It exports every
-screen plus smaller-phone home/settings previews, and checks pointer capture, cancellation and
-gameplay passthrough. Previews live at `Art/Previews/ui-*.png`. They use representative scores for
+screen plus smaller-phone home/settings previews, and checks pointer capture, cancellation, gameplay passthrough, long-score/message bounds and clearance from the corner lamps. Previews live at `Art/Previews/ui-*.png`. They use representative scores for
 layout verification, not a live leaderboard result.
+
+## In-game readout
+
+Score, ball number and messages are a dot-matrix display drawn by `PBLEDTexture` in `App/UI/PBGameUI.m`, directly on black with no panel, in the manner of Space Cadet: a 5x7 font with two-dot strokes, in periwinkle. Hit scores fly up in the same dots, in gold. Sparks use normal alpha blending, because additive blending over the overlay's transparent background greys them into smoke.

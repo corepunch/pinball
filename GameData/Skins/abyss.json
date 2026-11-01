@@ -144,7 +144,7 @@
           0,
           0,
           851,
-          1556
+          1848
         ],
         "file": "abyss-playfield.jpg",
         "canvas": [
@@ -152,6 +152,76 @@
           1848
         ],
         "bleed": 0
+      },
+      "ramp_chase_off": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          0,
+          396,
+          397,
+          397
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_1": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          397,
+          396,
+          396,
+          397
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_2": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          793,
+          396,
+          397,
+          397
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_3": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          1190,
+          396,
+          396,
+          397
+        ],
+        "bleed": 1
+      },
+      "ramp_chase_4": {
+        "file": "ramp-chase.png",
+        "canvas": [
+          1983,
+          793
+        ],
+        "rect": [
+          1586,
+          396,
+          397,
+          397
+        ],
+        "bleed": 1
       }
     }
   },
@@ -199,13 +269,13 @@
   ],
   "metal": [
     1,
-    0.88,
-    0.66
+    0.965,
+    0.87
   ],
   "accent": [
     1,
-    0.84,
-    0.58
+    0.9,
+    0.71
   ],
   "flipperRubber": [
     0.045,
@@ -230,13 +300,13 @@
     "roughness": 0.24,
     "playfieldReflectivity": 0.15,
     "bloom": 0.34,
-    "rampOpacity": 0.8,
+    "rampOpacity": 1.0,
     "rampGlass": [
-      0.8,
-      1,
-      0.96
+      0.025,
+      0.1,
+      0.12
     ],
-    "matcap": "courtyard",
+    "matcap": "studio",
     "rampMatcap": "sunrise",
     "rampBlur": 2.5,
     "rampGloss": 0.1

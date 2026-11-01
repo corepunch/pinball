@@ -16,7 +16,7 @@ from pathlib import Path
 
 SPACING = .007          # Between rings of the loft, in table widths.
 RELAX_PASSES = 350     # Smoothing, on points about .01 apart.
-RAIL_WIDTH = .015       # From the channel wall to the rail's outer edge.
+RAIL_WIDTH = .008         # From the channel wall to the rail's outer edge.
 MAX_TURN = 7.0          # Degrees between neighbouring edge segments: above this, facets show.
 MAX_TURN_JUMP = 1.2     # Change of that turn between neighbours: above this, it reads as a kink.
 MAX_DRIFT = .012        # From the ball's path. About half a ball's radius.
@@ -34,6 +34,10 @@ def catmull_rom(points, subdivisions):
                              for a, b, c, d in zip(p0, p1, p2, p3)))
     out.append(tuple(points[-1]))
     return out
+
+
+def ramp_path(ramp):
+    return [tuple(p) for p in ramp['points']] if ramp.get('authoring',{}).get('path_sampled') else loft_path(ramp['points'])
 
 
 def loft_path(points, spacing=SPACING):
@@ -65,6 +69,41 @@ def tangents(path):
     return out
 
 
+def mesh_path(ramp):
+    """Keep dense bend rings; merge nearly straight spans within 0.12 mm at both rail edges.
+
+    Return original tangents with the selected stations so loft cross sections stay perpendicular
+    to the reference spline even where straight spans use fewer rings.
+    """
+    path = ramp_path(ramp)
+    directions = tangents(path)
+    reach = ramp['width'] * .5 + RAIL_WIDTH
+    strips = [[(p[0] - t[1] * d, p[1] + t[0] * d, p[2])
+               for p, t in zip(path, directions)] for d in (-reach, 0, reach)]
+
+    def distance(p, a, b):
+        delta = [y - x for x, y in zip(a, b)]
+        u = max(0, min(1, sum((x - y) * d for x, y, d in zip(p, a, delta)) /
+                       max(sum(d * d for d in delta), 1e-12)))
+        return math.dist(p, [x + u * d for x, d in zip(a, delta)])
+
+    kept = [0]
+    while kept[-1] < len(path) - 1:
+        first = kept[-1]
+        last = first + 1
+        for candidate in range(first + 2, len(path)):
+            dot = sum(a * b for a, b in zip(directions[first], directions[candidate]))
+            if math.dist(path[first], path[candidate]) > .028 or dot < math.cos(math.radians(3)):
+                break
+            error = max(distance(strip[i], strip[first], strip[candidate])
+                        for strip in strips for i in range(first + 1, candidate))
+            if error > .00012:
+                break
+            last = candidate
+        kept.append(last)
+    return [path[i] for i in kept], [directions[i] for i in kept]
+
+
 def edge(path, offset):
     return [(p[0] - t[1] * offset, p[1] + t[0] * offset) for p, t in zip(path, tangents(path))]
 
@@ -89,7 +128,7 @@ def distance_to_polyline(point, polyline):
 
 def measure(ramp):
     """Worst values for one ramp, and what they break."""
-    path = loft_path(ramp['points'])
+    path = ramp_path(ramp)
     reach = ramp['width'] * .5 + RAIL_WIDTH
     ball_path = catmull_rom([tuple(p) for p in ramp['points']], 6)
     result = {'rings': len(path), 'turn': 0.0, 'jump': 0.0, 'fold': False,
@@ -127,9 +166,10 @@ def main():
         table = json.loads(file.read_text())
         for ramp in table['ramps']:
             m = measure(ramp)
+            mesh, _ = mesh_path(ramp)
             found = problems(ramp)
             failed = failed or bool(found)
-            print(f"{table['id']}/{ramp['id']}: {'FAIL' if found else 'ok'}  rings {m['rings']}  turn {m['turn']:.2f}  "
+            print(f"{table['id']}/{ramp['id']}: {'FAIL' if found else 'ok'}  rings {m['rings']} → {len(mesh)} mesh  turn {m['turn']:.2f}  "
                   f"jump {m['jump']:.3f}  drift {m['drift']:.4f}")
             for problem in found:
                 print(f'  {problem}')

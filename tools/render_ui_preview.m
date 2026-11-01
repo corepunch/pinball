@@ -24,11 +24,16 @@ int main(int argc, const char *argv[]) {
         NSBundle *bundle = [NSBundle bundleWithPath:[NSString stringWithUTF8String:argv[1]]];
         NSString *output = [NSString stringWithUTF8String:argv[2]];
         [[NSFileManager defaultManager] createDirectoryAtPath:output withIntermediateDirectories:YES attributes:nil error:NULL];
-        PBTableDefinition *table = [PBTableDefinition tableNamed:@"aurora" bundle:bundle error:NULL];
-        PBSkin *skin = [PBSkin skinNamed:@"orbital" bundle:bundle];
+        NSDictionary *environment = NSProcessInfo.processInfo.environment;
+        PBTableDefinition *table = [PBTableDefinition tableNamed:environment[@"PB_PREVIEW_TABLE"] ?: @"aurora" bundle:bundle error:NULL];
+        PBSkin *skin = [PBSkin skinNamed:environment[@"PB_PREVIEW_SKIN"] ?: @"orbital" bundle:bundle];
         Require(table && skin, @"table and skin resources");
         PBTableScene *scene = [[PBTableScene alloc] initWithTable:table skin:skin];
         [scene fitCameraToAspect:874.0 / 402.0];
+        PBGame *game = [[PBGame alloc] initWithTable:table highScore:985400];
+        NSInteger fixtureBall = [game.world spawnBallAtPlunger];
+        [game.world placeBall:fixtureBall at:simd_make_float2(.4775f, .13f) velocity:simd_make_float2(0, 0)];
+        [scene syncWithGame:game elapsed:.001];
         SCNRenderer *renderer = [SCNRenderer rendererWithDevice:MTLCreateSystemDefaultDevice() options:nil];
         renderer.scene = scene.scene; renderer.pointOfView = scene.cameraNode;
         PBGameUI *ui = [[PBGameUI alloc] initWithBundle:bundle];
@@ -53,6 +58,22 @@ int main(int argc, const char *argv[]) {
         for (NSInteger i = 0; i < names.count; i++) {
             Export(renderer, ui, (PBMenuScreen)i, [output stringByAppendingFormat:@"/ui-%@.png", names[i]], CGSizeMake(804, 1748));
         }
+        // Stress the actual HUD, including the widest legal score and a long event message.
+        ui.bonusMultiplier = 5;
+        [ui updateScore:INT64_MAX best:INT64_MAX ball:3 ballCount:3];
+        [ui showMessage:@"MULTIBALL JACKPOT — SHOOT THE LEFT RAMP"];
+        Export(renderer, ui, PBMenuPlaying, [output stringByAppendingPathComponent:@"ui-playing-long.png"], CGSizeMake(804, 1748));
+        SKNode *score = [ui childNodeWithName:@"//hud.score"];
+        SKNode *balls = [ui childNodeWithName:@"//hud.balls"];
+        SKNode *pause = [ui childNodeWithName:@"//hud.pause"];
+        SKNode *message = [ui childNodeWithName:@"//hud.message"];
+        Require(score && balls && pause && message, @"HUD nodes exist");
+        // Regions measured from the corner lamps and camera cutout in the phone layout.
+        Require([score calculateAccumulatedFrame].size.width <= 231, @"the widest score fits between the corner flashers");
+        Require(CGRectGetMaxX([balls calculateAccumulatedFrame]) < 130, @"ball readout clears the camera cutout");
+        Require(CGRectGetMaxX([pause calculateAccumulatedFrame]) < 348, @"pause clears cyan corner lamp");
+        Require(message.frame.size.width <= 291, @"event text stays above the ramps");
+        [ui showMessage:nil];
         // Touch routing: menu background is swallowed; a cancelled Play never starts.
         __block NSInteger actions = 0;
         __block PBUIAction lastAction = PBUIPlay;
@@ -74,14 +95,16 @@ int main(int argc, const char *argv[]) {
         Require(actions == 1, @"dragging off a button cancels activation");
         [ui showScreen:PBMenuPlaying];
         Require(![ui pointerBegan:@"flipper" atPoint:CGPointMake(80, 650)], @"gameplay touch passes through HUD");
-        [ui pointerBegan:@"pause" atPoint:CGPointMake(355, 42)];
-        [ui pointerEnded:@"pause" atPoint:CGPointMake(355, 42) cancelled:NO];
+        [ui pointerBegan:@"pause" atPoint:CGPointMake(326, 30)];
+        [ui pointerEnded:@"pause" atPoint:CGPointMake(326, 30) cancelled:NO];
         Require(actions == 2 && lastAction == PBUIPause, @"pause button activates while gameplay touches pass through");
         [ui layoutForViewSize:CGSizeMake(375, 667) topInset:20 bottomInset:0];
         [scene fitCameraToAspect:667.0 / 375.0];
         Export(renderer, ui, PBMenuHome, [output stringByAppendingPathComponent:@"ui-home-small.png"], CGSizeMake(750, 1334));
         Export(renderer, ui, PBMenuSettings, [output stringByAppendingPathComponent:@"ui-settings-small.png"], CGSizeMake(750, 1334));
-        NSLog(@"UI pointer routing and small-screen previews verified");
+        [ui updateScore:52666 best:985400 ball:2 ballCount:3];
+        Export(renderer, ui, PBMenuPlaying, [output stringByAppendingPathComponent:@"ui-playing-small.png"], CGSizeMake(750, 1334));
+        NSLog(@"UI pointer routing, HUD clearance and small-screen previews verified");
     }
     return 0;
 }

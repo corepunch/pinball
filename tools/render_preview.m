@@ -20,6 +20,32 @@ static void PBExport(SCNRenderer *renderer, double time, NSString *path) {
     NSLog(@"Validated and rendered %@", path);
 }
 
+// Enlarge the upper channels without changing the gameplay camera angle.
+static void PBExportChannelWalls(PBTableScene *scene, SCNRenderer *renderer, PBTableDefinition *table, NSString *path) {
+    __block BOOL hasLining = NO;
+    [scene.scene.rootNode enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
+        for (SCNMaterial *material in node.geometry.materials) {
+            if ([material.name isEqualToString:@"channel_liner"]) {
+                PBRequire([material.lightingModelName isEqualToString:SCNLightingModelBlinn], @"inner walls must receive real lighting");
+                hasLining = YES;
+            }
+        }
+    }];
+    PBRequire(hasLining, @"channel inner-wall lining failed to load");
+    SCNVector3 camera = scene.cameraNode.position;
+    CGFloat zoom = scene.cameraNode.camera.orthographicScale;
+    float top = 0;
+    for (PBRampDef *ramp in table.ramps) for (NSInteger i = 0; i < ramp.pointCount; i++) top = MAX(top, [ramp pointAtIndex:i].y);
+    scene.cameraNode.camera.orthographicScale = .23;
+    scene.cameraNode.position = SCNVector3Make(camera.x, camera.y, -(top - .09f - table.size.y * .5f) + camera.y * tanf(PBTableCameraTilt * (float)M_PI / 180.0f));
+    NSImage *image = [renderer snapshotAtTime:2.016 withSize:CGSizeMake(1000, 450) antialiasingMode:SCNAntialiasingModeMultisampling4X];
+    NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:image.TIFFRepresentation];
+    PBRequire([[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}] writeToFile:path atomically:YES], @"channel wall close-up failed");
+    scene.cameraNode.position = camera;
+    scene.cameraNode.camera.orthographicScale = zoom;
+    NSLog(@"Verified channel lining and exported gameplay-angle close-up %@", path);
+}
+
 static void PBCheckTiltLighting(PBTableScene *scene, SCNRenderer *renderer, NSString *output, NSString *name) {
     SCNNode *key = [scene.scene.rootNode childNodeWithName:@"lighting.key" recursively:YES];
     SCNNode *rig = [scene.scene.rootNode childNodeWithName:@"lighting.rig" recursively:YES];
@@ -45,6 +71,72 @@ static void PBCheckTiltLighting(PBTableScene *scene, SCNRenderer *renderer, NSSt
     PBRequire(simd_distance(previous.vector, rig.simdOrientation.vector) < 1e-5f, @"invalid motion sample corrupted light orientation");
     for (int i = 0; i < 90; i++) [scene updateLightingForAttitude:simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f) elapsed:1.0 / 60.0];
     PBRequire(simd_distance(key.simdWorldPosition, neutralPosition) < 0.001f, @"neutral grip did not restore lighting");
+}
+
+// Same geometry, camera and lamp sprites: only actual omni lights change between these frames.
+static void PBCheckLocalLighting(PBTableScene *scene, SCNRenderer *renderer, NSString *output, NSString *name) {
+    NSMutableArray<SCNLight *> *lights = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *levels = [NSMutableArray array];
+    __block BOOL responsiveMetal = NO;
+    [scene.scene.rootNode enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
+        if ([node.light.type isEqualToString:SCNLightTypeOmni]) {
+            [lights addObject:node.light]; [levels addObject:@(node.light.intensity)];
+        }
+        for (SCNMaterial *material in node.geometry.materials) {
+            if ([material valueForKey:@"pbMatcap"]) {
+                PBRequire(![material.lightingModelName isEqualToString:SCNLightingModelConstant], @"metal must receive local light");
+                responsiveMetal = YES;
+            }
+        }
+    }];
+    PBRequire(responsiveMetal && lights.count >= 3, @"missing metal or local lights");
+    for (SCNLight *light in lights) light.intensity = 0;
+    PBExport(renderer, 3.0, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-local-off.png"]]);
+    for (SCNLight *light in lights) light.intensity = 90;
+    PBExport(renderer, 3.0, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-local-on.png"]]);
+    for (NSUInteger i = 0; i < lights.count; i++) lights[i].intensity = levels[i].doubleValue;
+}
+
+// Freeze the physics fixture and animate the real deck materials and attract lamps.
+static void PBExportRampChase(PBTableScene *scene, SCNRenderer *renderer, PBGame *game, NSString *path) {
+    [game.world removeAllPlayBalls];
+    NSInteger ball = [game.world spawnBallAtPlunger];
+    [game.world placeBall:ball at:simd_make_float2(.4775f, .13f) velocity:simd_make_float2(0, 0)];
+    for (int i = 0; i < 30; i++) [scene syncWithGame:game elapsed:.03];
+    CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:path], CFSTR("com.compuserve.gif"), 16, NULL);
+    PBRequire(destination != NULL, @"could not create ramp chase preview");
+    NSDictionary *properties = @{(__bridge id)kCGImagePropertyGIFDictionary: @{(__bridge id)kCGImagePropertyGIFLoopCount: @0}};
+    CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)properties);
+    NSDictionary *frameProperties = @{(__bridge id)kCGImagePropertyGIFDictionary: @{(__bridge id)kCGImagePropertyGIFDelayTime: @.045}};
+    NSMutableSet *states = [NSMutableSet set];
+    __block SCNMaterial *first = nil;
+    NSMutableDictionary<NSString *, SCNMaterial *> *decks = [NSMutableDictionary dictionary];
+    NSMutableSet *activeGroups = [NSMutableSet set];
+    [scene.scene.rootNode enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
+        for (SCNMaterial *material in node.geometry.materials) {
+            if ([material.name hasPrefix:@"ramp_step_"]) decks[material.name] = material;
+            if ([material.name isEqualToString:@"ramp_step_0"]) first = material;
+        }
+    }];
+    __block BOOL endArrows = NO;
+    [scene.scene.rootNode enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
+        for (SCNMaterial *material in node.geometry.materials) if ([material.name isEqualToString:@"channel_arrow"]) endArrows = YES;
+    }];
+    PBRequire(first != nil || endArrows, @"missing channel arrows");
+    for (int i = 0; i < 16; i++) {
+        @autoreleasepool {
+            [scene syncWithGame:game elapsed:.045];
+            if (first) [states addObject:first.diffuse.contents];
+            for (SCNMaterial *deck in decks.allValues) if (deck.emission.intensity > 1) [activeGroups addObject:deck.name];
+            NSImage *image = [renderer snapshotAtTime:6.0 + i * .045 withSize:CGSizeMake(512, 1110) antialiasingMode:SCNAntialiasingModeMultisampling4X];
+            CGImageRef frame = [image CGImageForProposedRect:NULL context:nil hints:nil];
+            CGImageDestinationAddImage(destination, frame, (__bridge CFDictionaryRef)frameProperties);
+        }
+    }
+    if (first) PBRequire(states.count == 2 && activeGroups.count == 4, @"chase did not visit all four authored phases");
+    PBRequire(CGImageDestinationFinalize(destination), @"ramp chase GIF failed");
+    CFRelease(destination);
+    NSLog(@"Verified channel arrows and exported lamp animation %@", path);
 }
 
 static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PBTableDefinition *table, NSString *path) {
@@ -134,6 +226,7 @@ int main(int argc, const char *argv[]) {
                 NSString *path = [output stringByAppendingPathComponent:[NSString stringWithFormat:@"%@%@.png", prefix, name]];
                 PBExport(renderer, 2.016, path);
                 if (premium) {
+                    PBExportChannelWalls(scene, renderer, table, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-channels.png"]]);
                     SCNNode *cap = [scene.scene.rootNode childNodeWithName:@"bumper.bumperA" recursively:YES];
                     __block SCNGeometry *painted = cap.geometry;
                     [cap enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
@@ -174,6 +267,8 @@ int main(int argc, const char *argv[]) {
                     }
                     PBRequire(painted.firstMaterial == idle, @"bumper failed to return to idle artwork");
                     PBCheckTiltLighting(scene, renderer, output, name);
+                    PBCheckLocalLighting(scene, renderer, output, name);
+                    PBExportRampChase(scene, renderer, game, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-chase.gif"]]);
                     if (argc > 4 && strcmp(argv[4], "--tilt-animation") == 0) {
                         PBExportTiltAnimation(scene, renderer, table,
                             [output stringByAppendingPathComponent:[name stringByAppendingString:@"-tilt.gif"]]);

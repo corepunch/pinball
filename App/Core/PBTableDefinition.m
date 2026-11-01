@@ -98,6 +98,7 @@ static PBSpotDef *PBParseSpot(NSDictionary *json) {
     spot.identifier = json[@"id"];
     spot.position = simd_make_float2([json[@"x"] floatValue], [json[@"y"] floatValue]);
     spot.radius = [json[@"r"] floatValue];
+    spot.hasPlate = json[@"plate"] ? [json[@"plate"] boolValue] : YES;
     spot.speed = [(json[@"speed"] ?: json[@"ejectSpeed"] ?: json[@"flingSpeed"]) floatValue];
     spot.captureSpeed = [json[@"captureSpeed"] floatValue];
     spot.holdSeconds = [json[@"holdSeconds"] floatValue];
@@ -217,11 +218,30 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             PBRampDef *ramp = [PBRampDef new];
             ramp.identifier = item[@"id"];
             ramp.width = [item[@"width"] floatValue];
+            NSDictionary *authoring = item[@"authoring"];
+            ramp.wallHeight = [authoring[@"wall_height"] ?: @0.055f floatValue];
+            ramp.railWidth = [authoring[@"rail_width"] ?: @0.008f floatValue];
+            float flare = [authoring[@"flare"] ?: @1.18f floatValue];
+            ramp.entranceFlare = [authoring[@"entrance"] isEqualToString:@"FLARED"] ? flare : 1;
+            ramp.exitFlare = [authoring[@"exit"] isEqualToString:@"FLARED"] ? flare : 1;
+            ramp.transitionLength = [authoring[@"end_length"] ?: @0.055f floatValue];
+            ramp.supportColumns = authoring[@"columns"] ?: @[];
+            ramp.supportRadius = [authoring[@"support_radius"] ?: @0.004f floatValue];
+            ramp.supportBase = [authoring[@"base_height"] floatValue];
             ramp.mouthA = PBVec2(item[@"mouth"][0]);
             ramp.mouthB = PBVec2(item[@"mouth"][1]);
             ramp.plasticUntil = [item[@"plasticUntil"] integerValue];
-            ramp.pointData = PBSmoothRampPath(item[@"points"]);
-            ramp.plasticUntil *= kRampSubdivisions;
+            if ([authoring[@"path_sampled"] boolValue]) {
+                NSMutableData *path = [NSMutableData data];
+                for (NSArray *p in item[@"points"]) {
+                    simd_float3 v = simd_make_float3([p[0] floatValue], [p[1] floatValue], [p[2] floatValue]);
+                    [path appendBytes:&v length:sizeof(v)];
+                }
+                ramp.pointData = path;
+            } else {
+                ramp.pointData = PBSmoothRampPath(item[@"points"]);
+                ramp.plasticUntil *= kRampSubdivisions;
+            }
             return ramp;
         });
         _lamps = PBMap(json[@"lamps"], ^id(NSDictionary *item) {

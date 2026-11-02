@@ -352,6 +352,11 @@
     for (PBRampDef *ramp in table.ramps) [mustHappen addObject:ramp.identifier];
     for (PBSpotDef *rollover in table.rollovers) [mustHappen addObject:rollover.identifier];
     for (PBEdgeDef *standup in table.standups) [mustHappen addObject:standup.identifier];
+    NSDictionary *byKind = @{ @"bumper":table.bumpers, @"sling":table.slingshots,
+        @"drop":table.dropTargets, @"spinner":table.spinners, @"saucer":table.saucers,
+        @"magnet":table.magnets, @"gate":table.gates };
+    for (NSString *kind in byKind) for (PBElementDef *element in byKind[kind])
+        [mustHappen addObject:[NSString stringWithFormat:@"%@:%@",kind,element.identifier]];
     for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@: %@ never happened", table.identifier, key);
     XCTAssertGreaterThan(bestScore, 50000);
     NSUInteger drains = [stats.hits countForObject:@"drain"];

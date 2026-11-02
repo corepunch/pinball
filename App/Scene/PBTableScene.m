@@ -183,6 +183,7 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
     NSMutableArray<SCNLight *> *_bumperLights;
     NSMutableArray<SCNLight *> *_slingLights;
     NSArray<SCNMaterial *> *_slingLenses;
+    NSMutableArray<SCNNode *> *_stopperNodes;
     NSMutableArray<SCNMaterial *> *_standupLenses;
     NSMutableArray<SCNMaterial *> *_glowMaterials;
     NSData *_glowBlock;
@@ -563,6 +564,13 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return model;
 }
 
+- (void)addCommonModel:(NSString *)suffix {
+    SCNNode *model = [_models nodeNamed:[@"common-" stringByAppendingString:suffix]];
+    if (!model) return;
+    [self skinModel:model overrides:@{}];
+    [_root addChildNode:model];
+}
+
 /// Table-specific meshes are authored in place, in table coordinates.
 - (BOOL)addTableModel:(NSString *)suffix {
     SCNNode *model = [_models nodeNamed:[NSString stringWithFormat:@"%@-%@", _table.identifier, suffix]];
@@ -801,9 +809,14 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterial *trimMaterial = [self accentMetal];
     SCNMaterial *rubberMaterial = [self rubber];
     SCNMaterial *plasticMaterial = [self tileMaterial:@"wall_top" metalness:0.0 roughness:0.4];
-    BOOL plated = [self addTableModel:@"walls"];
+    // Parts every table has are shared models; a table's own may be none at all.
+    [self addCommonModel:@"walls"];
+    [self addCommonModel:@"plastics"];
+    [self addTableModel:@"walls"];
     // The plastics model carries raised housings as well as the free-floating plastics.
-    BOOL housed = [self addTableModel:@"plastics"];
+    [self addTableModel:@"plastics"];
+    BOOL plated = [_models nodeNamed:@"common-walls"] != nil;
+    BOOL housed = [_models nodeNamed:@"common-plastics"] != nil;
     _plasticsModelled = housed;
 
     for (PBWallDef *wall in _table.walls) {
@@ -1067,7 +1080,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         [_root addChildNode:pivot];
         [_flipperNodes addObject:pivot];
 
-        SCNNode *model = [_models nodeNamed:[_table.identifier stringByAppendingString:@"-flipper"]];
+        SCNNode *model = [_models nodeNamed:@"common-flipper"];
         if (model) {
             [self skinModel:model overrides:@{}];
             model.scale = SCNVector3Make(def.length, def.length, def.length);
@@ -1175,9 +1188,15 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         [_standupNodes addObject:round ?: [self addTargetFrom:def.a to:def.b art:standup]];
     }
 
+    _stopperNodes = [NSMutableArray array];
+    for (PBSpotDef *post in _table.stoppers) {
+        SCNNode *node = [self addModel:@"post" at:post.position height:-0.06f scale:post.radius];
+        if (node) [_stopperNodes addObject:node];
+    }
+
     // Kickback plungers are visible at the bottom of their lanes.
     for (PBSpotDef *kick in _table.kickbacks) {
-        if ([self addModel:@"stud" at:kick.position - simd_make_float2(0.0f, 0.035f) height:0 scale:0.022f]) continue;
+        if ([self addModel:@"stud" at:kick.position - simd_make_float2(0.0f, 0.035f) height:0 scale:0.018f]) continue;
         SCNCylinder *head = [SCNCylinder cylinderWithRadius:0.016f height:0.02f];
         // Dull steel: its flat top faces the camera, and polished metal would flare.
         SCNNode *node = [self addNodeWithGeometry:head material:[self pbrWithDiffuse:[self color:_skin.metalColor * 0.35f] metalness:0.6 roughness:0.6]];
@@ -1259,7 +1278,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         const simd_float3 *points = ramp.pointData.bytes;
         NSInteger plasticEnd = MIN(ramp.plasticUntil, count - 1);
 
-        NSString *asset = [NSString stringWithFormat:@"%@-%@", _table.identifier, ramp.identifier];
+        NSString *asset = ramp.model ?: [NSString stringWithFormat:@"%@-%@", _table.identifier, ramp.identifier];
         SCNNode *channel = [_models nodeNamed:asset];
         if (channel) {
             [self skinModel:channel overrides:@{}];
@@ -1575,6 +1594,14 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         if (i < _slingBands.count) _slingBands[i].scale = SCNVector3Make(1.0f, 1.0f + kick * 0.6f, 1.0f);
         _slingLights[i].intensity = kick * 70.0f;
         if (i < _slingLenses.count) _slingLenses[i].emission.intensity = 0.15 + expf(-t * 6.0f) * 1.8;
+    }
+    for (NSUInteger i = 0; i < _stopperNodes.count; i++) {
+        // Rises through the board, and sinks back out of sight.
+        float target = [world isStopperUp:(NSInteger)i] ? 0.0f : -0.06f;
+        SCNVector3 at = _stopperNodes[i].position;
+        at.y += (target - at.y) * MIN(1.0f, 12.0f * dt);
+        _stopperNodes[i].position = at;
+        _stopperNodes[i].hidden = at.y < -0.055f;
     }
     for (NSUInteger i = 0; i < _standupLenses.count; i++) {
         // Quick on, slower off, then a low glow while it stays made.

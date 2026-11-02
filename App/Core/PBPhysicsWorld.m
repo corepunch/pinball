@@ -105,6 +105,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
 
     PBCollider *_colliders;
     NSInteger _colliderCount;
+    NSInteger _stopperColliderBase;
     NSInteger _dropColliderBase;
     float *_activeCooldown;   // Per collider.
 
@@ -195,7 +196,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     NSInteger capacity = 64;
     for (PBWallDef *wall in t.walls) capacity += wall.points.count + 1;
     for (PBRampDef *ramp in t.ramps) capacity += ramp.pointCount * 2 + 2 + (NSInteger)ramp.supportColumns.count;
-    capacity += (NSInteger)(t.posts.count + t.bumpers.count + t.slingshots.count + t.dropTargets.count + t.standups.count + t.gates.count);
+    capacity += (NSInteger)(t.posts.count + t.bumpers.count + t.slingshots.count + t.dropTargets.count + t.standups.count + t.gates.count + t.stoppers.count);
     _colliders = calloc((size_t)capacity, sizeof(PBCollider));
     _activeCooldown = calloc((size_t)capacity, sizeof(float));
 
@@ -214,6 +215,11 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         if (wall.closed) add(p[wall.points.count - 1], p[0], wall.radius, bounce, (uint32_t)wall.layers, PBColliderStatic, -1);
     }
     for (PBSpotDef *post in t.posts) add(post.position, post.position, post.radius, 0.72f, PBLayerPlayfield, PBColliderStatic, -1);
+    _stopperColliderBase = n;
+    for (PBSpotDef *post in t.stoppers) {
+        add(post.position, post.position, post.radius, 0.72f, PBLayerPlayfield, PBColliderStatic, -1);
+        _colliders[n - 1].enabled = NO;
+    }
     for (PBRampDef *ramp in t.ramps) {
         if (ramp.supportBase > _ballRadius * 2) continue;
         for (NSArray<NSNumber *> *column in ramp.supportColumns) {
@@ -497,6 +503,9 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         if (_balls[i].state == PBBallFree && !_balls[i].captive) _balls[i].velocity += impulse;
     }
 }
+
+- (void)setStopper:(NSInteger)index up:(BOOL)up { _colliders[_stopperColliderBase + index].enabled = up; }
+- (BOOL)isStopperUp:(NSInteger)index { return _colliders[_stopperColliderBase + index].enabled; }
 
 - (void)setDropTarget:(NSInteger)index up:(BOOL)up {
     _colliders[_dropColliderBase + index].enabled = up;

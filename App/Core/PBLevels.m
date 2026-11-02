@@ -8,7 +8,7 @@ static NSString *const kProgressKey = @"PBLevelProgress";
 
 static NSDictionary<NSString *, NSString *> *PBGoalNames(void) {
     return @{ @"ramps": @"RAMP", @"bumpers": @"BUMPER", @"drops": @"DROP TARGET", @"saucers": @"SCOOP SHOT",
-              @"spinners": @"SPINNER SPIN", @"multiballs": @"MULTIBALL", @"jackpots": @"JACKPOT" };
+              @"spinners": @"SPINNER SPIN", @"multiballs": @"MULTIBALL", @"jackpots": @"JACKPOT", @"standups": @"TARGET", @"wizards": @"WIZARD MODE" };
 }
 
 static NSString *PBFormatted(int64_t value) {
@@ -177,7 +177,8 @@ static NSError *PBLevelError(NSString *message) {
         || (event->kind == PBEventBumper && [goal isEqualToString:@"bumpers"])
         || (event->kind == PBEventDropTarget && [goal isEqualToString:@"drops"])
         || (event->kind == PBEventSaucerCapture && [goal isEqualToString:@"saucers"])
-        || (event->kind == PBEventSpinner && [goal isEqualToString:@"spinners"]);
+        || (event->kind == PBEventSpinner && [goal isEqualToString:@"spinners"])
+        || (event->kind == PBEventStandup && [goal isEqualToString:@"standups"]);
     if (counts) [self countInGame:game];
 }
 
@@ -192,7 +193,8 @@ static NSError *PBLevelError(NSString *message) {
         // End-of-ball bonuses count, and arrive with no event of their own.
         _progress = game.rules.score;
     } else if (([name isEqualToString:@"multiball"] && [_level.goal isEqualToString:@"multiballs"])
-               || ([name isEqualToString:@"jackpot"] && [_level.goal isEqualToString:@"jackpots"])) {
+               || ([name isEqualToString:@"jackpot"] && [_level.goal isEqualToString:@"jackpots"])
+               || ([name isEqualToString:@"wizard"] && [_level.goal isEqualToString:@"wizards"])) {
         [self countInGame:game];
     }
 }

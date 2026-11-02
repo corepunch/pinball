@@ -5,7 +5,7 @@
 
 Measures what the player sees, not the table's floor plan: everything is projected through the
 game's 30 degree camera, so a raised ramp is checked where it appears. Gaps are in points on a
-393 point wide phone. Run by `make test`; exits 1 if a pair is too close or a row is off centre.
+393 point wide phone. Run by `make test`; exits 1 if a pair is too close, or a row is off centre or not level.
 """
 import argparse
 import math
@@ -15,25 +15,34 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shim import ROOT  # noqa: E402
 import compile_scenes  # noqa: E402
+import mesher  # noqa: E402
 import table_xml  # noqa: E402
 
 TILT = math.radians(30)  # PBTableCameraTilt
 POINTS = 393  # A table's width on the phone.
 MIN_GAP = 5  # Points of clear board between two parts. Below this they read as touching.
 MAX_OFF_CENTRE = 5  # Points of difference between the margins either side of a centred row.
+MAX_MISALIGNED = 2  # Points of difference between the tops of parts meant to line up.
 
 # Parts built as one assembly: they touch on purpose, so gaps inside a group are not measured.
 ASSEMBLIES = (
     {'dropHousing', 'drop1', 'drop2', 'drop3'},
     {'captiveHousing', 'captiveTarget', 'captive'},
     {'scoopHood', 'scoop'},
-    {'flipperL', 'inlaneL', 'plasticSlingL', 'slideL'},
-    {'flipperR', 'inlaneR', 'plasticSlingR', 'slideR'},
+    {'scoop2Hood', 'scoop2'},
+    {'dropHousingL', 'drop4', 'drop5', 'drop6'},
+    # The floors under the flippers meet the board's sides.
+    {'outer', 'apronL'},
+    {'shooterInner', 'apronR'},
+    {'flipperL', 'inlaneL', 'plasticSlingL'},
+    {'flipperR', 'inlaneR', 'plasticSlingR'},
     {'rampL', 'lampRampL'},
     {'rampR', 'lampRampR'},
     # Corner flashers stand high over the cabinet's edge.
     {'outer', 'flashTL', 'flashTR'},
 )
+# Parts that top out on one line across the screen, as a real machine's lower playfield does.
+ALIGNED_TOPS = {'lower row': {'inlaneL', 'plasticSlingL', 'plasticSlingR', 'inlaneR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
 # Rows that should sit midway between whatever is either side of them.
 CENTRED_ROWS = {'top lanes': {'laneA', 'laneB', 'laneC', 'lampLaneA', 'lampLaneB', 'lampLaneC', 'laneSep1', 'laneSep2'}}
 
@@ -135,7 +144,8 @@ def parts_of(table):
         elif wall['id'] == 'outer':
             add(wall['id'], 'wall').line(points, wall['radius'])
     for plastic in table['plastics']:
-        points = compile_scenes.expand_points(plastic['points'])
+        # Rounded as the slingshot prefab rounds it: its corners reach less far than its outline's.
+        points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
         add(plastic['id']).line(points + points[:1], .002, 0, .037)
     for flipper in table['flippers']:
         tip = (flipper['pivot'][0] + flipper['length'] * math.cos(math.radians(flipper['restAngle'])),
@@ -159,7 +169,7 @@ def parts_of(table):
     for saucer in table['saucers']:
         add(saucer['id']).disc(saucer['x'], saucer['y'], saucer['r'] * 1.12)
     for kick in table['kickbacks']:
-        add(kick['id']).disc(kick['x'], kick['y'] - .035, .022, 0, .022)
+        add(kick['id']).disc(kick['x'], kick['y'] - .035, .018, 0, .018)
     for ball in table['captiveBalls']:
         add(ball['id']).disc(ball['x'], ball['y'], table['physics']['ballRadius'], .03)
     for lamp in table['lamps']:
@@ -215,6 +225,10 @@ def problems(table, parts=None):
         left, right = margins(parts, names, x0, y0, x1, y1)
         if abs(left - right) * POINTS > MAX_OFF_CENTRE:
             found.append((None, row, f'{left * POINTS:.0f} pt clear on the left, {right * POINTS:.0f} pt on the right'))
+    for row, names in ALIGNED_TOPS.items():
+        tops = {p.name: p.bounds()[3] for p in parts if p.name in names}
+        if tops and (max(tops.values()) - min(tops.values())) * POINTS > MAX_MISALIGNED:
+            found.append((None, row, 'tops not level, in pt below the highest: ' + ', '.join(f'{name} {(max(tops.values()) - top) * POINTS:.1f}' for name, top in tops.items())))
     return sorted(found, key=lambda f: (f[0] is None, f[0] if f[0] is not None else 0))
 
 
@@ -264,9 +278,7 @@ def main():
     parser.add_argument('--svg', type=Path, help='Write what was measured to DIR/<table>.svg')
     args = parser.parse_args()
     failed = False
-    for path in sorted((ROOT / 'Scenes').glob('*.xml')):
-        if path.stem == 'kit':
-            continue
+    for path in table_xml.table_paths():
         table = compile_scenes.table_json(table_xml.read(path))
         parts = parts_of(table)
         found = problems(table, parts)

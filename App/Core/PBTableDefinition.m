@@ -114,6 +114,7 @@ static PBEdgeDef *PBParseEdge(NSDictionary *json) {
     edge.a = PBVec2(json[@"a"]);
     edge.b = PBVec2(json[@"b"]);
     if (json[@"passDirection"]) edge.passDirection = PBVec2(json[@"passDirection"]);
+    edge.vari = [json[@"vari"] boolValue];
     return edge;
 }
 
@@ -193,6 +194,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _rollovers = PBMap(json[@"rollovers"], spots);
         _saucers = PBMap(json[@"saucers"], spots);
         _kickbacks = PBMap(json[@"kickbacks"], spots);
+        _stoppers = PBMap(json[@"stoppers"], spots);
         _magnets = PBMap(json[@"magnets"], spots);
         _captiveBalls = PBMap(json[@"captiveBalls"], spots);
         _flashers = PBMap(json[@"flashers"], spots);
@@ -217,6 +219,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _ramps = PBMap(json[@"ramps"], ^id(NSDictionary *item) {
             PBRampDef *ramp = [PBRampDef new];
             ramp.identifier = item[@"id"];
+            ramp.model = item[@"model"];
             ramp.width = [item[@"width"] floatValue];
             NSDictionary *authoring = item[@"authoring"];
             ramp.wallHeight = [authoring[@"wall_height"] ?: @0.055f floatValue];
@@ -289,6 +292,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _rules.rampsForExtraBall = [rules[@"rampsForExtraBall"] integerValue];
         _rules.scores = rules[@"scores"];
         _rules.skillShotTarget = rules[@"skillShotTarget"] ?: @"";
+        _rules.wizard = [rules[@"wizard"] boolValue];
         _rules.groups = PBMap(rules[@"groups"], ^id(NSDictionary *item) {
             PBRuleGroupDef *group = [PBRuleGroupDef new];
             group.identifier = item[@"id"];

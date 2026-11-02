@@ -2,8 +2,14 @@
 
 Attributes hold values, and lists are written out: `a="0.1 0.2"`, `points="0.1,0.2 0.3,0.4"`,
 with `arc(cx,cy,r,from,to,steps)` in a point list. Lists of things are a container of elements.
+
+A table in Scenes/tables starts from Scenes/base.xml, the parts every table must have, and takes
+`kits="<kit> <kit>"` from Scenes/ramps.xml. It adds to those, and replaces any element by its id.
 """
 import xml.etree.ElementTree as ET
+from pathlib import Path
+
+SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
 WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
 NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection'}  # Lists of numbers.
@@ -12,7 +18,7 @@ CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slin
               'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',
               'saucers': 'saucer', 'gates': 'gate', 'kickbacks': 'kickback', 'magnets': 'magnet',
               'captiveBalls': 'captiveBall', 'flashers': 'flasher', 'ramps': 'ramp', 'lamps': 'lamp',
-              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group'}
+              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper'}
 
 
 def number(text):
@@ -100,5 +106,39 @@ def write(table, path):
         handle.write('\n')
 
 
+def merged(under, over):
+    """`over` on top of `under`: lists join, by id, and dictionaries merge."""
+    out = dict(under)
+    for key, value in over.items():
+        if value == []:
+            continue
+        if isinstance(value, list) and value and isinstance(value[0], dict) and 'id' in value[0]:
+            mine = {item['id']: item for item in value}
+            kept = [mine.pop(item['id'], item) for item in out.get(key, [])]
+            out[key] = kept + list(mine.values())
+        elif isinstance(value, dict) and 'arc' not in value:
+            out[key] = merged(out.get(key, {}), value)
+        else:
+            out[key] = value
+    return out
+
+
 def read(path):
-    return from_element(ET.parse(path).getroot())
+    table = from_element(ET.parse(path).getroot())
+    if 'base' not in table:
+        return table
+    out = from_element(ET.parse(SCENES / f"{table.pop('base')}.xml").getroot())
+    kits = {kit.get('id'): from_element(kit) for kit in ET.parse(SCENES / 'ramps.xml').getroot()}
+    for name in table.pop('kits', '').split():
+        kit = dict(kits[name])
+        kit.pop('id')
+        out = merged(out, kit)
+    out = merged(out, table)
+    for key in CONTAINERS:
+        if key != 'groups':
+            out.setdefault(key, [])
+    return out
+
+
+def table_paths():
+    return sorted((SCENES / 'tables').glob('*.xml'))

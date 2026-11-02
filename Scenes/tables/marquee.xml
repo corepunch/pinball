@@ -1,0 +1,30 @@
+<table id="marquee" name="MARQUEE" defaultSkin="orbital" base="base" kits="longL longR">
+ <walls>
+  <wall id="captiveHousing" style="plastic" height="0.018" radius="0.005" closed="true" points="0.4325,1.006 0.4325,1.22 0.4775,1.245 0.5225,1.22 0.5225,1.006 0.5125,1.006 0.5125,1.205 0.4425,1.205 0.4425,1.006" />
+  <wall id="captiveStop" style="none" radius="0.003" layers="captive" points="0.4425,1.095 0.5125,1.095" />
+ </walls>
+ <bumpers>
+  <bumper id="bumperA" x="0.28" y="1.7" r="0.07" />
+  <bumper id="bumperB" x="0.4775" y="1.74" r="0.07" />
+  <bumper id="bumperC" x="0.675" y="1.7" r="0.07" />
+ </bumpers>
+ <standups>
+  <standup id="standL1" a="0.2897 1.5176" b="0.3503 1.4824" />
+  <standup id="standL2" a="0.3797 1.4126" b="0.4403 1.3774" />
+  <standup id="standR1" a="0.6653 1.5176" b="0.6047 1.4824" />
+  <standup id="standR2" a="0.5753 1.4126" b="0.5147 1.3774" />
+  <standup id="captiveTarget" a="0.5125 1.2" b="0.4425 1.2" />
+ </standups>
+ <captiveBalls>
+  <captiveBall id="captive" x="0.4775" y="1.13" />
+ </captiveBalls>
+ <lamps>
+  <lamp id="lampCaptive" x="0.4775" y="0.92" size="0.03068" color="white" icon="7" bind="captiveHot" shape="arrow" angle="90" />
+ </lamps>
+ <rules locksForMultiball="0">
+  <groups>
+   <group id="standLeft" members="standL1 standL2" lamps="" completeScore="5000" actions="armKickback resetGroup" message="KICKBACK ON" />
+   <group id="standRight" members="standR1 standR2" lamps="" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
+  </groups>
+ </rules>
+</table>

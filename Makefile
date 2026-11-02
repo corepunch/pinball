@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews scenes spacing
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews scenes spacing playtest
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -24,12 +24,16 @@ help:
 	@echo "simulator-run  - Build, install and launch in the Simulator (SIMULATOR='iPhone 17')"
 	@echo "scenes         - Build tables and meshes from Scenes/*.xml"
 	@echo "spacing        - List parts too close together on screen"
+	@echo "playtest       - Play every level headlessly and list problems (--tune via PLAYTEST=)"
 	@echo "test           - Run the headless tests on this Mac"
 	@echo "previews       - Render Art/Previews from the real scene"
 
 scenes:
 	python3 tools/scene/compile_scenes.py
 	tools/compile_models.sh
+
+playtest:
+	python3 tools/playtest/run_playtests.py $(PLAYTEST)
 
 spacing:
 	python3 tools/scene/check_spacing.py --list 10

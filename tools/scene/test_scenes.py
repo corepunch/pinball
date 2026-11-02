@@ -47,9 +47,8 @@ ell = [(0, 0, 0), (2, 0, 0), (2, 1, 0), (1, 1, 0), (1, 2, 0), (0, 2, 0)]
 area = sum(abs((ell[b][0] - ell[a][0]) * (ell[c][1] - ell[a][1]) - (ell[b][1] - ell[a][1]) * (ell[c][0] - ell[a][0])) * .5 for a, b, c in mesher.triangulate(ell, list(range(6))))
 assert abs(area - 3) < 1e-9, 'concave triangulation covers the outline'
 # Tables survive XML both ways, and the checked-in JSON is what the scenes compile to.
-for path in sorted((ROOT / 'Scenes').glob('*.xml')):
-    if path.stem == 'kit':
-        continue
+base = table_xml.read(ROOT / 'Scenes/base.xml')
+for path in table_xml.table_paths():
     table = table_xml.read(path)
     with tempfile.TemporaryDirectory() as temporary:
         copy = Path(temporary) / 'table.xml'
@@ -58,6 +57,12 @@ for path in sorted((ROOT / 'Scenes').glob('*.xml')):
     compiled = compile_scenes.table_json(table)
     shipped = json.loads((ROOT / f"GameData/Tables/{table['id']}.json").read_text())
     assert json.dumps(compiled, sort_keys=True) == json.dumps(shipped, sort_keys=True), f"{path.stem}: run `make scenes`: GameData/Tables is out of date"
+    # What the base declares, every table has, unchanged.
+    for key, parts in base.items():
+        if isinstance(parts, list) and parts and isinstance(parts[0], dict) and 'id' in parts[0]:
+            found = {item['id']: item for item in table[key]}
+            for part in parts:
+                assert found.get(part['id']) == part, f"{path.stem}: base part {part['id']} was changed or removed"
     # Nothing crowds anything else on the phone's screen, and the checker can see crowding.
     assert not (crowded := check_spacing.problems(compiled)), f'{path.stem}: run tools/scene/check_spacing.py: {crowded}'
     # Every rollover bar sits the same distance from the lamp that owns it.

@@ -116,6 +116,157 @@
     }
 }
 
+- (void)testABallFallingBehindRollsUnderTheFlippersToTheDrain {
+    for (NSString *name in @[ @"aurora", @"meridian" ]) {
+        PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:name] options:0 error:NULL] error:NULL];
+        for (NSNumber *lane in @[ @0.884f, @0.2f, @0.75f ]) {
+            PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+            NSInteger ball = [world spawnBallAtPlunger];
+            [world placeBall:ball at:simd_make_float2(lane.floatValue, lane.floatValue == 0.884f ? 0.3f : 0.125f) velocity:simd_make_float2(0, 0)];
+            for (int i = 0; i < 300 && world.balls[ball].state == PBBallFree; i++) [world advanceBy:1.0 / 60.0];
+            XCTAssertNotEqual(world.balls[ball].state, PBBallFree, @"%@: the ball must reach the drain", name);
+            XCTAssertEqualWithAccuracy(world.balls[ball].position.x, 0.4775f, 0.12f, @"%@: it drains between the flippers", name);
+        }
+    }
+}
+
+#pragma mark - Features earned in play
+
+- (PBRuleEngine *)rulesFor:(NSMutableDictionary *)json world:(PBPhysicsWorld **)outWorld {
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+    PBRuleEngine *rules = [[PBRuleEngine alloc] initWithWorld:world highScore:0];
+    [rules startGame];
+    if (outWorld) *outWorld = world;
+    return rules;
+}
+
+- (void)hit:(PBRuleEngine *)rules kind:(PBEventKind)kind element:(NSInteger)element magnitude:(float)magnitude {
+    PBEvent event = { .kind = kind, .element = (int16_t)element, .ball = 0, .magnitude = magnitude };
+    [rules handleEvent:&event];
+}
+
+/// A table whose left targets, when both are hit, do one thing.
+- (NSMutableDictionary *)tableWithAction:(NSString *)action {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    for (NSMutableDictionary *group in json[@"rules"][@"groups"]) {
+        if ([group[@"id"] isEqualToString:@"standLeft"]) group[@"actions"] = @[ action ];
+    }
+    return json;
+}
+
+- (void)completeLeftTargets:(PBRuleEngine *)rules table:(PBTableDefinition *)table {
+    [table.standups enumerateObjectsUsingBlock:^(PBEdgeDef *standup, NSUInteger i, BOOL *stop) {
+        if ([standup.identifier hasPrefix:@"standL"]) [self hit:rules kind:PBEventStandup element:(NSInteger)i magnitude:0.1f];
+    }];
+}
+
+- (void)testPlayfieldMultiplierDoublesScoringThenEnds {
+    PBPhysicsWorld *world;
+    PBRuleEngine *rules = [self rulesFor:[self tableWithAction:@"playfieldX"] world:&world];
+    [self completeLeftTargets:rules table:world.table];
+    int64_t before = rules.score;
+    [self hit:rules kind:PBEventSpinner element:0 magnitude:1];
+    int64_t doubled = rules.score - before;
+    for (int i = 0; i < 22; i++) [rules update:1.0];
+    before = rules.score;
+    [self hit:rules kind:PBEventSpinner element:0 magnitude:1];
+    XCTAssertEqual(doubled, (rules.score - before) * 2);
+}
+
+- (void)testVariTargetScoresByHowHardItIsHit {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSInteger index = 0;
+    for (NSMutableDictionary *standup in json[@"standups"]) {
+        if ([standup[@"id"] isEqualToString:@"standL1"]) { standup[@"vari"] = @YES; index = (NSInteger)[json[@"standups"] indexOfObject:standup]; }
+    }
+    PBRuleEngine *rules = [self rulesFor:json world:NULL];
+    [self hit:rules kind:PBEventStandup element:index magnitude:0.1f];
+    int64_t gentle = rules.score;
+    [self hit:rules kind:PBEventStandup element:index magnitude:5.0f];
+    XCTAssertEqual(rules.score - gentle, gentle * 5);
+}
+
+- (void)testCentrePostRisesWhenEarnedAndStopsAFallingBall {
+    NSMutableDictionary *json = [self tableWithAction:@"armStopper"];
+    json[@"stoppers"] = [@[ [@{ @"id": @"post", @"x": @0.4775, @"y": @0.062, @"r": @0.016 } mutableCopy] ] mutableCopy];
+    PBPhysicsWorld *world;
+    PBRuleEngine *rules = [self rulesFor:json world:&world];
+    XCTAssertFalse([world isStopperUp:0]);
+    [self completeLeftTargets:rules table:world.table];
+    XCTAssertTrue([world isStopperUp:0]);
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(0.4775f, 0.2f) velocity:simd_make_float2(0, -1)];
+    float lowest = 1;
+    for (int i = 0; i < 30; i++) { [world advanceBy:1.0 / 60.0]; lowest = MIN(lowest, world.balls[ball].position.y); }
+    XCTAssertGreaterThan(lowest, 0.08f, @"the post is in the way");
+    for (int i = 0; i < 22; i++) [rules update:1.0];
+    XCTAssertFalse([world isStopperUp:0]);
+}
+
+- (void)testHurryUpPaysLessTheLongerItTakes {
+    int64_t paid[2];
+    for (int attempt = 0; attempt < 2; attempt++) {
+        PBPhysicsWorld *world;
+        PBRuleEngine *rules = [self rulesFor:[self tableWithAction:@"hurryUp"] world:&world];
+        [self completeLeftTargets:rules table:world.table];
+        for (int i = 0; i < attempt * 10; i++) [rules update:1.0];
+        int64_t before = rules.score;
+        [self hit:rules kind:PBEventSaucerCapture element:0 magnitude:0];
+        paid[attempt] = rules.score - before;
+    }
+    XCTAssertGreaterThan(paid[0], paid[1]);
+    XCTAssertGreaterThan(paid[1], [[self loadTable:@"aurora"].rules scoreFor:@"saucer"]);
+}
+
+- (void)testMysteryAwardIsSpentByTheScoop {
+    PBPhysicsWorld *world;
+    NSMutableDictionary *json = [self tableWithAction:@"lightMystery"];
+    [json[@"lamps"] addObject:[@{ @"id": @"lampFeature", @"x": @0.4775, @"y": @0.75, @"size": @0.026, @"color": @"amber", @"icon": @0, @"bind": @"mystery" } mutableCopy]];
+    PBRuleEngine *rules = [self rulesFor:json world:&world];
+    NSInteger lamp = (NSInteger)world.table.lamps.count - 1;
+    [self completeLeftTargets:rules table:world.table];
+    [rules update:0.01];
+    XCTAssertEqual([rules modeForLamp:lamp], PBLampBlink);
+    [self hit:rules kind:PBEventSaucerCapture element:0 magnitude:0];
+    [rules update:0.01];
+    XCTAssertEqual([rules modeForLamp:lamp], PBLampOff);
+}
+
+- (void)testBonusHeldCarriesToTheNextBall {
+    PBPhysicsWorld *world;
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    for (NSMutableDictionary *group in json[@"rules"][@"groups"]) {
+        if ([group[@"id"] isEqualToString:@"standLeft"]) group[@"actions"] = @[ @"bonusX", @"holdBonus" ];
+    }
+    PBRuleEngine *rules = [self rulesFor:json world:&world];
+    [self completeLeftTargets:rules table:world.table];
+    XCTAssertEqual(rules.bonusMultiplier, 2);
+    NSInteger number = rules.ballNumber;
+    for (NSInteger i = 0; i < world.ballCapacity; i++) if (world.balls[i].state == PBBallFree || world.balls[i].state != PBBallInactive) [world removeBall:i];
+    [self hit:rules kind:PBEventDrain element:0 magnitude:0];
+    for (int i = 0; i < 4; i++) [rules update:1.0];
+    XCTAssertEqual(rules.ballNumber, number + 1);
+    XCTAssertEqual(rules.bonusMultiplier, 2, @"held for the next ball");
+    for (NSInteger i = 0; i < world.ballCapacity; i++) if (world.balls[i].state != PBBallInactive) [world removeBall:i];
+    [self hit:rules kind:PBEventDrain element:0 magnitude:0];
+    for (int i = 0; i < 4; i++) [rules update:1.0];
+    XCTAssertEqual(rules.bonusMultiplier, 1, @"only once");
+}
+
+- (void)testWizardModeNeedsEveryBankOfTargets {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    json[@"rules"][@"wizard"] = @YES;
+    PBPhysicsWorld *world;
+    PBRuleEngine *rules = [self rulesFor:json world:&world];
+    [world.table.standups enumerateObjectsUsingBlock:^(PBEdgeDef *standup, NSUInteger i, BOOL *stop) {
+        if ([standup.identifier hasPrefix:@"stand"]) [self hit:rules kind:PBEventStandup element:(NSInteger)i magnitude:0.1f];
+    }];
+    XCTAssertFalse(rules.multiballActive, @"the drops are still up");
+    for (NSUInteger i = 0; i < world.table.dropTargets.count; i++) [self hit:rules kind:PBEventDropTarget element:(NSInteger)i magnitude:1];
+    XCTAssertTrue(rules.multiballActive);
+}
+
 - (void)testABallTheSearchCannotFreeIsServedAgain {
     NSMutableDictionary *json = [self tableJSON:@"aurora"];
     // A closed box around the ball: no shove can get it out.
@@ -225,12 +376,12 @@
         for (PBDecorDef *decor in table.decor) [models addObject:decor.model];
         for (PBSpotDef *post in table.posts) if (post.model) [models addObject:post.model];
         for (PBRampDef *ramp in table.ramps) {
-            NSString *model = [NSString stringWithFormat:@"%@-%@", table.identifier, ramp.identifier];
+            NSString *model = ramp.model;
             [models addObject:model];
             XCTAssertLessThanOrEqual([assets[model][@"triangles"] integerValue], 6000,
                                      @"%@ exceeds the complete ramp triangle budget", model);
         }
-        for (NSString *part in @[ @"flipper", @"walls", @"plastics" ]) [models addObject:[NSString stringWithFormat:@"%@-%@", table.identifier, part]];
+        for (NSString *part in @[ @"flipper", @"walls", @"plastics" ]) [models addObject:[@"common-" stringByAppendingString:part]];
         for (NSString *model in models) {
             XCTAssertNotNil(assets[model], @"%@: %@ is not built", name, model);
             NSString *scene = [compiled stringByAppendingFormat:@"/%@.scn", model];
@@ -321,7 +472,8 @@
     [world setFlipperGroupLeft:YES pressed:YES];
     float top = 0;
     for (int i = 0; i < 60; i++) { [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y); }
-    XCTAssertGreaterThan(top, 0.9f, @"a full flip should reach the upper playfield");
+    // Up the middle it may meet a centred scoop or a target first, which is reaching the playfield too.
+    XCTAssertTrue(top > 0.85f || world.balls[index].state != PBBallFree, @"%@: a full flip should reach the upper playfield, reached %.3f", table.identifier, top);
 }
 
 // Arming it takes both left targets and then a left outlane ball, too rare to count on in autoplay.

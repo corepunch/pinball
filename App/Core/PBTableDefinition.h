@@ -62,6 +62,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 
 /// A line element: slingshots, drop targets, stand-ups, spinners, gates.
 @interface PBEdgeDef : PBElementDef
+/// A vari-target, for a standup: the harder it is hit, the more it scores.
+@property (nonatomic) BOOL vari;
 @property (nonatomic) simd_float2 a;
 @property (nonatomic) simd_float2 b;
 @property (nonatomic) simd_float2 passDirection;
@@ -78,6 +80,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @end
 
 @interface PBRampDef : PBElementDef
+/// The shared model drawn for it, as tables reuse the same ramps.
+@property (nonatomic, copy, nullable) NSString *model;
 @property (nonatomic) float width;
 @property (nonatomic) float wallHeight;
 @property (nonatomic) float railWidth;
@@ -148,6 +152,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *scores;
 @property (nonatomic, copy) NSArray<PBRuleGroupDef *> *groups;
 @property (nonatomic, copy) NSString *skillShotTarget;
+/// Finishing every group in one game starts wizard mode.
+@property (nonatomic) BOOL wizard;
 - (NSInteger)scoreFor:(NSString *)key;
 @end
 
@@ -179,6 +185,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *saucers;
 @property (nonatomic, copy, readonly) NSArray<PBEdgeDef *> *gates;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *kickbacks;
+/// Centre posts: down until earned, then up for a while between the flippers.
+@property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *stoppers;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *magnets;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *captiveBalls;
 @property (nonatomic, copy, readonly) NSArray<PBRampDef *> *ramps;

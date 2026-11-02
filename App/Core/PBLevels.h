@@ -15,7 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, readonly) NSString *name;
 @property (nonatomic, copy, readonly) NSString *table;
 @property (nonatomic, copy, readonly) NSString *skin;
-/// "score", or what to count: "ramps", "bumpers", "drops", "saucers", "spinners", "multiballs" or "jackpots".
+/// "score", or what to count: "ramps", "bumpers", "drops", "saucers", "spinners", "multiballs", "jackpots", "standups" or "wizards".
 @property (nonatomic, copy, readonly) NSString *goal;
 @property (nonatomic, readonly) int64_t goalCount;
 @property (nonatomic, readonly) int64_t twoStarScore;

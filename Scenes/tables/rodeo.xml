@@ -1,0 +1,42 @@
+<table id="rodeo" name="RODEO" defaultSkin="abyss" base="base" kits="shortL longR">
+ <walls>
+  <wall id="dropHousing" style="plastic" height="0.024" radius="0.005" closed="true" points="0.578,0.952 0.655,0.862 0.645,0.99" />
+  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.38,0.875,0.05,40,140,16)" />
+ </walls>
+ <bumpers>
+  <bumper id="bumperA" x="0.4775" y="1.84" r="0.08" />
+  <bumper id="bumperB" x="0.2925" y="1.7" r="0.08" />
+  <bumper id="bumperC" x="0.6625" y="1.7" r="0.08" />
+ </bumpers>
+ <dropTargets>
+  <dropTarget id="drop1" a="0.569 0.944" b="0.5957 0.915" />
+  <dropTarget id="drop2" a="0.5957 0.915" b="0.6223 0.886" />
+  <dropTarget id="drop3" a="0.6223 0.886" b="0.649 0.857" />
+ </dropTargets>
+ <standups>
+  <standup id="standL1" a="0.3047 1.5476" b="0.3653 1.5124" vari="true" />
+  <standup id="standL2" a="0.3647 1.4276" b="0.4253 1.3924" vari="true" />
+  <standup id="standR1" a="0.6503 1.5476" b="0.5897 1.5124" vari="true" />
+  <standup id="standR2" a="0.5903 1.4276" b="0.5297 1.3924" vari="true" />
+ </standups>
+ <saucers>
+  <saucer id="scoop" x="0.38" y="0.85" r="0.03" ejectDirection="-0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
+ </saucers>
+ <stoppers>
+  <stopper id="centerPost" x="0.4775" y="0.062" r="0.016" />
+ </stoppers>
+ <lamps>
+  <lamp id="lampLock" x="0.382" y="0.755" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
+  <lamp id="lampFeature" x="0.4775" y="0.75" size="0.026" color="amber" icon="0" bind="stopper" />
+ </lamps>
+ <flashers>
+  <flasher id="flashDrops" x="0.6" y="1.09" color="amber" />
+ </flashers>
+ <rules locksForMultiball="1">
+  <groups>
+   <group id="drops" members="drop1 drop2 drop3" lamps="" completeScore="15000" actions="lightLock resetDrops flash:flashDrops" message="LOCK IS LIT" />
+   <group id="standLeft" members="standL1 standL2" lamps="" completeScore="5000" actions="armKickback resetGroup" message="KICKBACK ON" />
+   <group id="standRight" members="standR1 standR2" lamps="" completeScore="5000" actions="armStopper resetGroup" message="POST IS UP" />
+  </groups>
+ </rules>
+</table>

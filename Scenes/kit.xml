@@ -46,7 +46,7 @@
   </each-corner>
  </prefab>
 
- <!-- The raised slide under a flipper's outer side, with the ball's lane running down beside it. -->
+ <!-- A low raised piece with a trim, such as the floor sloping to the drain beneath the flippers. -->
  <prefab id="slide">
   <polygon points="{outline}" role="cabinet_shell" z="{height}"/>
   <polygon points="{outline}" role="accent" sharp="80"><sweep section="-.0042,0 -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,0"/></polygon>

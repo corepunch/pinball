@@ -1,0 +1,25 @@
+<table id="reef" name="REEF BREAK" defaultSkin="abyss" base="base" kits="shortL shortR">
+ <bumpers>
+  <bumper id="bumperA" x="0.28" y="1.7" r="0.07" />
+  <bumper id="bumperB" x="0.4775" y="1.74" r="0.07" />
+  <bumper id="bumperC" x="0.675" y="1.7" r="0.07" />
+ </bumpers>
+ <dropTargets>
+  <dropTarget id="drop1" a="0.3995 1.2" b="0.4505 1.2" />
+  <dropTarget id="drop2" a="0.452 1.2" b="0.503 1.2" />
+  <dropTarget id="drop3" a="0.5045 1.2" b="0.5555 1.2" />
+ </dropTargets>
+ <standups>
+  <standup id="standL1" a="0.3047 1.5476" b="0.3653 1.5124" />
+  <standup id="standL2" a="0.3647 1.4276" b="0.4253 1.3924" />
+  <standup id="standR1" a="0.6503 1.5476" b="0.5897 1.5124" />
+  <standup id="standR2" a="0.5903 1.4276" b="0.5297 1.3924" />
+ </standups>
+ <rules locksForMultiball="0">
+  <groups>
+   <group id="drops" members="drop1 drop2 drop3" lamps="" completeScore="15000" actions="addBonus resetDrops flash:flashTL" message="DROPS DOWN" />
+   <group id="standLeft" members="standL1 standL2" lamps="" completeScore="5000" actions="armKickback resetGroup" message="KICKBACK ON" />
+   <group id="standRight" members="standR1 standR2" lamps="" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
+  </groups>
+ </rules>
+</table>

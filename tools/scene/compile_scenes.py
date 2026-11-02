@@ -29,6 +29,7 @@ ROLES = {
     'sling_lens': (1, .25, .1, 1), 'sling_lens_0': (1, .25, .1, 1), 'sling_lens_1': (1, .25, .1, 1), 'target_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1), 'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
     'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
 }
+THIN_WALL = .01  # A wall of less radius has no room for a coloured top: it is solid metal.
 BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
 
 
@@ -105,12 +106,15 @@ def table_json(scene):
     return table
 
 
-def walls_part(table, centred):
+def walls_part(table, centred, skip=()):
     data = mesher.MeshData()
     for wall in table['walls']:
+        if wall['id'] in skip:
+            continue
         if wall['style'] in ('wall', 'rail', 'rubber'):
             built = geometry.build_wall([centred(*p) for p in expand_points(wall['points'])], wall['radius'], wall['height'])
-            data.add(built.vertices, built.faces, built.roles, None, 50)
+            roles = ['accent' for _ in built.roles] if wall['radius'] < THIN_WALL else built.roles
+            data.add(built.vertices, built.faces, roles, None, 50)
     return data
 
 
@@ -118,13 +122,15 @@ def outline_text(points):
     return ' '.join(f'{p[0]:.8g},{p[1]:.8g}' for p in points)
 
 
-def plastics_part(table, centred, builder):
+def plastics_part(table, centred, builder, skip=()):
     """Each raised shape on the table, as a kit prefab over its outline."""
     data = mesher.MeshData()
     # Each bouncer gets its own lens, in the order of the table's slingshots, to light when it is hit.
     shapes = [(p['id'], expand_points(p['points']), 'slingshot', f'sling_lens_{i}') for i, p in enumerate(table['plastics'])]
     shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic']
     for name, path, prefab, lens in shapes:
+        if name in skip:
+            continue
         outline = mesher.ccw([centred(*p) for p in path])
         x0, x1 = min(p[0] for p in outline), max(p[0] for p in outline)
         y0, y1 = min(p[1] for p in outline), max(p[1] for p in outline)
@@ -162,21 +168,26 @@ def main():
     # Helpers and table-driven prefabs are not parts of their own.
     templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide'}
     parts = {name: builder.build(name) for name in kit if name not in templates}
-    for path in sorted((ROOT / 'Scenes').glob('*.xml')):
-        if path.stem == 'kit':
-            continue
+    base = table_xml.read(ROOT / 'Scenes/base.xml')
+    flipper = base['flippers'][0]
+    size = base['size']
+    centred = lambda x, y, s=size: (x - s[0] * .5, y - s[1] * .5)
+    common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']}
+    # Parts every table has are one model each, however many tables there are.
+    parts['common-flipper'] = builder.build('flipper', {'base': flipper['baseRadius'] / flipper['length'], 'tip': flipper['tipRadius'] / flipper['length']})
+    parts['common-walls'] = walls_part(base, centred)
+    parts['common-plastics'] = plastics_part(base, centred, builder)
+    for path in table_xml.table_paths():
         table = table_json(table_xml.read(path))
         (tables / f"{table['id']}.json").write_text(json.dumps(table, indent=1) + '\n')
         if args.tables_only:
             continue
-        size = table['size']
-        centred = lambda x, y, s=size: (x - s[0] * .5, y - s[1] * .5)
-        flipper = table['flippers'][0]
-        parts[f"{table['id']}-flipper"] = builder.build('flipper', {'base': flipper['baseRadius'] / flipper['length'], 'tip': flipper['tipRadius'] / flipper['length']})
-        parts[f"{table['id']}-walls"] = walls_part(table, centred)
-        parts[f"{table['id']}-plastics"] = plastics_part(table, centred, builder)
+        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common))):
+            if data.faces:
+                parts[f"{table['id']}-{suffix}"] = data
         for ramp in table['ramps']:
-            parts[f"{table['id']}-{ramp['id']}"] = ramp_part(table, ramp, centred)
+            if ramp['model'] not in parts:
+                parts[ramp['model']] = ramp_part(table, ramp, centred)
     if args.tables_only:
         return
     models.mkdir(parents=True, exist_ok=True)

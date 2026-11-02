@@ -1,0 +1,28 @@
+<table id="pulsar" name="PULSAR" defaultSkin="orbital" base="base" kits="longL longR">
+ <walls>
+  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.4775,0.815,0.05,40,140,16)" />
+ </walls>
+ <bumpers>
+  <bumper id="bumperA" x="0.4775" y="1.85" r="0.065" />
+  <bumper id="bumperB" x="0.335" y="1.71" r="0.065" />
+  <bumper id="bumperC" x="0.62" y="1.71" r="0.065" />
+  <bumper id="bumperD" x="0.4775" y="1.565" r="0.065" />
+ </bumpers>
+ <standups>
+  <standup id="standL1" a="0.3297 1.4776" b="0.3903 1.4424" />
+  <standup id="standR1" a="0.6253 1.4776" b="0.5647 1.4424" />
+ </standups>
+ <saucers>
+  <saucer id="scoop" x="0.4775" y="0.79" r="0.03" ejectDirection="0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
+ </saucers>
+ <lamps>
+  <lamp id="lampLock" x="0.4775" y="0.695" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
+  <lamp id="lampFeature" x="0.4775" y="0.6" size="0.026" color="amber" icon="0" bind="hurryUp" />
+ </lamps>
+ <rules locksForMultiball="1">
+  <groups>
+   <group id="standLeft" members="standL1" lamps="" completeScore="5000" actions="hurryUp resetGroup" message="HURRY UP" />
+   <group id="standRight" members="standR1" lamps="" completeScore="5000" actions="lightLock resetGroup" message="LOCK IS LIT" />
+  </groups>
+ </rules>
+</table>

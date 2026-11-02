@@ -1,184 +1,364 @@
 {
-  "levels": [
-    {
-      "id": "l01",
-      "name": "First Light",
-      "table": "aurora",
-      "skin": "orbital",
-      "goal": "score",
-      "count": 15000,
-      "stars": [
-        100000,
-        240000
-      ]
-    },
-    {
-      "id": "l02",
-      "name": "Pop Goes the Comet",
-      "table": "aurora",
-      "skin": "orbital",
-      "goal": "bumpers",
-      "count": 3,
-      "stars": [
-        120000,
-        280000
-      ]
-    },
-    {
-      "id": "l03",
-      "name": "Drop Zone",
-      "table": "aurora",
-      "skin": "orbital",
-      "goal": "drops",
-      "count": 4,
-      "stars": [
-        140000,
-        300000
-      ]
-    },
-    {
-      "id": "l04",
-      "name": "Up and Over",
-      "table": "aurora",
-      "skin": "orbital",
-      "goal": "ramps",
-      "count": 1,
-      "stars": [
-        220000,
-        480000
-      ]
-    },
-    {
-      "id": "l05",
-      "name": "Deep Water",
-      "table": "meridian",
-      "skin": "abyss",
-      "goal": "score",
-      "count": 80000,
-      "stars": [
-        360000,
-        840000
-      ]
-    },
-    {
-      "id": "l06",
-      "name": "Bumper Reef",
-      "table": "meridian",
-      "skin": "abyss",
-      "goal": "bumpers",
-      "count": 20,
-      "stars": [
-        380000,
-        860000
-      ]
-    },
-    {
-      "id": "l07",
-      "name": "The Scoop",
-      "table": "meridian",
-      "skin": "abyss",
-      "goal": "saucers",
-      "count": 2,
-      "stars": [
-        400000,
-        880000
-      ]
-    },
-    {
-      "id": "l08",
-      "name": "Twin Rails",
-      "table": "meridian",
-      "skin": "abyss",
-      "goal": "ramps",
-      "count": 2,
-      "stars": [
-        440000,
-        920000
-      ]
-    },
-    {
-      "id": "l09",
-      "name": "Long Orbit",
-      "table": "aurora",
-      "skin": "abyss",
-      "goal": "score",
-      "count": 80000,
-      "stars": [
-        280000,
-        600000
-      ]
-    },
-    {
-      "id": "l10",
-      "name": "Spin Cycle",
-      "table": "aurora",
-      "skin": "abyss",
-      "goal": "spinners",
-      "count": 5,
-      "stars": [
-        300000,
-        680000
-      ]
-    },
-    {
-      "id": "l11",
-      "name": "Sunken Bank",
-      "table": "aurora",
-      "skin": "abyss",
-      "goal": "drops",
-      "count": 9,
-      "stars": [
-        240000,
-        560000
-      ]
-    },
-    {
-      "id": "l12",
-      "name": "Full Bank",
-      "table": "meridian",
-      "skin": "orbital",
-      "goal": "drops",
-      "count": 12,
-      "stars": [
-        400000,
-        700000
-      ]
-    },
-    {
-      "id": "l13",
-      "name": "Lock and Load",
-      "table": "meridian",
-      "skin": "orbital",
-      "goal": "multiballs",
-      "count": 1,
-      "stars": [
-        800000,
-        1300000
-      ]
-    },
-    {
-      "id": "l14",
-      "name": "Mother Lode",
-      "table": "meridian",
-      "skin": "orbital",
-      "goal": "jackpots",
-      "count": 1,
-      "stars": [
-        900000,
-        1400000
-      ]
-    },
-    {
-      "id": "l15",
-      "name": "Grand Tour",
-      "table": "meridian",
-      "skin": "orbital",
-      "goal": "score",
-      "count": 300000,
-      "stars": [
-        700000,
-        900000
-      ]
-    }
-  ]
+ "levels": [
+  {
+   "id": "l01",
+   "name": "First Light",
+   "table": "aurora",
+   "skin": "orbital",
+   "goal": "score",
+   "count": 27000,
+   "stars": [
+    130000,
+    340000
+   ]
+  },
+  {
+   "id": "l02",
+   "name": "Solar Wind",
+   "table": "solara",
+   "skin": "abyss",
+   "goal": "bumpers",
+   "count": 6,
+   "stars": [
+    110000,
+    150000
+   ]
+  },
+  {
+   "id": "l03",
+   "name": "Kelp Forest",
+   "table": "kelp",
+   "skin": "abyss",
+   "goal": "saucers",
+   "count": 1,
+   "stars": [
+    87000,
+    370000
+   ]
+  },
+  {
+   "id": "l04",
+   "name": "Neon Run",
+   "table": "neonrun",
+   "skin": "orbital",
+   "goal": "standups",
+   "count": 6,
+   "stars": [
+    90000,
+    130000
+   ]
+  },
+  {
+   "id": "l05",
+   "name": "Reef Break",
+   "table": "reef",
+   "skin": "abyss",
+   "goal": "drops",
+   "count": 3,
+   "stars": [
+    79000,
+    130000
+   ]
+  },
+  {
+   "id": "l06",
+   "name": "Comet Tail",
+   "table": "comet",
+   "skin": "orbital",
+   "goal": "standups",
+   "count": 20,
+   "stars": [
+    110000,
+    150000
+   ]
+  },
+  {
+   "id": "l07",
+   "name": "Penny Arcade",
+   "table": "arcade",
+   "skin": "abyss",
+   "goal": "ramps",
+   "count": 1,
+   "stars": [
+    160000,
+    270000
+   ]
+  },
+  {
+   "id": "l08",
+   "name": "Rip Tide",
+   "table": "tide",
+   "skin": "abyss",
+   "goal": "drops",
+   "count": 6,
+   "stars": [
+    99000,
+    140000
+   ]
+  },
+  {
+   "id": "l09",
+   "name": "Pulsar",
+   "table": "pulsar",
+   "skin": "orbital",
+   "goal": "score",
+   "count": 43000,
+   "stars": [
+    220000,
+    490000
+   ]
+  },
+  {
+   "id": "l10",
+   "name": "Marquee",
+   "table": "marquee",
+   "skin": "orbital",
+   "goal": "score",
+   "count": 29000,
+   "stars": [
+    62000,
+    91000
+   ]
+  },
+  {
+   "id": "l11",
+   "name": "Anchor Down",
+   "table": "anchor",
+   "skin": "abyss",
+   "goal": "standups",
+   "count": 7,
+   "stars": [
+    86000,
+    160000
+   ]
+  },
+  {
+   "id": "l12",
+   "name": "Saloon",
+   "table": "saloon",
+   "skin": "abyss",
+   "goal": "standups",
+   "count": 6,
+   "stars": [
+    88000,
+    370000
+   ]
+  },
+  {
+   "id": "l13",
+   "name": "Vortex",
+   "table": "vortex",
+   "skin": "orbital",
+   "goal": "score",
+   "count": 65000,
+   "stars": [
+    120000,
+    220000
+   ]
+  },
+  {
+   "id": "l14",
+   "name": "Nebula",
+   "table": "nebula",
+   "skin": "orbital",
+   "goal": "bumpers",
+   "count": 13,
+   "stars": [
+    190000,
+    710000
+   ]
+  },
+  {
+   "id": "l15",
+   "name": "Mariana Trench",
+   "table": "trench",
+   "skin": "abyss",
+   "goal": "multiballs",
+   "count": 1,
+   "stars": [
+    210000,
+    520000
+   ]
+  },
+  {
+   "id": "l16",
+   "name": "Carnival",
+   "table": "carnival",
+   "skin": "abyss",
+   "goal": "saucers",
+   "count": 1,
+   "stars": [
+    73000,
+    260000
+   ]
+  },
+  {
+   "id": "l17",
+   "name": "Laser Tag",
+   "table": "laser",
+   "skin": "orbital",
+   "goal": "drops",
+   "count": 3,
+   "stars": [
+    61000,
+    150000
+   ]
+  },
+  {
+   "id": "l18",
+   "name": "Eclipse",
+   "table": "eclipse",
+   "skin": "orbital",
+   "goal": "ramps",
+   "count": 1,
+   "stars": [
+    73000,
+    100000
+   ]
+  },
+  {
+   "id": "l19",
+   "name": "Siren Song",
+   "table": "siren",
+   "skin": "abyss",
+   "goal": "score",
+   "count": 200000,
+   "stars": [
+    290000,
+    600000
+   ]
+  },
+  {
+   "id": "l20",
+   "name": "Jukebox",
+   "table": "jukebox",
+   "skin": "abyss",
+   "goal": "jackpots",
+   "count": 1,
+   "stars": [
+    91000,
+    640000
+   ]
+  },
+  {
+   "id": "l21",
+   "name": "The Grid",
+   "table": "grid",
+   "skin": "orbital",
+   "goal": "multiballs",
+   "count": 1,
+   "stars": [
+    170000,
+    420000
+   ]
+  },
+  {
+   "id": "l22",
+   "name": "Quasar",
+   "table": "quasar",
+   "skin": "orbital",
+   "goal": "ramps",
+   "count": 1,
+   "stars": [
+    120000,
+    180000
+   ]
+  },
+  {
+   "id": "l23",
+   "name": "Abyssal Plain",
+   "table": "abyssal",
+   "skin": "abyss",
+   "goal": "score",
+   "count": 100000,
+   "stars": [
+    210000,
+    470000
+   ]
+  },
+  {
+   "id": "l24",
+   "name": "Rodeo",
+   "table": "rodeo",
+   "skin": "abyss",
+   "goal": "jackpots",
+   "count": 1,
+   "stars": [
+    300000,
+    840000
+   ]
+  },
+  {
+   "id": "l25",
+   "name": "Overdrive",
+   "table": "overdrive",
+   "skin": "orbital",
+   "goal": "ramps",
+   "count": 1,
+   "stars": [
+    29000,
+    94000
+   ]
+  },
+  {
+   "id": "l26",
+   "name": "Event Horizon",
+   "table": "horizon",
+   "skin": "orbital",
+   "goal": "jackpots",
+   "count": 1,
+   "stars": [
+    42000,
+    300000
+   ]
+  },
+  {
+   "id": "l27",
+   "name": "Leviathan",
+   "table": "leviathan",
+   "skin": "abyss",
+   "goal": "jackpots",
+   "count": 1,
+   "stars": [
+    570000,
+    1300000
+   ]
+  },
+  {
+   "id": "l28",
+   "name": "Grand Finale",
+   "table": "finale",
+   "skin": "abyss",
+   "goal": "score",
+   "count": 54000,
+   "stars": [
+    98000,
+    900000
+   ]
+  },
+  {
+   "id": "l29",
+   "name": "Supernova",
+   "table": "supernova",
+   "skin": "orbital",
+   "goal": "wizards",
+   "count": 1,
+   "stars": [
+    120000,
+    770000
+   ]
+  },
+  {
+   "id": "l30",
+   "name": "Grand Tour",
+   "table": "meridian",
+   "skin": "orbital",
+   "goal": "score",
+   "count": 150000,
+   "stars": [
+    170000,
+    420000
+   ]
+  }
+ ]
 }

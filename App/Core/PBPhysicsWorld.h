@@ -115,6 +115,8 @@ typedef struct {
 /// Seconds since a bumper, sling or stand-up last fired, for animation.
 - (float)bumperFlash:(NSInteger)index;
 - (float)slingFlash:(NSInteger)index;
+- (void)setStopper:(NSInteger)index up:(BOOL)up;
+- (BOOL)isStopperUp:(NSInteger)index;
 - (float)standupFlash:(NSInteger)index;
 
 @end

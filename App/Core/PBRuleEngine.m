@@ -23,6 +23,11 @@ static const double kBallAddDelay = 0.8;
 @implementation PBGroupState @end
 
 static const NSInteger kBumpersForSuper = 25;
+static const double kPlayfieldSeconds = 20.0;
+static const double kWizardSeconds = 30.0;
+static const double kHurryUpStart = 100000.0, kHurryUpEnd = 20000.0, kHurryUpSeconds = 16.0;
+static const double kStopperSeconds = 20.0;
+static const int64_t kMysteryPoints = 25000;
 static const double kSuperBumperSeconds = 15.0;
 static const double kRampComboSeconds = 8.0;
 
@@ -60,6 +65,17 @@ static const double kRampComboSeconds = 8.0;
     BOOL _magnetArmed;
     BOOL _orbitHot;
     BOOL _shootAgain;
+    NSInteger _playfieldX;
+    double _playfieldTime;
+    BOOL _mysteryLit;
+    uint32_t _mysterySeed;
+    BOOL _bonusHeld;
+    double _hurryUp;  // What the next ramp or scoop collects, counting down. Zero when not running.
+    double _stopperTime;
+    NSMutableSet<NSString *> *_groupsDone;
+    BOOL _wizardPlayed;
+    NSMutableDictionary<NSString *, NSNumber *> *_rolloverMembers;
+    NSUInteger _targetGroupCount;
 
     NSInteger _tiltWarnings;
     double _tiltDecay;
@@ -77,6 +93,9 @@ static const double kRampComboSeconds = 8.0;
         _highScore = highScore;
         _phase = PBGamePhaseAttract;
         _bonusMultiplier = 1;
+        _playfieldX = 1;
+        _mysterySeed = 0x9E3779B9u;
+        _groupsDone = [NSMutableSet set];
         _pending = [NSMutableArray array];
         _displayTop = _table.name;
         _displayBottom = @"PRESS START";
@@ -91,6 +110,9 @@ static const double kRampComboSeconds = 8.0;
             for (NSString *member in def.members) _groupByMember[member] = state;
         }
         _groups = groups;
+        _rolloverMembers = [NSMutableDictionary dictionary];
+        for (PBSpotDef *rollover in _table.rollovers) _rolloverMembers[rollover.identifier] = @YES;
+        for (PBRuleGroupDef *def in _rules.groups) if (!_rolloverMembers[def.members.firstObject]) _targetGroupCount++;
 
         _lampIndex = [NSMutableDictionary dictionary];
         [_table.lamps enumerateObjectsUsingBlock:^(PBLampDef *lamp, NSUInteger i, BOOL *stop) {
@@ -109,6 +131,9 @@ static const double kRampComboSeconds = 8.0;
 #pragma mark - Game flow
 
 - (void)startGame {
+    _groupsDone = [NSMutableSet set];
+    _wizardPlayed = NO;
+    _mysteryLit = NO;
     _score = 0;
     _ballNumber = 0;
     _extraBalls = 0;
@@ -137,8 +162,15 @@ static const double kRampComboSeconds = 8.0;
 }
 
 - (void)beginBall {
-    _bonus = 0;
-    _bonusMultiplier = 1;
+    if (!_bonusHeld) {
+        _bonus = 0;
+        _bonusMultiplier = 1;
+    }
+    _bonusHeld = NO;
+    _playfieldX = 1;
+    _playfieldTime = 0;
+    _hurryUp = 0;
+    [self setStoppersUp:NO];
     _tilted = NO;
     _tiltWarnings = 0;
     _tiltDecay = 0;
@@ -196,7 +228,7 @@ static const double kRampComboSeconds = 8.0;
 
 - (void)addScore:(int64_t)points {
     if (_tilted || _phase == PBGamePhaseAttract || _phase == PBGamePhaseGameOver) return;
-    _score += points;
+    _score += points * _playfieldX;
 }
 
 - (void)award:(NSString *)key {
@@ -259,7 +291,9 @@ static const double kRampComboSeconds = 8.0;
         case PBEventStandup: {
             NSString *identifier = _table.standups[(NSUInteger)event->element].identifier;
             if (_groupByMember[identifier]) {
-                [self award:@"standup"];
+                PBEdgeDef *standup = _table.standups[(NSUInteger)event->element];
+                // A vari-target scores by how hard it was hit, as far as five times over.
+                [self addScore:[_rules scoreFor:@"standup"] * (standup.vari ? 1 + MIN(4, (int64_t)(event->magnitude * 1.5f)) : 1)];
                 [self litMember:identifier];
             } else {
                 [self award:@"captive"];
@@ -348,6 +382,9 @@ static const double kRampComboSeconds = 8.0;
     [self addScore:group.def.completeScore];
     if (group.def.message.length) [self showMessage:group.def.message];
     for (NSString *action in group.def.actions) [self perform:action group:group];
+    // Wizard mode wants every bank of targets finished; rollover lanes come round by themselves.
+    if (!_rolloverMembers[group.def.members.firstObject]) [_groupsDone addObject:group.def.identifier];
+    if (_rules.wizard && !_wizardPlayed && _groupsDone.count == _targetGroupCount) [self startWizardMode];
 }
 
 - (void)perform:(NSString *)action group:(PBGroupState *)group {
@@ -371,9 +408,58 @@ static const double kRampComboSeconds = 8.0;
         for (NSUInteger i = 0; i < _table.magnets.count; i++) [_world setMagnet:(NSInteger)i armed:YES];
     } else if ([action isEqualToString:@"addBonus"]) {
         _bonus += 5;
+    } else if ([action isEqualToString:@"playfieldX"]) {
+        [self startPlayfieldX:2 seconds:kPlayfieldSeconds];
+    } else if ([action isEqualToString:@"lightMystery"]) {
+        _mysteryLit = YES;
+    } else if ([action isEqualToString:@"holdBonus"]) {
+        _bonusHeld = YES;
+    } else if ([action isEqualToString:@"hurryUp"]) {
+        _hurryUp = kHurryUpStart;
+    } else if ([action isEqualToString:@"armStopper"]) {
+        _stopperTime = kStopperSeconds;
+        [self setStoppersUp:YES];
     } else if ([action hasPrefix:@"flash:"]) {
         [self.delegate ruleEngine:self flash:[action substringFromIndex:6]];
     }
+}
+
+- (void)startPlayfieldX:(NSInteger)multiplier seconds:(double)seconds {
+    _playfieldX = MAX(_playfieldX, multiplier);
+    _playfieldTime = MAX(_playfieldTime, seconds);
+    [self showMessage:[NSString stringWithFormat:@"%ldX PLAYFIELD", (long)_playfieldX]];
+}
+
+- (void)setStoppersUp:(BOOL)up {
+    for (NSUInteger i = 0; i < _table.stoppers.count; i++) [_world setStopper:(NSInteger)i up:up];
+}
+
+- (void)startWizardMode {
+    _wizardPlayed = YES;
+    if (!_multiballActive) [self startMultiball];
+    [self startPlayfieldX:3 seconds:kWizardSeconds];
+    [self showMessage:@"WIZARD MODE"];
+    [self.delegate ruleEngine:self fanfare:@"wizard"];
+}
+
+/// What a lit scoop gives: a surprise, and always something the table can use.
+- (void)awardMystery {
+    _mysterySeed ^= _mysterySeed << 13; _mysterySeed ^= _mysterySeed >> 17; _mysterySeed ^= _mysterySeed << 5;
+    _mysteryLit = NO;
+    switch (_mysterySeed % 5) {
+        case 0: [self addScore:kMysteryPoints]; [self showMessage:@"MYSTERY POINTS"]; break;
+        case 1: [self perform:@"bonusX" group:nil]; [self showMessage:@"MYSTERY BONUS X"]; break;
+        case 2: _bonusHeld = YES; [self showMessage:@"BONUS HELD"]; break;
+        case 3: [self perform:@"armKickback" group:nil]; [self showMessage:@"KICKBACK ON"]; break;
+        default: [self startPlayfieldX:2 seconds:kPlayfieldSeconds]; break;
+    }
+}
+
+- (void)collectHurryUp {
+    if (_hurryUp <= 0) return;
+    [self addScore:(int64_t)_hurryUp];
+    [self showMessage:[@"HURRY UP " stringByAppendingString:[self.class formattedScore:(int64_t)_hurryUp]]];
+    _hurryUp = 0;
 }
 
 - (void)armKickbacks:(BOOL)armed {
@@ -382,6 +468,8 @@ static const double kRampComboSeconds = 8.0;
 
 - (void)handleSaucer:(NSInteger)saucer {
     [self award:@"saucer"];
+    [self collectHurryUp];
+    if (_mysteryLit) [self awardMystery];
     NSTimeInterval hold = kSaucerHoldSeconds;
     if (_lockLit && !_multiballActive) {
         _lockLit = NO;
@@ -423,6 +511,7 @@ static const double kRampComboSeconds = 8.0;
 
 - (void)handleRampComplete:(NSInteger)ramp {
     [self award:@"ramp"];
+    [self collectHurryUp];
     _bonus += 3;
     // Another ramp straight after the last one is a combo, and the chain grows.
     if (_comboOpen && ramp != _lastRamp) {
@@ -520,6 +609,12 @@ static const double kRampComboSeconds = 8.0;
         if (_tiltDecay <= 0 && !_tilted) _tiltWarnings = 0;
     }
     if (_messageTimer > 0) _messageTimer -= dt;
+    if (_playfieldTime > 0 && (_playfieldTime -= dt) <= 0) _playfieldX = 1;
+    if (_hurryUp > 0) {
+        _hurryUp -= dt * (kHurryUpStart - kHurryUpEnd) / kHurryUpSeconds;
+        if (_hurryUp < kHurryUpEnd) _hurryUp = 0;
+    }
+    if (_stopperTime > 0 && (_stopperTime -= dt) <= 0) [self setStoppersUp:NO];
 
     if (_phase == PBGamePhaseBonus) {
         _bonusTimer -= dt;
@@ -595,7 +690,8 @@ static const double kRampComboSeconds = 8.0;
         bindings = @{ @"shootAgain": @0, @"bonusX2": @1, @"bonusX3": @2, @"bonusX5": @3, @"jackpot": @4,
                       @"magnet": @5, @"lockLit": @6, @"lock1": @7, @"lock2": @8, @"rampHot": @9,
                       @"ramp1": @10, @"ramp2": @11, @"ramp3": @12, @"extraBall": @13, @"orbitHot": @14,
-                      @"captiveHot": @15, @"kickback": @16, @"special": @17, @"skillShot": @18 };
+                      @"captiveHot": @15, @"kickback": @16, @"special": @17, @"skillShot": @18,
+                      @"playfieldX": @19, @"mystery": @20, @"hurryUp": @21, @"stopper": @22, @"bonusHeld": @23 };
     });
     switch (bindings[bind].integerValue) {
         case 0: return _ballSaveTimer > 0 ? PBLampFastBlink : (_shootAgain ? PBLampOn : PBLampOff);
@@ -617,6 +713,11 @@ static const double kRampComboSeconds = 8.0;
         case 16: return _kickbackArmed ? PBLampOn : PBLampOff;
         case 17: return _specialLit ? PBLampBlink : PBLampOff;
         case 18: return (_skillTimer > 0 && !_plunged) ? PBLampFastBlink : PBLampOff;
+        case 19: return _playfieldX > 1 ? PBLampFastBlink : PBLampOff;
+        case 20: return _mysteryLit ? PBLampBlink : PBLampOff;
+        case 21: return _hurryUp > 0 ? PBLampFastBlink : PBLampOff;
+        case 22: return _stopperTime > 0 ? PBLampBlink : PBLampOff;
+        case 23: return _bonusHeld ? PBLampOn : PBLampOff;
     }
     return PBLampOff;
 }

@@ -25,11 +25,13 @@
     if (event->kind == PBEventDropTarget) [_current addObject:@"drops"];
     if (event->kind == PBEventSaucerCapture) [_current addObject:@"saucers"];
     if (event->kind == PBEventSpinner) [_current addObject:@"spinners"];
+    if (event->kind == PBEventStandup) [_current addObject:@"standups"];
 }
 - (void)game:(PBGame *)game flash:(NSString *)flasherIdentifier {}
 - (void)game:(PBGame *)game fanfare:(NSString *)name {
     if ([name isEqualToString:@"multiball"]) [_current addObject:@"multiballs"];
     if ([name isEqualToString:@"jackpot"]) [_current addObject:@"jackpots"];
+    if ([name isEqualToString:@"wizard"]) [_current addObject:@"wizards"];
     if ([name isEqualToString:@"start"]) _current = [NSCountedSet set];
     if ([name isEqualToString:@"gameOver"]) {
         NSMutableDictionary *result = [@{ @"score": @(game.rules.score) } mutableCopy];
@@ -82,6 +84,13 @@
 }
 
 #pragma mark Catalog
+
+- (void)testThereAreThirtyLevelsEachWithItsOwnTable {
+    NSMutableSet *tables = [NSMutableSet set];
+    for (PBLevelDef *level in [self shippingCatalog].levels) [tables addObject:level.table];
+    XCTAssertEqual([self shippingCatalog].levels.count, 30u);
+    XCTAssertEqual(tables.count, 30u);
+}
 
 - (void)testShippingLevelsUseTablesAndSkinsThatExist {
     NSFileManager *files = NSFileManager.defaultManager;

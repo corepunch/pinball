@@ -1,0 +1,28 @@
+<table id="quasar" name="QUASAR" defaultSkin="orbital" base="base" kits="longL longR">
+ <flippers>
+  <flipper id="flipperU" side="left" pivot="0.41 1.04" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="-25.0" activeAngle="28.0" />
+ </flippers>
+ <bumpers>
+  <bumper id="bumperA" x="0.36" y="1.76" r="0.07" />
+  <bumper id="bumperB" x="0.595" y="1.76" r="0.07" />
+  <bumper id="bumperC" x="0.4775" y="1.57" r="0.075" />
+ </bumpers>
+ <standups>
+  <standup id="standL1" a="0.2897 1.5176" b="0.3503 1.4824" />
+  <standup id="standL2" a="0.3797 1.4126" b="0.4403 1.3774" />
+  <standup id="standR1" a="0.6653 1.5176" b="0.6047 1.4824" />
+  <standup id="standR2" a="0.5753 1.4126" b="0.5147 1.3774" />
+ </standups>
+ <stoppers>
+  <stopper id="centerPost" x="0.4775" y="0.062" r="0.016" />
+ </stoppers>
+ <lamps>
+  <lamp id="lampFeature" x="0.4775" y="0.75" size="0.026" color="amber" icon="0" bind="stopper" />
+ </lamps>
+ <rules locksForMultiball="0">
+  <groups>
+   <group id="standLeft" members="standL1 standL2" lamps="" completeScore="5000" actions="armKickback resetGroup" message="KICKBACK ON" />
+   <group id="standRight" members="standR1 standR2" lamps="" completeScore="5000" actions="armStopper resetGroup" message="POST IS UP" />
+  </groups>
+ </rules>
+</table>

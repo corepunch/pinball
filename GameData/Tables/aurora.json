@@ -1,10 +1,10 @@
 {
- "id": "aurora",
- "name": "AURORA",
  "size": [
   1.0,
   2.286
  ],
+ "id": "aurora",
+ "name": "AURORA",
  "defaultSkin": "orbital",
  "physics": {
   "gravity": 2.2,
@@ -72,169 +72,6 @@
     [
      0.922,
      1.618
-    ]
-   ]
-  },
-  {
-   "id": "guideOrbitL",
-   "style": "wall",
-   "height": 0.03,
-   "radius": 0.021,
-   "points": [
-    [
-     0.1535,
-     0.7755
-    ],
-    [
-     0.1235,
-     0.7755
-    ],
-    [
-     0.1235,
-     1.26
-    ]
-   ]
-  },
-  {
-   "id": "rampSideRL",
-   "style": "none",
-   "height": 0.022,
-   "radius": 0.005,
-   "layers": [
-    "playfield",
-    "ramp"
-   ],
-   "points": [
-    [
-     0.678,
-     0.82
-    ],
-    [
-     0.673,
-     0.98
-    ]
-   ]
-  },
-  {
-   "id": "rampSideRR",
-   "style": "none",
-   "height": 0.022,
-   "radius": 0.005,
-   "layers": [
-    "playfield",
-    "ramp"
-   ],
-   "points": [
-    [
-     0.772,
-     0.82
-    ],
-    [
-     0.767,
-     0.98
-    ]
-   ]
-  },
-  {
-   "id": "rampBackR",
-   "style": "none",
-   "height": 0.06,
-   "radius": 0.006,
-   "layers": [
-    "playfield"
-   ],
-   "points": [
-    [
-     0.83,
-     1.1
-    ],
-    [
-     0.645,
-     0.985
-    ]
-   ]
-  },
-  {
-   "id": "captiveHousing",
-   "style": "plastic",
-   "height": 0.018,
-   "radius": 0.005,
-   "closed": true,
-   "points": [
-    [
-     0.44,
-     1.006
-    ],
-    [
-     0.44,
-     1.22
-    ],
-    [
-     0.485,
-     1.245
-    ],
-    [
-     0.53,
-     1.22
-    ],
-    [
-     0.53,
-     1.006
-    ],
-    [
-     0.52,
-     1.006
-    ],
-    [
-     0.52,
-     1.205
-    ],
-    [
-     0.45,
-     1.205
-    ],
-    [
-     0.45,
-     1.006
-    ]
-   ]
-  },
-  {
-   "id": "scoopHood",
-   "style": "rail",
-   "height": 0.03,
-   "radius": 0.021,
-   "points": [
-    {
-     "arc": [
-      0.38,
-      0.875,
-      0.05,
-      40,
-      140,
-      16
-     ]
-    }
-   ]
-  },
-  {
-   "id": "dropHousing",
-   "style": "plastic",
-   "height": 0.024,
-   "radius": 0.005,
-   "closed": true,
-   "points": [
-    [
-     0.578,
-     0.952
-    ],
-    [
-     0.655,
-     0.862
-    ],
-    [
-     0.645,
-     0.99
     ]
    ]
   },
@@ -317,12 +154,12 @@
    "radius": 0.021,
    "points": [
     [
-     0.0975,
-     0.505
+     0.123,
+     0.463
     ],
     [
-     0.0975,
-     0.2195
+     0.123,
+     0.2175
     ],
     [
      0.25,
@@ -338,7 +175,7 @@
    "points": [
     [
      0.832,
-     0.505
+     0.463
     ],
     [
      0.832,
@@ -351,7 +188,7 @@
    ]
   },
   {
-   "id": "slideL",
+   "id": "apronL",
    "style": "plastic",
    "part": "slide",
    "height": 0.018,
@@ -359,29 +196,25 @@
    "closed": true,
    "points": [
     [
-     0.0975,
-     -0.02
+     0,
+     0.176
     ],
     [
-     0.0975,
-     0.2195
+     0.3645,
+     0.004
     ],
     [
-     0.25,
-     0.1657
+     0.3645,
+     -0.03
     ],
     [
-     0.25,
-     0.1
-    ],
-    [
-     0.2,
-     -0.02
+     0,
+     -0.03
     ]
    ]
   },
   {
-   "id": "slideR",
+   "id": "apronR",
    "style": "plastic",
    "part": "slide",
    "height": 0.018,
@@ -389,58 +222,40 @@
    "closed": true,
    "points": [
     [
-     0.832,
-     -0.02
+     0.922,
+     0.1604
     ],
     [
-     0.755,
-     -0.02
+     0.922,
+     -0.03
     ],
     [
-     0.705,
-     0.1
+     0.5905,
+     -0.03
     ],
     [
-     0.705,
-     0.1657
-    ],
-    [
-     0.832,
-     0.2175
+     0.5905,
+     0.004
     ]
    ]
   },
   {
-   "id": "outlaneRailL",
+   "id": "guideOrbitL",
    "style": "wall",
    "height": 0.03,
-   "radius": 0.0065,
+   "radius": 0.021,
    "points": [
     [
-     0.0065,
-     0.5
+     0.1535,
+     0.7755
     ],
     [
-     0.0065,
-     0.16
-    ]
-   ]
-  },
-  {
-   "id": "captiveStop",
-   "style": "none",
-   "radius": 0.003,
-   "layers": [
-    "captive"
-   ],
-   "points": [
-    [
-     0.45,
-     1.095
+     0.1235,
+     0.7755
     ],
     [
-     0.52,
-     1.095
+     0.1235,
+     1.26
     ]
    ]
   },
@@ -504,7 +319,66 @@
    ]
   },
   {
-   "id": "rampGuard",
+   "id": "rampSideRL",
+   "style": "none",
+   "height": 0.022,
+   "radius": 0.005,
+   "layers": [
+    "playfield",
+    "ramp"
+   ],
+   "points": [
+    [
+     0.678,
+     0.82
+    ],
+    [
+     0.673,
+     0.98
+    ]
+   ]
+  },
+  {
+   "id": "rampSideRR",
+   "style": "none",
+   "height": 0.022,
+   "radius": 0.005,
+   "layers": [
+    "playfield",
+    "ramp"
+   ],
+   "points": [
+    [
+     0.772,
+     0.82
+    ],
+    [
+     0.767,
+     0.98
+    ]
+   ]
+  },
+  {
+   "id": "rampBackR",
+   "style": "none",
+   "height": 0.06,
+   "radius": 0.006,
+   "layers": [
+    "playfield"
+   ],
+   "points": [
+    [
+     0.83,
+     1.1
+    ],
+    [
+     0.645,
+     0.985
+    ]
+   ]
+  },
+  {
+   "id": "rampGuardR",
    "style": "none",
    "radius": 0.006,
    "height": 0.05,
@@ -603,6 +477,108 @@
     [
      0.8164,
      1.2466
+    ]
+   ]
+  },
+  {
+   "id": "captiveHousing",
+   "style": "plastic",
+   "height": 0.018,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.44,
+     1.006
+    ],
+    [
+     0.44,
+     1.22
+    ],
+    [
+     0.485,
+     1.245
+    ],
+    [
+     0.53,
+     1.22
+    ],
+    [
+     0.53,
+     1.006
+    ],
+    [
+     0.52,
+     1.006
+    ],
+    [
+     0.52,
+     1.205
+    ],
+    [
+     0.45,
+     1.205
+    ],
+    [
+     0.45,
+     1.006
+    ]
+   ]
+  },
+  {
+   "id": "scoopHood",
+   "style": "rail",
+   "height": 0.03,
+   "radius": 0.021,
+   "points": [
+    {
+     "arc": [
+      0.38,
+      0.875,
+      0.05,
+      40,
+      140,
+      16
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dropHousing",
+   "style": "plastic",
+   "height": 0.024,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.578,
+     0.952
+    ],
+    [
+     0.655,
+     0.862
+    ],
+    [
+     0.645,
+     0.99
+    ]
+   ]
+  },
+  {
+   "id": "captiveStop",
+   "style": "none",
+   "radius": 0.003,
+   "layers": [
+    "captive"
+   ],
+   "points": [
+    [
+     0.45,
+     1.095
+    ],
+    [
+     0.52,
+     1.095
     ]
    ]
   },
@@ -863,7 +839,6 @@
    ]
   }
  ],
- "posts": [],
  "flippers": [
   {
    "id": "flipperL",
@@ -892,26 +867,6 @@
    "activeAngle": 152.0
   }
  ],
- "bumpers": [
-  {
-   "id": "bumperA",
-   "x": 0.4775,
-   "y": 1.84,
-   "r": 0.08
-  },
-  {
-   "id": "bumperB",
-   "x": 0.2925,
-   "y": 1.7,
-   "r": 0.08
-  },
-  {
-   "id": "bumperC",
-   "x": 0.6625,
-   "y": 1.7,
-   "r": 0.08
-  }
- ],
  "slingshots": [
   {
    "id": "slingL",
@@ -933,98 +888,6 @@
    "b": [
     0.743,
     0.52
-   ]
-  }
- ],
- "dropTargets": [
-  {
-   "id": "drop1",
-   "a": [
-    0.569,
-    0.944
-   ],
-   "b": [
-    0.5957,
-    0.915
-   ]
-  },
-  {
-   "id": "drop2",
-   "a": [
-    0.5957,
-    0.915
-   ],
-   "b": [
-    0.6223,
-    0.886
-   ]
-  },
-  {
-   "id": "drop3",
-   "a": [
-    0.6223,
-    0.886
-   ],
-   "b": [
-    0.649,
-    0.857
-   ]
-  }
- ],
- "standups": [
-  {
-   "id": "standL1",
-   "a": [
-    0.2897,
-    1.5176
-   ],
-   "b": [
-    0.3503,
-    1.4824
-   ]
-  },
-  {
-   "id": "standL2",
-   "a": [
-    0.3797,
-    1.4126
-   ],
-   "b": [
-    0.4403,
-    1.3774
-   ]
-  },
-  {
-   "id": "standR1",
-   "a": [
-    0.6653,
-    1.5176
-   ],
-   "b": [
-    0.6047,
-    1.4824
-   ]
-  },
-  {
-   "id": "standR2",
-   "a": [
-    0.5753,
-    1.4126
-   ],
-   "b": [
-    0.5147,
-    1.3774
-   ]
-  },
-  {
-   "id": "captiveTarget",
-   "a": [
-    0.52,
-    1.2
-   ],
-   "b": [
-    0.45,
-    1.2
    ]
   }
  ],
@@ -1060,29 +923,29 @@
   {
    "id": "inlaneLeft",
    "r": 0.025,
-   "x": 0.162,
-   "y": 0.507,
+   "x": 0.174,
+   "y": 0.471,
    "plate": true
   },
   {
    "id": "inlaneRight",
    "r": 0.025,
    "x": 0.781,
-   "y": 0.507,
+   "y": 0.471,
    "plate": true
   },
   {
    "id": "outlaneLeft",
    "r": 0.025,
-   "x": 0.041,
-   "y": 0.507,
+   "x": 0.071,
+   "y": 0.471,
    "plate": true
   },
   {
    "id": "outlaneRight",
    "r": 0.025,
    "x": 0.884,
-   "y": 0.507,
+   "y": 0.471,
    "plate": true
   }
  ],
@@ -1099,20 +962,6 @@
    ]
   }
  ],
- "saucers": [
-  {
-   "id": "scoop",
-   "x": 0.38,
-   "y": 0.85,
-   "r": 0.03,
-   "ejectDirection": [
-    -0.1,
-    -1.0
-   ],
-   "ejectSpeed": 2.6,
-   "captureSpeed": 2.4
-  }
- ],
  "gates": [
   {
    "id": "shooterGate",
@@ -1123,21 +972,6 @@
    "b": [
     1.0,
     1.681
-   ],
-   "passDirection": [
-    0.0,
-    1.0
-   ]
-  },
-  {
-   "id": "orbitGateL",
-   "a": [
-    0.0,
-    0.758
-   ],
-   "b": [
-    0.1,
-    0.65
    ],
    "passDirection": [
     0.0,
@@ -1158,34 +992,415 @@
     0.0,
     1.0
    ]
+  },
+  {
+   "id": "orbitGateL",
+   "a": [
+    0.0,
+    0.758
+   ],
+   "b": [
+    0.1,
+    0.65
+   ],
+   "passDirection": [
+    0.0,
+    1.0
+   ]
   }
  ],
  "kickbacks": [
   {
    "id": "kickbackL",
-   "x": 0.043,
-   "y": 0.13,
-   "r": 0.03,
+   "x": 0.071,
+   "y": 0.25,
+   "r": 0.04,
    "speed": 4.2
   }
  ],
- "magnets": [
+ "lamps": [
   {
-   "id": "magnet",
+   "id": "lampLaneA",
+   "x": 0.3525,
+   "y": 2.11,
+   "size": 0.02478,
+   "color": "cyan",
+   "icon": 0,
+   "bar": "laneA"
+  },
+  {
+   "id": "lampLaneB",
+   "x": 0.4775,
+   "y": 2.11,
+   "size": 0.02478,
+   "color": "cyan",
+   "icon": 0,
+   "bar": "laneB"
+  },
+  {
+   "id": "lampLaneC",
+   "x": 0.6025,
+   "y": 2.11,
+   "size": 0.02478,
+   "color": "cyan",
+   "icon": 0,
+   "bar": "laneC"
+  },
+  {
+   "id": "lampShootAgain",
+   "x": 0.4775,
+   "y": 0.285,
+   "size": 0.0354,
+   "color": "white",
+   "icon": 1,
+   "bind": "shootAgain"
+  },
+  {
+   "id": "lampBonus2",
+   "x": 0.365,
+   "y": 0.335,
+   "size": 0.03068,
+   "color": "amber",
+   "icon": 2,
+   "bind": "bonusX2"
+  },
+  {
+   "id": "lampBonus3",
+   "x": 0.4775,
+   "y": 0.39,
+   "size": 0.03068,
+   "color": "amber",
+   "icon": 3,
+   "bind": "bonusX3"
+  },
+  {
+   "id": "lampBonus5",
+   "x": 0.59,
+   "y": 0.335,
+   "size": 0.03068,
+   "color": "amber",
+   "icon": 4,
+   "bind": "bonusX5"
+  },
+  {
+   "id": "lampJackpot",
+   "x": 0.4775,
+   "y": 0.5,
+   "size": 0.032,
+   "color": "magenta",
+   "icon": 5,
+   "bind": "jackpot",
+   "shape": "arrow",
+   "angle": 90
+  },
+  {
+   "id": "lampOrbitL",
+   "x": 0.054,
+   "y": 0.88,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "bind": "orbitHot",
+   "shape": "arrow",
+   "angle": 90
+  },
+  {
+   "id": "lampOrbitR",
+   "x": 0.884,
+   "y": 0.88,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "bind": "orbitHot",
+   "shape": "arrow",
+   "angle": 90,
+   "bar": "orbitR"
+  },
+  {
+   "id": "lampKickback",
+   "x": 0.071,
+   "y": 0.546,
+   "size": 0.017,
+   "color": "green",
+   "icon": 12,
+   "bind": "kickback",
+   "bar": "outlaneLeft"
+  },
+  {
+   "id": "lampSpecial",
+   "x": 0.884,
+   "y": 0.546,
+   "size": 0.017,
+   "color": "red",
+   "icon": 13,
+   "bind": "special",
+   "bar": "outlaneRight"
+  },
+  {
+   "id": "lampSkill",
+   "x": 0.961,
+   "y": 0.5,
+   "size": 0.017,
+   "color": "white",
+   "icon": 7,
+   "bind": "skillShot"
+  },
+  {
+   "id": "lampInlaneL",
+   "x": 0.174,
+   "y": 0.546,
+   "size": 0.017,
+   "color": "amber",
+   "icon": 0,
+   "bar": "inlaneLeft"
+  },
+  {
+   "id": "lampInlaneR",
+   "x": 0.781,
+   "y": 0.546,
+   "size": 0.017,
+   "color": "amber",
+   "icon": 0,
+   "bar": "inlaneRight"
+  },
+  {
+   "id": "lampLock",
+   "x": 0.382,
+   "y": 0.755,
+   "size": 0.02596,
+   "color": "green",
+   "icon": 7,
+   "bind": "lockLit",
+   "shape": "arrow",
+   "angle": 90
+  },
+  {
+   "id": "lampExtraBall",
+   "x": 0.575,
+   "y": 0.45,
+   "size": 0.03776,
+   "color": "amber",
+   "icon": 9,
+   "bind": "extraBall",
+   "shape": "arrow",
+   "angle": 60
+  },
+  {
+   "id": "lampCaptive",
+   "x": 0.485,
+   "y": 0.92,
+   "size": 0.03068,
+   "color": "white",
+   "icon": 7,
+   "bind": "captiveHot",
+   "shape": "arrow",
+   "angle": 90
+  },
+  {
+   "id": "lampMagnet",
    "x": 0.4775,
    "y": 0.64,
-   "r": 0.09,
-   "holdSeconds": 1.1,
-   "flingSpeed": 3.4
-  }
- ],
- "captiveBalls": [
+   "size": 0.04248,
+   "color": "cyan",
+   "icon": 6,
+   "bind": "magnet"
+  },
   {
-   "id": "captive",
-   "x": 0.485,
-   "y": 1.13
+   "id": "lampRampL",
+   "ramp": "rampL",
+   "x": 0.257323,
+   "y": 1.090777,
+   "size": 0.0354,
+   "color": "magenta",
+   "icon": 7,
+   "bind": "rampHot",
+   "shape": "arrow",
+   "angle": 57.394419
+  },
+  {
+   "id": "lampRampR",
+   "ramp": "rampR",
+   "x": 0.725803,
+   "y": 0.635002,
+   "size": 0.0354,
+   "color": "magenta",
+   "icon": 7,
+   "bind": "rampHot",
+   "shape": "arrow",
+   "angle": 90.248545
   }
  ],
+ "flashers": [
+  {
+   "id": "flashTL",
+   "x": 0.095,
+   "y": 2.175,
+   "color": "magenta"
+  },
+  {
+   "id": "flashTR",
+   "x": 0.905,
+   "y": 2.175,
+   "color": "cyan"
+  },
+  {
+   "id": "flashDrops",
+   "x": 0.6,
+   "y": 1.09,
+   "color": "amber"
+  }
+ ],
+ "plastics": [
+  {
+   "id": "plasticSlingL",
+   "height": 0,
+   "points": [
+    [
+     0.212,
+     0.535
+    ],
+    [
+     0.205,
+     0.285
+    ],
+    [
+     0.332,
+     0.235
+    ]
+   ]
+  },
+  {
+   "id": "plasticSlingR",
+   "height": 0,
+   "points": [
+    [
+     0.743,
+     0.535
+    ],
+    [
+     0.75,
+     0.285
+    ],
+    [
+     0.623,
+     0.235
+    ]
+   ]
+  }
+ ],
+ "rules": {
+  "balls": 3,
+  "ballSaveSeconds": 12,
+  "locksForMultiball": 1,
+  "multiballBalls": 3,
+  "skillShotSeconds": 6,
+  "tiltWarnings": 2,
+  "rampsForExtraBall": 12,
+  "skillShotTarget": "laneB",
+  "scores": {
+   "bumper": 1000,
+   "sling": 110,
+   "drop": 750,
+   "standup": 500,
+   "rollover": 300,
+   "spinner": 100,
+   "saucer": 2500,
+   "ramp": 5000,
+   "orbit": 3000,
+   "kickback": 1000,
+   "captive": 7500,
+   "jackpot": 100000,
+   "skillShot": 25000,
+   "special": 50000,
+   "inlane": 250,
+   "outlane": 1000,
+   "bonusUnit": 1000,
+   "rampCombo": 15000
+  },
+  "groups": [
+   {
+    "id": "lanes",
+    "members": [
+     "laneA",
+     "laneB",
+     "laneC"
+    ],
+    "lamps": [
+     "lampLaneA",
+     "lampLaneB",
+     "lampLaneC"
+    ],
+    "rotateWithFlippers": true,
+    "completeScore": 10000,
+    "actions": [
+     "bonusX",
+     "resetGroup"
+    ],
+    "message": "BONUS UP"
+   },
+   {
+    "id": "inlanes",
+    "members": [
+     "inlaneLeft",
+     "inlaneRight"
+    ],
+    "lamps": [
+     "lampInlaneL",
+     "lampInlaneR"
+    ],
+    "completeScore": 2500,
+    "actions": [
+     "addBonus",
+     "resetGroup"
+    ],
+    "message": "BONUS +"
+   },
+   {
+    "id": "drops",
+    "members": [
+     "drop1",
+     "drop2",
+     "drop3"
+    ],
+    "lamps": [],
+    "completeScore": 15000,
+    "actions": [
+     "lightLock",
+     "resetDrops",
+     "flash:flashDrops"
+    ],
+    "message": "LOCK IS LIT"
+   },
+   {
+    "id": "standLeft",
+    "members": [
+     "standL1",
+     "standL2"
+    ],
+    "lamps": [],
+    "completeScore": 5000,
+    "actions": [
+     "armKickback",
+     "resetGroup"
+    ],
+    "message": "KICKBACK ON"
+   },
+   {
+    "id": "standRight",
+    "members": [
+     "standR1",
+     "standR2"
+    ],
+    "lamps": [],
+    "completeScore": 5000,
+    "actions": [
+     "armMagnet",
+     "resetGroup"
+    ],
+    "message": "MAGNET ON"
+   }
+  ]
+ },
  "ramps": [
   {
    "id": "rampL",
@@ -1977,6 +2192,7 @@
      0.075
     ]
    ],
+   "model": "ramp-shortL",
    "authoring": {
     "width": 0.088,
     "wall_height": 0.05,
@@ -3049,6 +3265,7 @@
      0.1
     ]
    ],
+   "model": "ramp-longR",
    "authoring": {
     "width": 0.088,
     "wall_height": 0.05,
@@ -3102,388 +3319,150 @@
    ]
   }
  ],
- "lamps": [
+ "bumpers": [
   {
-   "id": "lampLaneA",
-   "x": 0.3525,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneA"
+   "id": "bumperB",
+   "x": 0.2925,
+   "y": 1.7,
+   "r": 0.08
   },
   {
-   "id": "lampLaneB",
+   "id": "bumperC",
+   "x": 0.6625,
+   "y": 1.7,
+   "r": 0.08
+  },
+  {
+   "id": "bumperA",
    "x": 0.4775,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneB"
+   "y": 1.84,
+   "r": 0.08
+  }
+ ],
+ "dropTargets": [
+  {
+   "id": "drop1",
+   "a": [
+    0.569,
+    0.944
+   ],
+   "b": [
+    0.5957,
+    0.915
+   ]
   },
   {
-   "id": "lampLaneC",
-   "x": 0.6025,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneC"
+   "id": "drop2",
+   "a": [
+    0.5957,
+    0.915
+   ],
+   "b": [
+    0.6223,
+    0.886
+   ]
   },
   {
-   "id": "lampShootAgain",
-   "x": 0.4775,
-   "y": 0.285,
-   "size": 0.0354,
-   "color": "white",
-   "icon": 1,
-   "bind": "shootAgain"
+   "id": "drop3",
+   "a": [
+    0.6223,
+    0.886
+   ],
+   "b": [
+    0.649,
+    0.857
+   ]
+  }
+ ],
+ "standups": [
+  {
+   "id": "captiveTarget",
+   "a": [
+    0.52,
+    1.2
+   ],
+   "b": [
+    0.45,
+    1.2
+   ]
   },
   {
-   "id": "lampBonus2",
-   "x": 0.365,
-   "y": 0.335,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 2,
-   "bind": "bonusX2"
+   "id": "standL1",
+   "a": [
+    0.2897,
+    1.5176
+   ],
+   "b": [
+    0.3503,
+    1.4824
+   ]
   },
   {
-   "id": "lampBonus3",
-   "x": 0.4775,
-   "y": 0.39,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 3,
-   "bind": "bonusX3"
+   "id": "standL2",
+   "a": [
+    0.3797,
+    1.4126
+   ],
+   "b": [
+    0.4403,
+    1.3774
+   ]
   },
   {
-   "id": "lampBonus5",
-   "x": 0.59,
-   "y": 0.335,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 4,
-   "bind": "bonusX5"
+   "id": "standR1",
+   "a": [
+    0.6653,
+    1.5176
+   ],
+   "b": [
+    0.6047,
+    1.4824
+   ]
   },
   {
-   "id": "lampJackpot",
-   "x": 0.4775,
-   "y": 0.5,
-   "size": 0.032,
-   "color": "magenta",
-   "icon": 5,
-   "bind": "jackpot",
-   "shape": "arrow",
-   "angle": 90
-  },
+   "id": "standR2",
+   "a": [
+    0.5753,
+    1.4126
+   ],
+   "b": [
+    0.5147,
+    1.3774
+   ]
+  }
+ ],
+ "saucers": [
   {
-   "id": "lampMagnet",
+   "id": "scoop",
+   "x": 0.38,
+   "y": 0.85,
+   "r": 0.03,
+   "ejectDirection": [
+    -0.1,
+    -1.0
+   ],
+   "ejectSpeed": 2.6,
+   "captureSpeed": 2.4
+  }
+ ],
+ "captiveBalls": [
+  {
+   "id": "captive",
+   "x": 0.485,
+   "y": 1.13
+  }
+ ],
+ "magnets": [
+  {
+   "id": "magnet",
    "x": 0.4775,
    "y": 0.64,
-   "size": 0.04248,
-   "color": "cyan",
-   "icon": 6,
-   "bind": "magnet"
-  },
-  {
-   "id": "lampLock",
-   "x": 0.382,
-   "y": 0.755,
-   "size": 0.02596,
-   "color": "green",
-   "icon": 7,
-   "bind": "lockLit",
-   "shape": "arrow",
-   "angle": 90
-  },
-  {
-   "id": "lampExtraBall",
-   "x": 0.575,
-   "y": 0.45,
-   "size": 0.03776,
-   "color": "amber",
-   "icon": 9,
-   "bind": "extraBall",
-   "shape": "arrow",
-   "angle": 60
-  },
-  {
-   "id": "lampOrbitL",
-   "x": 0.054,
-   "y": 0.88,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "bind": "orbitHot",
-   "shape": "arrow",
-   "angle": 90
-  },
-  {
-   "id": "lampOrbitR",
-   "x": 0.884,
-   "y": 0.88,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "bind": "orbitHot",
-   "shape": "arrow",
-   "angle": 90,
-   "bar": "orbitR"
-  },
-  {
-   "id": "lampCaptive",
-   "x": 0.485,
-   "y": 0.92,
-   "size": 0.03068,
-   "color": "white",
-   "icon": 7,
-   "bind": "captiveHot",
-   "shape": "arrow",
-   "angle": 90
-  },
-  {
-   "id": "lampKickback",
-   "x": 0.041,
-   "y": 0.582,
-   "size": 0.017,
-   "color": "green",
-   "icon": 12,
-   "bind": "kickback",
-   "bar": "outlaneLeft"
-  },
-  {
-   "id": "lampSpecial",
-   "x": 0.884,
-   "y": 0.582,
-   "size": 0.017,
-   "color": "red",
-   "icon": 13,
-   "bind": "special",
-   "bar": "outlaneRight"
-  },
-  {
-   "id": "lampSkill",
-   "x": 0.961,
-   "y": 0.5,
-   "size": 0.017,
-   "color": "white",
-   "icon": 7,
-   "bind": "skillShot"
-  },
-  {
-   "id": "lampInlaneL",
-   "x": 0.162,
-   "y": 0.582,
-   "size": 0.017,
-   "color": "amber",
-   "icon": 0,
-   "bar": "inlaneLeft"
-  },
-  {
-   "id": "lampInlaneR",
-   "x": 0.781,
-   "y": 0.582,
-   "size": 0.017,
-   "color": "amber",
-   "icon": 0,
-   "bar": "inlaneRight"
-  },
-  {
-   "id": "lampRampL",
-   "ramp": "rampL",
-   "x": 0.257323,
-   "y": 1.090777,
-   "size": 0.0354,
-   "color": "magenta",
-   "icon": 7,
-   "bind": "rampHot",
-   "shape": "arrow",
-   "angle": 57.394419
-  },
-  {
-   "id": "lampRampR",
-   "ramp": "rampR",
-   "x": 0.725803,
-   "y": 0.635002,
-   "size": 0.0354,
-   "color": "magenta",
-   "icon": 7,
-   "bind": "rampHot",
-   "shape": "arrow",
-   "angle": 90.248545
-  }
- ],
- "flashers": [
-  {
-   "id": "flashTL",
-   "x": 0.095,
-   "y": 2.175,
-   "color": "magenta"
-  },
-  {
-   "id": "flashTR",
-   "x": 0.905,
-   "y": 2.175,
-   "color": "cyan"
-  },
-  {
-   "id": "flashDrops",
-   "x": 0.6,
-   "y": 1.09,
-   "color": "amber"
-  }
- ],
- "plastics": [
-  {
-   "id": "plasticSlingL",
-   "height": 0,
-   "points": [
-    [
-     0.212,
-     0.535
-    ],
-    [
-     0.205,
-     0.285
-    ],
-    [
-     0.332,
-     0.235
-    ]
-   ]
-  },
-  {
-   "id": "plasticSlingR",
-   "height": 0,
-   "points": [
-    [
-     0.743,
-     0.535
-    ],
-    [
-     0.75,
-     0.285
-    ],
-    [
-     0.623,
-     0.235
-    ]
-   ]
+   "r": 0.09,
+   "holdSeconds": 1.1,
+   "flingSpeed": 3.4
   }
  ],
  "decor": [],
- "rules": {
-  "balls": 3,
-  "ballSaveSeconds": 12,
-  "locksForMultiball": 1,
-  "multiballBalls": 3,
-  "skillShotSeconds": 6,
-  "tiltWarnings": 2,
-  "rampsForExtraBall": 12,
-  "skillShotTarget": "laneB",
-  "scores": {
-   "bumper": 1000,
-   "sling": 110,
-   "drop": 750,
-   "standup": 500,
-   "rollover": 300,
-   "spinner": 100,
-   "saucer": 2500,
-   "ramp": 5000,
-   "orbit": 3000,
-   "kickback": 1000,
-   "captive": 7500,
-   "jackpot": 100000,
-   "skillShot": 25000,
-   "special": 50000,
-   "inlane": 250,
-   "outlane": 1000,
-   "bonusUnit": 1000,
-   "rampCombo": 15000
-  },
-  "groups": [
-   {
-    "id": "lanes",
-    "members": [
-     "laneA",
-     "laneB",
-     "laneC"
-    ],
-    "lamps": [
-     "lampLaneA",
-     "lampLaneB",
-     "lampLaneC"
-    ],
-    "rotateWithFlippers": true,
-    "completeScore": 10000,
-    "actions": [
-     "bonusX",
-     "resetGroup"
-    ],
-    "message": "BONUS UP"
-   },
-   {
-    "id": "drops",
-    "members": [
-     "drop1",
-     "drop2",
-     "drop3"
-    ],
-    "lamps": [],
-    "completeScore": 15000,
-    "actions": [
-     "lightLock",
-     "resetDrops",
-     "flash:flashDrops"
-    ],
-    "message": "LOCK IS LIT"
-   },
-   {
-    "id": "standLeft",
-    "members": [
-     "standL1",
-     "standL2"
-    ],
-    "lamps": [],
-    "completeScore": 5000,
-    "actions": [
-     "armKickback",
-     "resetGroup"
-    ],
-    "message": "KICKBACK ON"
-   },
-   {
-    "id": "standRight",
-    "members": [
-     "standR1",
-     "standR2"
-    ],
-    "lamps": [],
-    "completeScore": 5000,
-    "actions": [
-     "armMagnet",
-     "resetGroup"
-    ],
-    "message": "MAGNET ON"
-   },
-   {
-    "id": "inlanes",
-    "members": [
-     "inlaneLeft",
-     "inlaneRight"
-    ],
-    "lamps": [
-     "lampInlaneL",
-     "lampInlaneR"
-    ],
-    "completeScore": 2500,
-    "actions": [
-     "addBonus",
-     "resetGroup"
-    ],
-    "message": "BONUS +"
-   }
-  ]
- }
+ "posts": [],
+ "stoppers": []
 }

@@ -51,7 +51,7 @@
  <prefab id="deck">
   <polygon points="{outline}" role="cabinet_shell" sharp="50"><fillet radius=".02"/><sweep section="0,0 0,{height}"/></polygon>
   <polygon points="{outline}" role="cabinet_shell" z="{height}"><fillet radius=".02"/></polygon>
-  <polygon points="{outline}" role="accent" sharp="80"><fillet radius=".02"/><sweep section="-.0042,{height-.006} -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,{height-.006}"/></polygon>
+  <polygon points="{outline}" role="cabinet_shell" sharp="80"><fillet radius=".02"/><sweep section="-.0042,{height-.006} -.0042,{height-.002} -.0022,{height} .0022,{height} .0042,{height-.002} .0042,{height-.006}"/></polygon>
  </prefab>
 
  <!-- A tall toy to give the board some height. It has no ball surface. Built to unit radius. -->
@@ -71,13 +71,13 @@
  <prefab id="docking-pod">
   <polygon points="{tray}" role="dark" z=".001"/>
   <polygon points="{outline}" role="dark" z=".02"/>
-  <polygon points="{outline}" role="accent" sharp="65"><sweep section="-.0042,0 -.0042,.016 0,.023 .0042,.016 .0042,0"/></polygon>
+  <polygon points="{outline}" role="cabinet_shell" sharp="65"><sweep section="-.0042,0 -.0042,.018 -.0022,.02 .0022,.02 .0042,.018 .0042,0"/></polygon>
  </prefab>
 
- <!-- Raised housing around painted art. -->
+ <!-- Raised housing around painted art: a plank with a chamfered edge. -->
  <prefab id="housing">
   <polygon points="{outline}" role="block_art" z="{height}"/>
-  <polygon points="{outline}" role="accent" sharp="80"><sweep section="-.0042,0 -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,0"/></polygon>
+  <polygon points="{outline}" role="cabinet_shell" sharp="80"><sweep section="-.0042,0 -.0042,{height-.002} -.0022,{height} .0022,{height} .0042,{height-.002} .0042,0"/></polygon>
  </prefab>
 
  <!-- Round lamp insert: a broad chamfered bezel and a clear lens over the painted insert. -->

@@ -159,8 +159,9 @@ def walls_part(table, centred, skip=()):
         if wall['style'] in ('wall', 'rail', 'rubber'):
             points = [centred(*p) for p in expand_points(wall['points'])]
             built = geometry.build_wall(points, wall['radius'], wall['height'])
-            # A rail is a steel guide; a thin wall is solid metal; anything else is a painted plank.
-            roles = ['metal' for _ in built.roles] if wall['style'] == 'rail' else ['accent' for _ in built.roles] if wall['radius'] < THIN_WALL else built.roles
+            # A rail is a steel guide, a rubber wall a black rubber band, a thin wall solid metal; anything else is a painted plank.
+            look = 'metal' if wall['style'] == 'rail' else 'black_rubber' if wall['style'] == 'rubber' else 'accent' if wall['radius'] < THIN_WALL else None
+            roles = [look for _ in built.roles] if look else built.roles
             # A wall on the second level stands on it.
             base = table['deck']['height'] if 'deck' in wall.get('layers', []) else 0
             data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)

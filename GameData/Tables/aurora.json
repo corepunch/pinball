@@ -290,21 +290,6 @@
    "plate": true
   }
  ],
- "spinners": [
-  {
-   "id": "spinnerL",
-   "a": [
-    0.006,
-    0.985
-   ],
-   "b": [
-    0.1025,
-    0.985
-   ],
-   "arrow": "cyan",
-   "arrowBind": "orbitHot"
-  }
- ],
  "gates": [
   {
    "id": "shooterGate",
@@ -323,53 +308,6 @@
   }
  ],
  "lamps": [
-  {
-   "id": "lampShootAgain",
-   "x": 0.461,
-   "y": 0.325,
-   "size": 0.0354,
-   "color": "white",
-   "icon": 1,
-   "bind": "shootAgain"
-  },
-  {
-   "id": "lampBonus2",
-   "x": 0.3485,
-   "y": 0.375,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 2,
-   "bind": "bonusX2"
-  },
-  {
-   "id": "lampBonus3",
-   "x": 0.461,
-   "y": 0.43,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 3,
-   "bind": "bonusX3"
-  },
-  {
-   "id": "lampBonus5",
-   "x": 0.5735,
-   "y": 0.375,
-   "size": 0.03068,
-   "color": "amber",
-   "icon": 4,
-   "bind": "bonusX5"
-  },
-  {
-   "id": "lampJackpot",
-   "x": 0.461,
-   "y": 0.54,
-   "size": 0.032,
-   "color": "magenta",
-   "icon": 5,
-   "bind": "jackpot",
-   "shape": "arrow",
-   "angle": 90
-  },
   {
    "id": "lampOutlaneL",
    "x": 0.0423,
@@ -406,18 +344,6 @@
    "color": "amber",
    "icon": 0,
    "bar": "inlaneRight"
-  },
-  {
-   "id": "lampSpinnerL",
-   "x": 0.05425,
-   "y": 0.9312,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "spinnerL",
-   "bind": "orbitHot"
   }
  ],
  "flashers": [
@@ -523,6 +449,7 @@
  "bumpers": [],
  "dropTargets": [],
  "standups": [],
+ "spinners": [],
  "saucers": [],
  "kickbacks": [],
  "magnets": [],

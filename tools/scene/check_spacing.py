@@ -51,7 +51,7 @@ AXIS = .461
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
 MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
-            ('lampInlaneL', 'lampInlaneR'), ('lampBonus2', 'lampBonus5'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
+            ('lampInlaneL', 'lampInlaneR'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
 # Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
 MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
 # Lines meant to be parallel, mirrored or not: a part's name and which of its segments.

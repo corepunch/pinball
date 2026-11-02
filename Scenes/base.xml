@@ -28,18 +28,10 @@
   <rollover id="outlaneLeft" r="0.025" />
   <rollover id="outlaneRight" r="0.025" />
  </rollovers>
- <spinners>
-  <spinner id="spinnerL" a="0.006 0.985" b="0.1025 0.985" arrow="cyan" arrowBind="orbitHot" />
- </spinners>
  <gates>
   <gate id="shooterGate" a="0.922 1.618" b="1.0 1.681" passDirection="0.0 1.0" />
  </gates>
  <lamps>
-  <lamp id="lampShootAgain" x="0.461" y="0.325" size="0.0354" color="white" icon="1" bind="shootAgain" />
-  <lamp id="lampBonus2" x="0.3485" y="0.375" size="0.03068" color="amber" icon="2" bind="bonusX2" />
-  <lamp id="lampBonus3" x="0.461" y="0.43" size="0.03068" color="amber" icon="3" bind="bonusX3" />
-  <lamp id="lampBonus5" x="0.5735" y="0.375" size="0.03068" color="amber" icon="4" bind="bonusX5" />
-  <lamp id="lampJackpot" x="0.461" y="0.54" size="0.032" color="magenta" icon="5" bind="jackpot" shape="arrow" angle="90" />
   <lamp id="lampOutlaneL" x="0.0423" y="0.546" size="0.017" color="green" icon="12" bar="outlaneLeft" />
   <lamp id="lampSpecial" x="0.8797" y="0.546" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
   <lamp id="lampInlaneL" x="0.155" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneLeft" />

@@ -31,7 +31,7 @@ ROLES = {
 }
 THIN_WALL = .01  # A wall of less radius has no room for a coloured top: it is solid metal.
 BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
-ARROW_GAP = .025       # Clear board between a part's footprint and the point of the arrow under it.
+ARROW_GAP = .03        # Clear board between a part's footprint and the point of the arrow under it: what a lamp leaves to its bar.
 ARROW_SIZE = .026
 ARROW_ICON = 7
 
@@ -85,7 +85,8 @@ def footprint(kind, part, table):
     """A part's centre and the lowest point of what is drawn for it, as check_spacing sizes the kit."""
     if kind in ('spinners', 'standups', 'dropTargets', 'gates'):
         a, b = part['a'], part['b']
-        return (a[0] + b[0]) * .5, min(a[1], b[1]) - .008
+        # A spinner's framed plate hangs 0.092 long on its axle, so its frame reaches well past its line.
+        return (a[0] + b[0]) * .5, min(a[1], b[1]) - (.046 if kind == 'spinners' else .008)
     x, y = part['x'], part['y']
     if kind == 'kickbacks':
         return x, y - .035 - .018

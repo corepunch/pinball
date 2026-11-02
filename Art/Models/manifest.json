@@ -132,6 +132,12 @@
       "triangles": 1394,
       "radius": 1.2927,
       "bytes": 105085
+    },
+    "common-cover": {
+      "objects": 1,
+      "triangles": 132,
+      "radius": 2.2071,
+      "bytes": 11886
     }
   }
 }

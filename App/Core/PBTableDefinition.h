@@ -165,6 +165,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *scores;
 @property (nonatomic, copy) NSArray<PBRuleGroupDef *> *groups;
 @property (nonatomic, copy) NSString *skillShotTarget;
+/// Cue name to the actions it runs, as a group's actions: `flash:flashTR`, `playfieldX`...
+@property (nonatomic, copy) NSDictionary<NSString *, NSArray<NSString *> *> *script;
 /// Finishing every group in one game starts wizard mode.
 @property (nonatomic) BOOL wizard;
 - (NSInteger)scoreFor:(NSString *)key;
@@ -175,6 +177,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, readonly) NSString *name;
 @property (nonatomic, copy, readonly) NSString *defaultSkin;
 @property (nonatomic, readonly) simd_float2 size;
+/// Board shown past the table's sides, and below its bottom edge.
+@property (nonatomic, readonly) simd_float2 padding;
 
 @property (nonatomic, readonly) float gravity;
 @property (nonatomic, readonly) float rampGravity;

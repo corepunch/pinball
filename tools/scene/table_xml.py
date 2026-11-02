@@ -28,7 +28,8 @@ CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slin
               'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',
               'saucers': 'saucer', 'gates': 'gate', 'kickbacks': 'kickback', 'magnets': 'magnet',
               'captiveBalls': 'captiveBall', 'flashers': 'flasher', 'ramps': 'ramp', 'lamps': 'lamp',
-              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper'}
+              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper',
+              'covers': 'cover', 'stencils': 'stencil', 'script': 'on'}
 
 
 def number(text):
@@ -73,7 +74,7 @@ def to_element(tag, item):
                 container.append(to_element(CONTAINERS[key], child))
         elif key in POINTS:
             element.set(key, points_text(value))
-        elif key in WORDS or key in NUMBERS or (tag == 'table' and key == 'size'):
+        elif key in WORDS or key in NUMBERS or (tag == 'table' and key in ('size', 'padding')):
             element.set(key, ' '.join(scalar_text(v) for v in value))
         elif isinstance(value, dict):
             element.append(to_element(key, value))
@@ -91,7 +92,7 @@ def attribute_value(tag, key, text):
         return points_value(text)
     if key in WORDS:
         return text.split()
-    if key in NUMBERS or (tag == 'table' and key == 'size'):
+    if key in NUMBERS or (tag == 'table' and key in ('size', 'padding')):
         return [number(c) for c in text.split()]
     if text in ('true', 'false'):
         return text == 'true'

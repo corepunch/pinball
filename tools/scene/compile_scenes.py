@@ -27,7 +27,7 @@ ROLES = {
     'rubber': (.62, .58, .47, 1), 'black_rubber': (.012, .012, .014, 1), 'skirt_lamp': (1, .2, .08, 1), 'cap_art': (.7, .2, .12, 1), 'enamel': (.86, .78, .6, 1),
     'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1), 'glow_amber': (1, .65, .16, 1), 'jewel': (.2, .8, 1, 1), 'ramp_floor': (.58, .62, .66, 1),
     'sling_lens': (1, .25, .1, 1), 'sling_lens_0': (1, .25, .1, 1), 'sling_lens_1': (1, .25, .1, 1), 'target_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1), 'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
-    'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
+    'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1), 'cover': (.3, .07, .11, 1),
 }
 THIN_WALL = .01  # A wall of less radius has no room for a coloured top: it is solid metal.
 BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
@@ -165,6 +165,19 @@ def walls_part(table, centred, skip=()):
     return data
 
 
+def cover_part(table, centred, skip=()):
+    """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
+    data = mesher.MeshData()
+    for cover in table.get('covers', []):
+        if cover['id'] in skip:
+            continue
+        outline = [centred(*p) for p in expand_points(cover['points'])]
+        holes = [[centred(*p) for p in expand_points(s['points'])] for s in cover.get('stencils', [])]
+        thickness = cover.get('thickness', cover['height'])
+        mesher.slab(data, outline, holes, cover['height'] - thickness, thickness, 'cover')
+    return data
+
+
 def outline_text(points):
     return ' '.join(f'{p[0]:.8g},{p[1]:.8g}' for p in points)
 
@@ -219,17 +232,18 @@ def main():
     flipper = base['flippers'][0]
     size = base['size']
     centred = lambda x, y, s=size: (x - s[0] * .5, y - s[1] * .5)
-    common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']}
+    common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']} | {c['id'] for c in base.get('covers', [])}
     # Parts every table has are one model each, however many tables there are.
     parts['common-flipper'] = builder.build('flipper', {'base': flipper['baseRadius'] / flipper['length'], 'tip': flipper['tipRadius'] / flipper['length']})
     parts['common-walls'] = walls_part(base, centred)
     parts['common-plastics'] = plastics_part(base, centred, builder)
+    parts['common-cover'] = cover_part(base, centred)
     for path in table_xml.table_paths():
         table = table_json(table_xml.read(path))
         (tables / f"{table['id']}.json").write_text(json.dumps(table, indent=1) + '\n')
         if args.tables_only:
             continue
-        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common))):
+        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common)), ('cover', cover_part(table, centred, common))):
             if data.faces:
                 parts[f"{table['id']}-{suffix}"] = data
         for ramp in table['ramps']:

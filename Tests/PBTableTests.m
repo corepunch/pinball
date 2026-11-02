@@ -483,6 +483,28 @@
     XCTAssertTrue(top > 0.85f || world.balls[index].state != PBBallFree, @"%@: a full flip should reach the upper playfield, reached %.3f", table.identifier, top);
 }
 
+// A table's script says what a cue does; without one, flashers and the like stay quiet.
+- (void)testTheScriptRunsActionsOnCues {
+    NSMutableDictionary *json = [self tableJSON:@"features"];
+    json[@"rules"][@"script"] = @[ @{ @"cue": @"ramp", @"actions": @[ @"flash:flashTR", @"playfieldX" ] }, @{ @"cue": @"sling", @"actions": @[ @"flash:flashTL" ] } ];
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBStatsObserver *stats = [PBStatsObserver new];
+    PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
+    [game addObserver:stats];
+    [game requestNewGame]; [game update:1.0 / 60.0];
+    PBEvent ramp = { .kind = PBEventRampComplete, .element = 0 }, sling = { .kind = PBEventSling, .element = 0 }, bumper = { .kind = PBEventBumper, .element = 0 };
+    [game.rules handleEvent:&bumper];
+    [game update:1.0 / 60.0];
+    XCTAssertEqual([stats.hits countForObject:@"flash:flashTL"], 0u, @"no cue for bumpers");
+    [game.rules handleEvent:&ramp];
+    int64_t before = game.rules.score;
+    [game.rules handleEvent:&sling];
+    [game update:1.0 / 60.0];
+    XCTAssertEqual([stats.hits countForObject:@"flash:flashTR"], 1u);
+    XCTAssertEqual([stats.hits countForObject:@"flash:flashTL"], 1u);
+    XCTAssertEqual(game.rules.score - before, 2 * [table.rules scoreFor:@"sling"], @"any group action works from a cue: the ramp doubled the playfield");
+}
+
 // A saved ball comes back to the plunger and waits there: launching it is the player's job.
 - (void)testASavedBallWaitsAtThePlungerForThePlayer {
     PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0];

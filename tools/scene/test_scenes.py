@@ -77,6 +77,16 @@ for path in table_xml.table_paths():
                 lamp = next(l for l in compiled['lamps'] if l.get('arrowFor') == part['id'])
                 x, bottom = compile_scenes.footprint(kind, part, compiled)
                 assert lamp['x'] == round(x, 6) and lamp['y'] + lamp['size'] * .8 < bottom, f"{path.stem}/{part['id']}: arrow out of place"
+# A cover is its outline with its stencils cut out: what is left on top is exactly that much board.
+plate = mesher.MeshData()
+mesher.slab(plate, [(0, 0), (4, 0), (4, 4), (0, 4)], [[(1, 1), (2, 1), (2, 2), (1, 2)], [(3, 3), (3.5, 3), (3.5, 3.5), (3, 3.5)]], 0, .1, 'cover')
+top = sum(abs(mesher.signed_area([plate.vertices[i][:2] for i in t])) for face in plate.faces if all(abs(plate.vertices[i][2] - .1) < 1e-9 for i in face) for t in mesher.triangulate(plate.vertices, face))
+assert abs(top - (16 - 1 - .25)) < 1e-9, 'stencils cut holes in the cover'
+try:
+    mesher.slab(mesher.MeshData(), [(0, 0), (1, 0), (1, 1), (0, 1)], [[(2, 2), (3, 2), (3, 3)]], 0, .1, 'cover')
+    raise AssertionError('a stencil outside the cover must fail')
+except ValueError:
+    pass
 arrowed = {'id': 't', 'physics': {'ballRadius': .03}, 'lamps': [], 'spinners': [{'id': 'spin', 'a': [0, 1], 'b': [.1, 1], 'arrow': 'cyan', 'arrowBind': 'orbitHot'}]}
 compile_scenes.place_arrows(arrowed)
 assert arrowed['lamps'][0]['id'] == 'lampSpin' and arrowed['lamps'][0]['x'] == .05 and arrowed['lamps'][0]['y'] < 1 - .008 - compile_scenes.ARROW_GAP and arrowed['lamps'][0]['bind'] == 'orbitHot', 'arrow="colour" makes an arrow lamp under the part'

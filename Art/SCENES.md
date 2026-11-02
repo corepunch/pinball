@@ -9,9 +9,11 @@ make scenes    # Needs Python and Xcode's scntool.
 | Source | Becomes |
 | --- | --- |
 | `Scenes/tables/*.xml` | One table each: `GameData/Tables/*.json`, plus its own walls and plastics |
-| `Scenes/base.xml` | What every table must have: flippers, slingshots, inlanes and outlanes with their lamps, floors, plunger, corner flashers, scores. One shared model each |
+| `Scenes/base.xml` | What every table must have: flippers, slingshots, inlanes and outlanes with their lamps, floors, plunger, the arched rim, the cabinet and tunnel covers, scores. One shared model each |
 | `Scenes/ramps.xml` | Ramp kits, with the walls that go with them. A table takes one for each side with `kits="longL longR"` |
 | `Scenes/kit.xml` | Every reusable part |
+
+The table's `padding="x y"` is how much board the phone shows past the table's sides and below its bottom edge: room for the covers, and for text in the corners the arch leaves free.
 
 `GameData/Tables`, `Art/Models/premium/*.dae` and `GameData/Models/premium/*.scn` are compiled output. Skins, and `GameData/Levels.json` (the campaign), are edited directly; `make playtest PLAYTEST=--tune` sets a level's goal and stars.
 
@@ -49,6 +51,23 @@ All shapes take `role`, `sharp` (crease angle), `z`, `at`, `scale`, `mirror`, an
 | `<dome rings apex>` | A moulded lens over the outline |
 
 Also `<use prefab="…" at="x,y" name="value"…>` places a prefab with its variables set, and `<each-corner points inset>` repeats its contents at each corner. A `role` is a surface the game binds to the skin's material; see `skinModel` in `PBTableScene.m`.
+
+## Covers
+
+A cover is a laser-cut board: `<cover id height thickness points>` is a flat plate over its outline, at `height`, and each `<stencil points>` inside it is a hole cut through it (the stencil-for-boolean approach: draw the shape you want gone, and the compiler subtracts it). Stencils must not overlap one another; merge overlapping shapes into one outline. A cover without `thickness` stands on the floor. The base's `cabinet` cover is the board's rim and everything past it, with the whole play area and the arch cut out; its `tunnel` roofs the shooter lane at ball height, so the ball disappears under it and comes out at the top. Covers are drawn, not felt: the walls under them do the stopping. Their colour is the skin's `cover`.
+
+## Scripts
+
+Flashers and other effects are not built in: a table's `<rules><script>` says what happens on a cue, with the same actions a group has.
+
+```xml
+<script>
+ <on cue="ramp" actions="flash:flashTR" />
+ <on cue="jackpot" actions="flash:flashTL flash:flashTR" />
+</script>
+```
+
+Cues: `bumper`, `sling`, `drop`, `standup`, `saucer`, `spinner`, `ramp`, `lock`, `launch`, `drain`, and the fanfares `start`, `ballSave`, `multiball`, `jackpot`, `extraBall`, `wizard`, `tilt`, `gameOver`. A table without a script, or without flashers, simply does nothing extra.
 
 ## Tables
 

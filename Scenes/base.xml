@@ -1,11 +1,12 @@
-<table size="1.0 2.286" id="base" name="BASE" defaultSkin="orbital">
+<table size="1.0 2.286" padding="0.04 0.04" id="base" name="BASE" defaultSkin="orbital">
  <!-- Lines meant to be parallel share these, in degrees. -->
  <angles slope="25" guide="51" />
  <physics gravity="2.2" rampGravity="4.2" ballRadius="0.03" drainY="0.005" plungerSpeed="4.4" />
  <plunger x="0.961" y="0.1" width="0.05" travel="0.07" />
  <apron y="0.025" />
  <walls>
-  <wall id="outer" style="none" height="0.12" radius="0.006" points="1.0,-0.01 arc(0.85,2.136,0.15,0,90,16) arc(0.15,2.136,0.15,90,180,16) 0.0,-0.01" />
+  <!-- A roman arch: the ball runs up the shooter lane and round the top. -->
+  <wall id="outer" style="none" height="0.12" radius="0.006" points="1.0,-0.01 arc(0.5,1.786,0.5,0,180,32) 0.0,-0.01" />
   <wall id="shooterInner" style="wall" height="0.03" radius="0.0065" points="0.922,-0.01 0.922,1.618" />
   <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1955,0.52 0.1955,0.2986 dir(-slope,0.12689)" />
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7265,0.52 0.7265,0.2986 dir(180+slope,0.12689)" />
@@ -37,10 +38,16 @@
   <lamp id="lampInlaneL" x="0.155" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
   <lamp id="lampInlaneR" x="0.767" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>
- <flashers>
-  <flasher id="flashTL" x="0.095" y="2.175" color="magenta" />
-  <flasher id="flashTR" x="0.905" y="2.175" color="cyan" />
- </flashers>
+ <!-- Laser-cut covers: a plate over its outline, with its stencils cut out of it. The cabinet
+      cover is the board's rim and everything past it; the tunnel roofs the shooter lane. -->
+ <covers>
+  <cover id="cabinet" height="0.03" points="-0.3,-0.3 1.3,-0.3 1.3,3.2 -0.3,3.2">
+   <stencils>
+    <stencil id="board" points="-0.006,0.0 1.006,0.0 1.006,1.786 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
+   </stencils>
+  </cover>
+  <cover id="tunnel" height="0.075" thickness="0.006" points="0.9155,0.55 1.006,0.55 1.006,1.55 0.9155,1.55" />
+ </covers>
  <plastics>
   <plastic id="plasticSlingL" height="0" points="0.1885,0.535 0.1885,0.2942 dir(-slope,0.14013)" />
   <plastic id="plasticSlingR" height="0" points="0.7335,0.535 0.7335,0.2942 dir(180+slope,0.14013)" />

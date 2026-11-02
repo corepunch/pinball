@@ -151,7 +151,7 @@ static const double kRampComboSeconds = 8.0;
     _ballsPending = 0;
     [_pending removeAllObjects];
     [_world removeAllPlayBalls];
-    [self.delegate ruleEngine:self fanfare:@"start"];
+    [self fanfare:@"start"];
     [self startNextBall];
 }
 
@@ -195,7 +195,7 @@ static const double kRampComboSeconds = 8.0;
     } else {
         [self showMessage:@"GAME OVER"];
     }
-    [self.delegate ruleEngine:self fanfare:@"gameOver"];
+    [self fanfare:@"gameOver"];
     [self after:3.5 do:^{ self->_phase = PBGamePhaseAttract; self->_attractClock = 0; }];
 }
 
@@ -263,6 +263,7 @@ static const double kRampComboSeconds = 8.0;
     }
     switch (event->kind) {
         case PBEventBumper:
+            [self cue:@"bumper"];
             [self award:@"bumper"];
             if (_superBumperTime > 0) [self award:@"bumper"];
             if (++_bumperHits % kBumpersForSuper == 0) {
@@ -280,15 +281,18 @@ static const double kRampComboSeconds = 8.0;
             _ringLit = (_ringLit + 1) % 13;
             break;
         case PBEventSling:
+            [self cue:@"sling"];
             [self award:@"sling"];
             break;
         case PBEventDropTarget: {
+            [self cue:@"drop"];
             NSString *identifier = _table.dropTargets[(NSUInteger)event->element].identifier;
             [self award:@"drop"];
             [self litMember:identifier];
             break;
         }
         case PBEventStandup: {
+            [self cue:@"standup"];
             NSString *identifier = _table.standups[(NSUInteger)event->element].identifier;
             if (_groupByMember[identifier]) {
                 PBEdgeDef *standup = _table.standups[(NSUInteger)event->element];
@@ -306,9 +310,11 @@ static const double kRampComboSeconds = 8.0;
             [self handleRollover:_table.rollovers[(NSUInteger)event->element].identifier];
             break;
         case PBEventSpinner:
+            [self cue:@"spinner"];
             [self award:@"spinner"];
             break;
         case PBEventSaucerCapture:
+            [self cue:@"saucer"];
             [self handleSaucer:event->element];
             break;
         case PBEventRampComplete:
@@ -324,11 +330,13 @@ static const double kRampComboSeconds = 8.0;
             [self showMessage:@"MAGNET"];
             break;
         case PBEventDrain:
+            [self cue:@"drain"];
             [self handleDrain];
             break;
         case PBEventPlungerRelease:
             if (!_plunged && event->magnitude > 0.05f) {
                 _plunged = YES;
+                [self cue:@"launch"];
                 _ballSaveTimer = _rules.ballSaveSeconds;
             }
             break;
@@ -368,7 +376,7 @@ static const double kRampComboSeconds = 8.0;
         _skillTimer = 0;
         [self award:@"skillShot"];
         [self showMessage:@"SKILL SHOT"];
-        [self.delegate ruleEngine:self fanfare:@"jackpot"];
+        [self fanfare:@"jackpot"];
     }
     [self litMember:identifier];
 }
@@ -385,6 +393,16 @@ static const double kRampComboSeconds = 8.0;
     // Wizard mode wants every bank of targets finished; rollover lanes come round by themselves.
     if (!_rolloverMembers[group.def.members.firstObject]) [_groupsDone addObject:group.def.identifier];
     if (_rules.wizard && !_wizardPlayed && _groupsDone.count == _targetGroupCount) [self startWizardMode];
+}
+
+/// Something worth reacting to happened: the table's script says what, if anything, it does.
+- (void)cue:(NSString *)name {
+    for (NSString *action in _rules.script[name]) [self perform:action group:nil];
+}
+
+- (void)fanfare:(NSString *)name {
+    [self.delegate ruleEngine:self fanfare:name];
+    [self cue:name];
 }
 
 - (void)perform:(NSString *)action group:(PBGroupState *)group {
@@ -439,7 +457,7 @@ static const double kRampComboSeconds = 8.0;
     if (!_multiballActive) [self startMultiball];
     [self startPlayfieldX:3 seconds:kWizardSeconds];
     [self showMessage:@"WIZARD MODE"];
-    [self.delegate ruleEngine:self fanfare:@"wizard"];
+    [self fanfare:@"wizard"];
 }
 
 /// What a lit scoop gives: a surprise, and always something the table can use.
@@ -479,7 +497,7 @@ static const double kRampComboSeconds = 8.0;
             hold = 2.0;
         } else {
             [self showMessage:[NSString stringWithFormat:@"BALL %ld LOCKED", (long)_locks]];
-            [self.delegate ruleEngine:self flash:@"flashTL"];
+            [self cue:@"lock"];
         }
     }
     [self after:hold do:^{ [self->_world ejectSaucer:saucer]; }];
@@ -491,7 +509,7 @@ static const double kRampComboSeconds = 8.0;
     _locks = 0;
     _ballSaveTimer = MAX(_ballSaveTimer, 12.0);
     [self showMessage:@"MULTIBALL"];
-    [self.delegate ruleEngine:self fanfare:@"multiball"];
+    [self fanfare:@"multiball"];
     for (NSInteger i = 1; i < _rules.multiballBalls; i++) [self addBallAfter:kBallAddDelay * (double)i plunge:YES];
 }
 
@@ -536,20 +554,18 @@ static const double kRampComboSeconds = 8.0;
         _jackpotLit = NO;
         [self award:@"jackpot"];
         [self showMessage:@"JACKPOT"];
-        [self.delegate ruleEngine:self fanfare:@"jackpot"];
-        [self.delegate ruleEngine:self flash:@"flashTL"];
-        [self.delegate ruleEngine:self flash:@"flashTR"];
+        [self fanfare:@"jackpot"];
         return;
     }
     [self showMessage:@"RAMP"];
-    [self.delegate ruleEngine:self flash:@"flashTR"];
+    [self cue:@"ramp"];
     _rampCount += 1;
     if (_rampCount >= _rules.rampsForExtraBall) {
         _rampCount = 0;
         _extraBalls += 1;
         _shootAgain = YES;
         [self showMessage:@"EXTRA BALL"];
-        [self.delegate ruleEngine:self fanfare:@"extraBall"];
+        [self fanfare:@"extraBall"];
     }
 }
 
@@ -557,7 +573,7 @@ static const double kRampComboSeconds = 8.0;
     if (_phase != PBGamePhasePlaying) return;
     if (_ballSaveTimer > 0 && !_tilted) {
         [self showMessage:@"BALL SAVED"];
-        [self.delegate ruleEngine:self fanfare:@"ballSave"];
+        [self fanfare:@"ballSave"];
         [self addBallAfter:0.5 plunge:NO];
         return;
     }
@@ -578,7 +594,7 @@ static const double kRampComboSeconds = 8.0;
         _ballSaveTimer = 0;
         [_world setFlippersEnabled:NO];
         [self showMessage:@"TILT"];
-        [self.delegate ruleEngine:self fanfare:@"tilt"];
+        [self fanfare:@"tilt"];
     } else {
         [self showMessage:@"DANGER"];
     }

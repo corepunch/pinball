@@ -72,6 +72,7 @@ static simd_float3 PBColor(NSArray *rgb, simd_float3 fallback) {
         _capBaseColor = PBColor(_palette[@"capBase"], simd_make_float3(0.92f, 0.86f, 0.72f));
         _capStarColor = PBColor(_palette[@"capStar"], simd_make_float3(0.7f, 0.08f, 0.05f));
         _shellColor = PBColor(_palette[@"shell"], simd_make_float3(.62f, .07f, .05f));
+        _coverColor = PBColor(_palette[@"cover"], simd_make_float3(.30f, .07f, .11f));
         NSDictionary *materials = _palette[@"materials"];
         _hardwareMetalness = materials[@"metalness"] ? [materials[@"metalness"] floatValue] : 1.0f;
         _hardwareRoughness = materials[@"roughness"] ? [materials[@"roughness"] floatValue] : 0.22f;

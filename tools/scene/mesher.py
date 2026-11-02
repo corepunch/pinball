@@ -135,6 +135,40 @@ def plate(data, outline, base, height, role, corner=0, chamfer=0, sharp=40, uv=N
     flat(data, inset_polygon(outline, chamfer) if chamfer else outline, base + height, role, sharp, uv)
 
 
+def bridged(outline, holes):
+    """One ring for a polygon with holes: each hole is spliced into the outline along a bridge
+    from its rightmost point to a point of the outline it can see, as ear clipping needs."""
+    ring = list(ccw(outline))
+    for hole in sorted((list(ccw(h))[::-1] for h in holes), key=lambda h: -max(p[0] for p in h)):
+        start = max(range(len(hole)), key=lambda i: hole[i][0])
+        hole = hole[start:] + hole[:start]
+        hx, hy = hole[0]
+        # The nearest ring edge straight to the right of the hole's point, then that edge's end nearer the point.
+        best, best_x = None, None
+        for i in range(len(ring)):
+            (x0, y0), (x1, y1) = ring[i], ring[(i + 1) % len(ring)]
+            if (y0 <= hy < y1) or (y1 <= hy < y0):
+                x = x0 + (hy - y0) * (x1 - x0) / (y1 - y0)
+                if x >= hx and (best_x is None or x < best_x):
+                    best, best_x = i, x
+        if best is None:
+            raise ValueError('a stencil lies outside the cover')
+        i, j = best, (best + 1) % len(ring)
+        join = i if math.dist(ring[i], (hx, hy)) <= math.dist(ring[j], (hx, hy)) else j
+        ring = ring[:join + 1] + hole + [hole[0], ring[join]] + ring[join + 1:]
+    return ring
+
+
+def slab(data, outline, holes, base, height, role, sharp=50):
+    """A flat plate with the holes cut out of it: the top face, and sides down from every edge."""
+    ring = bridged(outline, holes)
+    z = base + height
+    data.add([(p[0], p[1], z) for p in ring], [tuple(range(len(ring)))], role, None, sharp)
+    for loop, inward in [(ccw(outline), False)] + [(ccw(h), True) for h in holes]:
+        loop = loop[::-1] if inward else loop
+        sweep(data, loop, [(0, base), (0, z)], role, closed=True, sharp=sharp)
+
+
 def dome(data, outline, rings, apex, role, sharp=60, centre=None):
     """A moulded lens: rings of (scale about the centre, height) over an outline, closed at an apex height."""
     n = len(outline)

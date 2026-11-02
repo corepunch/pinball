@@ -522,11 +522,18 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         channelArrow.name = @"channel_arrow";
         _guideGlowMaterial = [amber copy];
         _guideGlowMaterial.diffuse.intensity = 1.25;
+        // The laser-cut covers: one flat matte colour, lit by the room, so cut edges read as a board.
+        SCNMaterial *cover = [SCNMaterial material];
+        cover.name = @"cover";
+        cover.lightingModelName = SCNLightingModelBlinn;
+        cover.diffuse.contents = [self color:_skin.coverColor];
+        cover.specular.contents = [self color:simd_make_float3(.12f, .12f, .12f)];
+        cover.shininess = 0.2;
         _modelMaterials = @{
             @"metal": [self metal], @"accent": [self accentMetal], @"rubber": [self rubber],
             @"dark": dark, @"channel_liner": liner, @"plate_frame": plateFrame, @"channel_floor": floor, @"channel_entry": entry, @"channel_aluminum": aluminum,
             @"channel_shell": channelShell, @"channel_arrow": channelArrow,
-            @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial,
+            @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial, @"cover": cover,
             @"glow_amber": amber, @"jewel": jewel, @"skirt_lamp": skirtLamp, @"black_rubber": [self blackRubber], @"amber_lens": amberLens, @"sling_lens": slingLens, @"sling_lens_0": _slingLenses[0], @"sling_lens_1": _slingLenses[1], @"target_lens": targetLens, @"ramp_floor": rampFloor, @"enamel": enamel,
             @"cap_art": [self printedMaterial:@"bumper_cap"],
             @"lens": lens,
@@ -534,7 +541,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             @"target_art": [self printedMaterial:@"drop_target"],
         };
         for (NSString *role in @[ @"metal", @"accent", @"rubber", @"dark", @"channel_liner", @"channel_floor", @"channel_entry", @"channel_aluminum", @"channel_shell",
-                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art" ]) {
+                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art", @"cover" ]) {
             [self receiveGlow:_modelMaterials[role]];
         }
         if ([_skin hasImageForSlot:@"ramp_chase_off"]) {
@@ -759,11 +766,12 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 - (void)fitCameraToAspect:(CGFloat)heightOverWidth {
     CGFloat tilt = PBTableCameraTilt * M_PI / 180.0;
     CGFloat span = (CGFloat)_size.y * cos(tilt);
-    // A phone sees exactly the table's width, with the flippers on its bottom edge. A much
-    // squarer screen sees the whole table instead, framed by the cabinet.
-    CGFloat visibleHeight = heightOverWidth >= 1.9 ? (CGFloat)_size.x * heightOverWidth : span;
+    simd_float2 padding = _table.padding;
+    // A phone sees the table's width plus its padding, with the bottom padding under the flippers.
+    // A much squarer screen sees the whole table instead, framed by the cabinet.
+    CGFloat visibleHeight = heightOverWidth >= 1.9 ? ((CGFloat)_size.x + 2 * padding.x) * heightOverWidth : span + 2 * padding.y * cos(tilt);
     _camera.orthographicScale = visibleHeight * 0.5;
-    CGFloat aim = -(visibleHeight - span) * 0.5 / cos(tilt);
+    CGFloat aim = -(visibleHeight - span) * 0.5 / cos(tilt) + padding.y;
     const CGFloat distance = 6.0;
     _baseCameraPosition = SCNVector3Make(0, distance * cos(tilt), aim + distance * sin(tilt));
     _cameraNode.position = _baseCameraPosition;
@@ -805,9 +813,11 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     // only shows on a screen of different proportions, in place of stretched playfield art.
     // Its far side stands well back: the tilted camera sees past the board's far end on a phone.
     const float margin = 0.6f;
-    const float far = _size.y + 0.35f;
+    const float far = _size.y + 0.75f;
+    // Past the padding, which the table's cover fills.
+    const float inset = _table.padding.x + 0.1f;
     simd_float2 outline[] = {
-        { -margin, -margin }, { 0, -margin }, { 0, far }, { _size.x, far }, { _size.x, -margin },
+        { -margin, -margin }, { -inset, -margin }, { -inset, far }, { _size.x + inset, far }, { _size.x + inset, -margin },
         { _size.x + margin, -margin }, { _size.x + margin, far + margin }, { -margin, far + margin },
     };
     const float height = 0.11f;
@@ -833,6 +843,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterial *plasticMaterial = [self tileMaterial:@"wall_top" metalness:0.0 roughness:0.4];
     // Parts every table has are shared models; a table's own may be none at all.
     [self addCommonModel:@"walls"];
+    [self addCommonModel:@"cover"];
+    [self addTableModel:@"cover"];
     [self addCommonModel:@"plastics"];
     [self addTableModel:@"walls"];
     // The plastics model carries raised housings as well as the free-floating plastics.

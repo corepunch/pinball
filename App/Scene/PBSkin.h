@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) simd_float3 capBaseColor, capStarColor;
 /// The painted walls of the board and its ramps' outsides.
 @property (nonatomic, readonly) simd_float3 shellColor;
+/// The laser-cut covers: a solid, matte board.
+@property (nonatomic, readonly) simd_float3 coverColor;
 @property (nonatomic, readonly) float hardwareMetalness;
 @property (nonatomic, readonly) float hardwareRoughness;
 @property (nonatomic, readonly) float playfieldReflectivity;

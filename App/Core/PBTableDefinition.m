@@ -167,6 +167,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _name = json[@"name"];
         _defaultSkin = json[@"defaultSkin"];
         _size = PBVec2(json[@"size"]);
+        _padding = json[@"padding"] ? PBVec2(json[@"padding"]) : simd_make_float2(0, 0);
 
         NSDictionary *physics = json[@"physics"];
         _gravity = [physics[@"gravity"] floatValue];
@@ -304,6 +305,9 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _rules.rampsForExtraBall = [rules[@"rampsForExtraBall"] integerValue];
         _rules.scores = rules[@"scores"];
         _rules.skillShotTarget = rules[@"skillShotTarget"] ?: @"";
+        NSMutableDictionary *script = [NSMutableDictionary dictionary];
+        for (NSDictionary *cue in rules[@"script"]) script[cue[@"cue"]] = cue[@"actions"] ?: @[];
+        _rules.script = script;
         _rules.wizard = [rules[@"wizard"] boolValue];
         _rules.groups = PBMap(rules[@"groups"], ^id(NSDictionary *item) {
             PBRuleGroupDef *group = [PBRuleGroupDef new];

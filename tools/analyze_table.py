@@ -55,6 +55,9 @@ def expand_suite(suite, table):
         if mode not in ('fixture', 'autoplay'):
             raise ValueError(f'{identifier}: unknown mode')
         seconds = number(spec.get('seconds', 8), 'seconds', 1/60, 2400)
+        for key, value in spec.get('require', {}).items():
+            if key not in ('successesAtLeast', 'returnsAtLeast', 'stuckAtMost') or not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError('require: nonnegative integer successesAtLeast, returnsAtLeast, stuckAtMost only')
         if mode == 'fixture':
             vector(spec.get('position'), 'position')
             vector(spec.get('velocity'), 'velocity')
@@ -70,8 +73,8 @@ def expand_suite(suite, table):
                     raise ValueError(f'{key} must be boolean')
             if 'eject' in control and control['eject'] not in {x['id'] for x in table.get('saucers', [])}:
                 raise ValueError('unknown saucer to eject')
-        if mode == 'autoplay' and controls:
-            raise ValueError('autoplay controls would be ignored')
+        if mode == 'autoplay' and (controls or any(spec.get(k) for k in ('magnets', 'kickbacks', 'dropsDown'))):
+            raise ValueError('autoplay overrides fixture controls and device states')
         for goal in spec.get('expect', []):
             if 'region' in goal:
                 vector(goal['region'], 'region', 4)
@@ -154,7 +157,18 @@ def summarize(raw, trials):
                         'timings': [{'at': specs[r['id']].get('timing'), 'seed': r['seed'], 'status': r['status']} for r in runs]}
     inventory = [dict(item, hits=hits[item['event'], item['element']]) for item in raw['inventory']]
     steps = sum(t['steps'] for t in raw['trials'])
-    return {'version': 1, 'table': raw['table'], 'scenarios': groups, 'inventory': inventory,
+    failures = []
+    for name, runs in grouped.items():
+        counts = Counter(r['status'] for r in runs)
+        if counts['invalid']:
+            failures.append(f'{name}: {counts["invalid"]} invalid trials')
+        requirements = specs[runs[0]['id']].get('require', {})
+        actual = {'successesAtLeast': counts['success'], 'returnsAtLeast': sum(r['returned'] for r in runs), 'stuckAtMost': counts['stuck']}
+        for key, target in requirements.items():
+            violated = actual[key] > target if key == 'stuckAtMost' else actual[key] < target
+            if violated:
+                failures.append(f'{name}: {key} requires {target}, observed {actual[key]}')
+    return {'version': 1, 'passed': not failures, 'failures': failures, 'table': raw['table'], 'scenarios': groups, 'inventory': inventory,
             'wallSeconds': raw['wallSeconds'], 'steps': steps,
             'stepsPerSecond': steps/max(raw['wallSeconds'], 1e-9), 'workers': raw['workers'],
             'sampling': raw['sampling'],
@@ -262,6 +276,7 @@ def main():
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--grid', type=int, default=64)
     parser.add_argument('--compare')
+    parser.add_argument('--strict', action='store_true', help='exit nonzero on invalid physics or unmet scenario require thresholds')
     parser.add_argument('--serve', action='store_true', help='JSON lines: table, suite, out, workers, grid; retain native process')
     parser.add_argument('--check', action='store_true', help='validate suite and element references without executing physics')
     args = parser.parse_args()
@@ -281,6 +296,7 @@ def main():
                 raise ValueError('grid: 8..256; workers: 1..16')
             request = {'table': str(table_path), 'grid': grid, 'workers': workers, 'trials': trials,
                        'tableSHA256': hashlib.sha256(table_path.read_bytes()).hexdigest(),
+                       'physicsSHA256': hashlib.sha256(b''.join(p.read_bytes() for p in sorted((ROOT/'App/Core').glob('*.[hm]')))).hexdigest(),
                        'suiteSHA256': hashlib.sha256(suite_path.read_bytes()).hexdigest()}
             if args.check:
                 print(json.dumps({'validatedTrials': len(trials), 'simulationRun': False}))
@@ -298,7 +314,9 @@ def main():
             report = write_report(raw, request, command.get('out', args.out), command.get('compare'))
             print(json.dumps({'report': str(Path(command.get('out', args.out)).resolve()/'index.html'),
                               'wallSeconds': report['wallSeconds'], 'endToEndSeconds': time.monotonic()-started,
-                              'host': platform.machine(), 'stepsPerSecond': report['stepsPerSecond']}), flush=True)
+                              'host': platform.machine(), 'stepsPerSecond': report['stepsPerSecond'], 'passed': report['passed']}), flush=True)
+            if args.strict and not report['passed']:
+                raise RuntimeError('; '.join(report['failures']))
     finally:
         if process:
             process.stdin.close()

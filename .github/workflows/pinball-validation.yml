@@ -20,6 +20,8 @@ jobs:
       - name: Native analyzer integration and benchmark
         if: always()
         run: python3 tools/test_analysis_native.py
+      - name: Build iPhone app without signing
+        run: xcodebuild -project Pinball.xcodeproj -scheme Pinball -configuration Debug -destination generic/platform=iOS -derivedDataPath Build/App CODE_SIGNING_ALLOWED=NO build
       - name: Reports
         if: always()
         uses: actions/upload-artifact@v4

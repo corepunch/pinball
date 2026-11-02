@@ -117,6 +117,27 @@
     XCTAssertGreaterThan(w.balls[0].velocity.x,1);
     XCTAssertEqual(w.activeBallCount,1);
 }
+- (void)testDropResetAndInactiveActuators {
+    NSMutableDictionary *j=[self empty:@"aurora"];
+    j[@"dropTargets"]=@[ @{ @"id":@"d",@"a":@[ @.4,@1 ],@"b":@[ @.6,@1 ] } ];
+    j[@"kickbacks"]=@[ @{ @"id":@"k",@"x":@.2,@"y":@1,@"r":@.05,@"speed":@4 } ];
+    j[@"magnets"]=@[ @{ @"id":@"m",@"x":@.8,@"y":@1,@"r":@.05,@"holdSeconds":@.1,@"flingSpeed":@2 } ];
+    PBPhysicsWorld *w=[self world:j];NSInteger b=[w spawnBallAtPlunger];
+    for (int hit=0;hit<2;hit++) {
+        [w setDropTarget:0 up:YES];
+        [w placeBall:b at:simd_make_float2(.5,1.035) velocity:simd_make_float2(0,-2)];
+        XCTAssertTrue([[self run:w ticks:15] containsObject:@"drop:d"]);
+        XCTAssertFalse([w isDropTargetUp:0]);
+        [w placeBall:b at:simd_make_float2(.5,1.035) velocity:simd_make_float2(0,-2)];
+        XCTAssertFalse([[self run:w ticks:15] containsObject:@"drop:d"]);
+    }
+    [w placeBall:b at:simd_make_float2(.2,1) velocity:simd_make_float2(0,-1)];
+    XCTAssertFalse([[self run:w ticks:2] containsObject:@"kickback:k"]);
+    [w placeBall:b at:simd_make_float2(.8,1) velocity:0];
+    XCTAssertFalse([[self run:w ticks:2] containsObject:@"magnet:m"]);
+    XCTAssertEqual(w.balls[b].state,PBBallFree);
+}
+
 - (void)testStrictSearchReportsWithoutRescuingAndTickIsExact {
     NSMutableDictionary *j=[self empty:@"aurora"];
     PBPhysicsWorld *w=[self world:j];w.automaticBallSearch=NO;

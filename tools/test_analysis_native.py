@@ -37,11 +37,11 @@ def main():
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/'fixture.json'
             path.write_text(json.dumps(fixture))
-            positive = {'id': 'hit', 'mode': 'fixture', 'position': [.569, 1], 'velocity': [-1, 0], 'seconds': .2, 'seed': 1, 'expect': [{'event': 'bumper', 'element': 'fixture'}]}
+            positive = {'id': 'hit', 'mode': 'fixture', 'position': [.569, 1], 'velocity': [-1, 0], 'seconds': .1, 'seed': 1, 'expect': [{'event': 'bumper', 'element': 'fixture'}]}
             negative = dict(positive, id='miss', position=[.2, .2], velocity=[0, 0])
             strict = dict(negative, id='trap', seconds=4)
             raw = run({'table': str(path), 'grid': 32, 'workers': 1, 'trials': [positive, negative, strict]})
-            assert [r['status'] for r in raw['trials']] == ['success', 'timeout', 'stuck'], raw['trials']
+            assert [r['status'] for r in raw['trials']] == ['success', 'timeout', 'stuck'], [(r['id'], r['status']) for r in raw['trials']]
         # Coverage report for each shipping table; defects are reported, never hidden.
         for name in ('aurora', 'meridian'):
             data = json.loads((ROOT/f'GameData/Tables/{name}.json').read_text())

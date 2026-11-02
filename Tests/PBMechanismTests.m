@@ -47,7 +47,8 @@
             if ([key isEqual:@"magnets"]) [w setMagnet:0 armed:YES];
             [w placeBall:ball at:p velocity:v];
             NSArray *events=[self run:w ticks:[key isEqual:@"spinners"] ? 960 : 120];
-            XCTAssertTrue([events containsObject:[NSString stringWithFormat:@"%@:%@",types[key],device[@"id"]]],@"%@ %@ %@: %@",name,key,device[@"id"],events);
+            NSString *expected=[NSString stringWithFormat:@"%@:%@",types[key],device[@"id"]];
+            XCTAssertTrue([events containsObject:expected],@"%@ %@ %@: %@",name,key,device[@"id"],events);
         }
     }
 }

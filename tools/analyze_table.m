@@ -4,6 +4,8 @@
 #import <dispatch/dispatch.h>
 #import "PBGame.h"
 #import <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 @interface PBAnalysisObserver : NSObject <PBGameObserver>
 @property (nonatomic, copy) void (^receive)(const PBEvent *);

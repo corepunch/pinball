@@ -715,33 +715,30 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 }
 
 - (void)renderHUD {
-    // Dot-matrix readouts straight on black, between the corner flashers and above the ramps.
+    // Dot-matrix readouts on the cover: the score and the ball count in the corners the arch
+    // leaves free either side of its crown, and the goal or message in the band above it.
     CGFloat wingY = _logicalHeight - MAX(_topInset - 30, 30);
     PBUIKey *pause = [self key:@"pause" title:nil action:PBUIPause x:326 y:wingY width:30 parent:_root];
     pause.name = @"hud.pause";
 
     CGFloat top = MAX(_topInset, 26);
-    const CGFloat backdropHeight = top + 66;
-    SKSpriteNode *backdrop = [SKSpriteNode spriteNodeWithTexture:PBLEDBackdrop(120, 60, 22) size:CGSizeMake(360, backdropHeight)];
-    backdrop.position = CGPointMake(201, _logicalHeight - backdropHeight * .5);
-    backdrop.zPosition = -1;
-    backdrop.name = @"hud.backdrop";
-    [_root addChild:backdrop];
+    CGFloat shoulderY = _logicalHeight - top - 84;
 
     _scoreSprite = [SKSpriteNode node];
     _scoreSprite.name = @"hud.score";
-    _scoreSprite.position = CGPointMake(201, _logicalHeight - top - 18);
+    _scoreSprite.anchorPoint = CGPointMake(0, .5);
+    _scoreSprite.position = CGPointMake(14, shoulderY);
     [_root addChild:_scoreSprite];
 
     _ballSprite = [SKSpriteNode node];
     _ballSprite.name = @"hud.balls";
-    _ballSprite.anchorPoint = CGPointMake(0, .5);
-    _ballSprite.position = CGPointMake(22, wingY);
+    _ballSprite.anchorPoint = CGPointMake(1, .5);
+    _ballSprite.position = CGPointMake(388, shoulderY);
     [_root addChild:_ballSprite];
 
     _messageSprite = [SKSpriteNode node];
     _messageSprite.name = @"hud.message";
-    _messageSprite.position = CGPointMake(201, _logicalHeight - top - 46);
+    _messageSprite.position = CGPointMake(201, _logicalHeight - top - 30);
     [_root addChild:_messageSprite];
 
     [self updateScore:_score best:_best ball:_ball ballCount:_ballCount];
@@ -825,10 +822,10 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
     [self applyChange:^{
     if (self->_scoreSprite) {
         NSString *digits = [NSString stringWithFormat:@"%lld", score];
-        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.9 color:PBLEDColor() maxWidth:230];
+        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.0 color:PBLEDColor() maxWidth:116];
         NSString *balls = [NSString stringWithFormat:@"BALL %ld/%ld", (long)MAX(1, ball), (long)ballCount];
         if (multiplier > 1) balls = [NSString stringWithFormat:@"X%ld %@", (long)multiplier, balls];
-        [self showLED:balls on:self->_ballSprite columns:balls.length right:NO pitch:1.9 color:PBLEDColor() maxWidth:104];
+        [self showLED:balls on:self->_ballSprite columns:balls.length right:YES pitch:1.9 color:PBLEDColor() maxWidth:104];
     }
     }];
 }

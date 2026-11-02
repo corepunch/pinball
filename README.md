@@ -60,7 +60,7 @@ motion is smoothed and limited so the table stays readable. Deliberate shoves st
 The app uses a custom SpriteKit overlay: opaque navy panels, brass trim, ivory typography, and
 authored enamel buttons. It includes a main menu, gameplay HUD, pause, sound/haptic
 settings, skin selection, controls help, final results, and confirmation before restarting or ending
-a live game. The board fills the phone, with the flippers on its bottom edge. Score, ball and pause are small indicators beside the camera cutout, with the level goal and game messages below it. The pause button respects
+a live game. The board sits inside the phone with its flippers above the bottom edge. The score and the ball count are dot-matrix readouts in the corners either side of the arch, with the level goal and game messages in the band above it, and pause beside the camera cutout. The pause button respects
 the phone's safe area. Menu touches are consumed before they can operate a flipper.
 
 Settings persist between launches. App inactivity pauses a live run and returns to the pause screen;

@@ -14,6 +14,7 @@ typedef NS_OPTIONS(NSUInteger, PBLayerMask) {
     PBLayerPlayfield = 1 << 0,
     PBLayerRamp      = 1 << 1,
     PBLayerCaptive   = 1 << 2,
+    PBLayerDeck      = 1 << 3,  // The raised second level.
 };
 
 typedef NS_ENUM(NSInteger, PBWallStyle) {
@@ -42,6 +43,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) float radius;
 @property (nonatomic) BOOL closed;
 @property (nonatomic) PBLayerMask layers;
+/// The raised block of the second level.
+@property (nonatomic) BOOL isDeck;
 @property (nonatomic, strong) PBPointList *points;
 @end
 
@@ -58,6 +61,12 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, nullable) NSString *color;
 /// A post drawn as this kit part, rather than the plain post.
 @property (nonatomic, copy, nullable) NSString *model;
+/// Which level a saucer sits on.
+@property (nonatomic) PBLayerMask layers;
+/// A saucer with an exit is a drop hole: the ball goes underground, and comes up here.
+@property (nonatomic) BOOL hasExit;
+@property (nonatomic) simd_float2 exit;
+@property (nonatomic) float transitSeconds;
 @end
 
 /// A line element: slingshots, drop targets, stand-ups, spinners, gates.
@@ -67,6 +76,7 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) simd_float2 a;
 @property (nonatomic) simd_float2 b;
 @property (nonatomic) simd_float2 passDirection;
+@property (nonatomic) PBLayerMask layers;
 @end
 
 @interface PBFlipperDef : PBElementDef
@@ -77,12 +87,15 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) float tipRadius;
 @property (nonatomic) float restAngle;    // Radians.
 @property (nonatomic) float activeAngle;  // Radians.
+@property (nonatomic) PBLayerMask layers;
 @end
 
 @interface PBRampDef : PBElementDef
 /// The shared model drawn for it, as tables reuse the same ramps.
 @property (nonatomic, copy, nullable) NSString *model;
 @property (nonatomic) float width;
+/// The level a ball finishing the ramp lands on.
+@property (nonatomic) PBLayerMask exitLayer;
 @property (nonatomic) float wallHeight;
 @property (nonatomic) float railWidth;
 @property (nonatomic) float entranceFlare;
@@ -171,6 +184,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 
 /// Nothing but the drain lies below this line.
 @property (nonatomic, readonly) float apronY;
+/// How far the second level stands above the board. Zero when a table has none.
+@property (nonatomic, readonly) float deckHeight;
 
 @property (nonatomic, strong, readonly) PBPlungerDef *plunger;
 @property (nonatomic, copy, readonly) NSArray<PBWallDef *> *walls;

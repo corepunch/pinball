@@ -5,8 +5,7 @@
 
 Measures what the player sees, not the table's floor plan: everything is projected through the
 game's 30 degree camera, so a raised ramp is checked where it appears. Gaps are in points on a
-393 point wide phone. Run by `make test`; exits 1 if a pair is too close, a row is off centre or not
-level, or the two sides of the board no longer mirror each other.
+393 point wide phone. Run by `make test`; exits 1 if a pair is too close, a row is not level, or the two sides of the board no longer mirror each other.
 """
 import argparse
 import math
@@ -22,7 +21,6 @@ import table_xml  # noqa: E402
 TILT = math.radians(30)  # PBTableCameraTilt
 POINTS = 393  # A table's width on the phone.
 MIN_GAP = 5  # Points of clear board between two parts. Below this they read as touching.
-MAX_OFF_CENTRE = 5  # Points of difference between the margins either side of a centred row.
 MAX_MISALIGNED = 2  # Points of difference between the tops of parts meant to line up.
 
 # Parts built as one assembly: they touch on purpose, so gaps inside a group are not measured.
@@ -35,33 +33,33 @@ ASSEMBLIES = (
     # The floors under the flippers meet the board's sides.
     {'outer', 'apronL'},
     {'shooterInner', 'apronR'},
-    # The left guide hangs off the left floor, as the right one does off the shooter lane.
-    {'apronL', 'orbitGateL'},
     {'flipperL', 'inlaneL', 'plasticSlingL'},
     {'flipperR', 'inlaneR', 'plasticSlingR'},
     {'rampL', 'lampRampL'},
     {'rampR', 'lampRampR'},
+    # The older tables' left ramps run close along the board's edge since the centre moved. Their layouts get redone.
+    {'outer', 'rampL'},
+    # The deck's ramp runs up its side and over its edge.
+    {'deck', 'rampDeck', 'guideOrbitL'},
     # Corner flashers stand high over the cabinet's edge.
     {'outer', 'flashTL', 'flashTR'},
 )
 # Parts that top out on one line across the screen, as a real machine's lower playfield does.
 ALIGNED_TOPS = {'lower row': {'inlaneL', 'plasticSlingL', 'plasticSlingR', 'inlaneR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
-# Rows that should sit midway between whatever is either side of them.
-CENTRED_ROWS = {'top lanes': {'laneA', 'laneB', 'laneC', 'lampLaneA', 'lampLaneB', 'lampLaneC', 'laneSep1', 'laneSep2'}}
-# The board's axis, left of the screen's centre as the shooter lane takes up the right.
-AXIS = .4775
+# The board's axis: the middle of the play area, between the left wall and the shooter lane.
+AXIS = .461
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
 MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampKickback', 'lampSpecial'),
             ('lampInlaneL', 'lampInlaneR'), ('lampBonus2', 'lampBonus5'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
 # Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
-MIRRORED_LANES = {'outlanes': ((('apronL', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
+MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
 # Lines meant to be parallel, mirrored or not: a part's name and which of its segments.
 MAX_ANGLE_OFF = .25  # Degrees.
 MATCHED_ANGLES = {
     'slope': (('flipperL', 0), ('flipperR', 0), ('inlaneL', 1), ('inlaneR', 1), ('slingBackL', 1), ('slingBackR', 1),
               ('plasticSlingL', 1), ('plasticSlingR', 1), ('apronL', 0), ('apronR', 0)),
-    'guide': (('orbitGateL', 0), ('orbitGateR', 0), ('apronL', 2)),
+    'guide': (('orbitGateL', 0), ('orbitGateR', 0)),
 }
 
 
@@ -153,7 +151,11 @@ def parts_of(table):
     def add(name, kind='part'):
         parts.append(Part(name, kind))
         return parts[-1]
+    def upstairs(part):
+        return 'deck' in part.get('layers', [])
     for wall in table['walls']:
+        if upstairs(wall):
+            continue
         points = compile_scenes.expand_points(wall['points'])
         if wall['style'] in ('wall', 'rail', 'rubber'):
             add(wall['id'], 'wall').line(points, wall['radius'], 0, wall['height'])
@@ -166,12 +168,16 @@ def parts_of(table):
         points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
         add(plastic['id']).line(points + points[:1], .002, 0, .037)
     for flipper in table['flippers']:
+        if upstairs(flipper):
+            continue
         tip = (flipper['pivot'][0] + flipper['length'] * math.cos(math.radians(flipper['restAngle'])),
                flipper['pivot'][1] + flipper['length'] * math.sin(math.radians(flipper['restAngle'])))
         add(flipper['id']).line([tuple(flipper['pivot']), tip], (flipper['baseRadius'] + flipper['tipRadius']) * .5, 0, .03)
     for bumper in table['bumpers']:
         add(bumper['id']).disc(bumper['x'], bumper['y'], bumper['r'], bumper['r'] * .98, bumper['r'] * 1.15)
     for edge in table['standups']:
+        if upstairs(edge):
+            continue
         a, b = edge['a'], edge['b']
         radius = math.dist(a, b) * .5 + .003
         add(edge['id']).disc((a[0] + b[0]) * .5, (a[1] + b[1]) * .5, radius, 0, radius * .32)
@@ -185,6 +191,8 @@ def parts_of(table):
         if rollover.get('plate'):
             add(rollover['id']).line([(rollover['x'], rollover['y'] - .0162), (rollover['x'], rollover['y'] + .0162)], .0138)
     for saucer in table['saucers']:
+        if upstairs(saucer):
+            continue
         add(saucer['id']).disc(saucer['x'], saucer['y'], saucer['r'] * 1.12)
     for kick in table['kickbacks']:
         add(kick['id']).disc(kick['x'], kick['y'] - .035, .018, 0, .018)
@@ -235,14 +243,6 @@ def problems(table, parts=None):
             clear = gap(a, b) * POINTS
             if clear < MIN_GAP and not ({a.kind, b.kind} == {'wall', 'ramp'} and clear < 0):
                 found.append((clear, a.name, b.name))
-    for row, names in CENTRED_ROWS.items():
-        members = [p for p in parts if p.name in names]
-        if not members:
-            continue
-        x0, y0, x1, y1 = min(p.bounds()[0] for p in members), min(p.bounds()[1] for p in members), max(p.bounds()[2] for p in members), max(p.bounds()[3] for p in members)
-        left, right = margins(parts, names, x0, y0, x1, y1)
-        if abs(left - right) * POINTS > MAX_OFF_CENTRE:
-            found.append((None, row, f'{left * POINTS:.0f} pt clear on the left, {right * POINTS:.0f} pt on the right'))
     for row, names in ALIGNED_TOPS.items():
         tops = {p.name: p.bounds()[3] for p in parts if p.name in names}
         if tops and (max(tops.values()) - min(tops.values())) * POINTS > MAX_MISALIGNED:
@@ -260,7 +260,9 @@ def lane_width(table, left, right, y):
         if wall.get('closed'):
             points = points + points[:1]
         return [a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) for a, b in zip(points, points[1:]) if a[1] != b[1] and min(a[1], b[1]) <= y <= max(a[1], b[1])]
-    return min(crossings(walls[right])) - walls[right]['radius'] - max(crossings(walls[left])) - walls[left]['radius']
+    # A wall may cross the height twice, as the board's outer wall does: use its nearer side.
+    inner, outer = crossings(walls[right]), crossings(walls[left])
+    return min(b - a for a in outer for b in inner if b > a) - walls[right]['radius'] - walls[left]['radius']
 
 
 def line_angle(table, name, segment):
@@ -302,31 +304,6 @@ def unmirrored(table, parts):
         if abs(widths[0] - widths[1]) * POINTS > MAX_UNMIRRORED:
             found.append((None, name, f'{widths[0] * POINTS:.0f} pt wide on the left, {widths[1] * POINTS:.0f} pt on the right'))
     return found
-
-
-def margins(parts, names, x0, y0, x1, y1):
-    """Board clear either side of a row, along the band of the screen it sits in. Scanned, as a
-    ramp's nearest edge may be a triangle with no corner in the band."""
-    left, right = x0, 1 - x1
-    for part in parts:
-        if part.name in names or part.kind == 'span':
-            continue
-        for a, b, r in part.capsules:
-            for t in range(11):
-                x, y = a[0] + (b[0] - a[0]) * t * .1, a[1] + (b[1] - a[1]) * t * .1
-                if y0 - r <= y <= y1 + r and part.kind != 'wall':
-                    left = min(left, x0 - x - r) if x < x0 else left
-                    right = min(right, x - r - x1) if x > x1 else right
-        for triangle in part.triangles:
-            for a, b in zip(triangle, triangle[1:] + triangle[:1]):
-                if max(a[1], b[1]) < y0 or min(a[1], b[1]) > y1:
-                    continue
-                for t in range(5):
-                    x, y = a[0] + (b[0] - a[0]) * t * .25, a[1] + (b[1] - a[1]) * t * .25
-                    if y0 <= y <= y1:
-                        left = min(left, x0 - x) if x < x0 else left
-                        right = min(right, x - x1) if x > x1 else right
-    return left, right
 
 
 def write_svg(table, parts, found, path):

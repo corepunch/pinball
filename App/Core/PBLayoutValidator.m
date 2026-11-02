@@ -161,11 +161,12 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     PBTableDefinition *t = _table;
 
     for (PBWallDef *wall in t.walls) {
+        if (wall.layers & PBLayerDeck) continue;  // On the second level, above everything here.
         PBPart *part = [self addPart:wall.identifier role:PBPartStructure];
         // Collides but is never seen: parts can be built onto it, and nothing can overlap it.
         part.unseen = wall.style == PBWallStyleNone;
         part.solid = (wall.layers & PBLayerPlayfield) != 0;
-        part.rampMounted = (wall.layers & PBLayerRamp) != 0;
+        part.rampMounted = (wall.layers & PBLayerRamp) != 0 || wall.isDeck;  // A ramp climbs over the deck's edge.
         part.mayRunUnderApron = YES;
         const simd_float2 *p = wall.points.points;
         NSInteger n = wall.points.count, segments = wall.closed ? n : n - 1;
@@ -194,6 +195,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         [self addUprightTo:part from:sling.a to:sling.b radius:0.008f height:0.04f];
     }
     for (PBFlipperDef *flipper in t.flippers) {
+        if (flipper.layers & PBLayerDeck) continue;
         // The whole swept area stays clear, or the flipper would pass over its neighbours.
         PBPart *part = [self addPart:flipper.identifier role:PBPartFlipper];
         for (int i = 0; i <= 6; i++) {
@@ -204,6 +206,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     }
     void (^edges)(NSArray<PBEdgeDef *> *, float, float, BOOL) = ^(NSArray<PBEdgeDef *> *list, float radius, float height, BOOL solid) {
         for (PBEdgeDef *edge in list) {
+            if (edge.layers & PBLayerDeck) continue;
             PBPart *part = [self addPart:edge.identifier role:PBPartStructure];
             part.solid = solid;
             part.mayRunUnderApron = !solid;  // Gates and spinners span their lane, right up to the edge.
@@ -221,6 +224,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         [self addCapsuleTo:part from:lamp.position to:lamp.position radius:lamp.size * PBLampFootprintScale height:0];
     }
     for (PBSpotDef *saucer in t.saucers) {
+        if (saucer.layers & PBLayerDeck) continue;
         PBPart *part = [self addPart:saucer.identifier role:PBPartInsert];
         [self addCapsuleTo:part from:saucer.position to:saucer.position radius:saucer.radius * 1.15f + 0.003f height:0];
     }

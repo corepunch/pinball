@@ -21,7 +21,7 @@ import prefabs
 SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
 WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
-NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection'}  # Lists of numbers.
+NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection', 'comesUpAt'}  # Lists of numbers.
 POINTS = {'points', 'mouth', 'columns'}                        # Lists of points.
 ROTATIONS = {'restAngle', 'activeAngle', 'rotation'}           # Degrees, which may use named angles.
 CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slingshots': 'slingshot',

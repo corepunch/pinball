@@ -1,14 +1,14 @@
 <table id="neonrun" name="NEON RUN" defaultSkin="orbital" base="base" kits="longL longR">
  <bumpers>
-  <bumper id="bumperA" x="0.4775" y="1.84" r="0.08" />
-  <bumper id="bumperB" x="0.2925" y="1.7" r="0.08" />
-  <bumper id="bumperC" x="0.6625" y="1.7" r="0.08" />
+  <bumper id="bumperA" x="0.461" y="1.84" r="0.08" />
+  <bumper id="bumperB" x="0.276" y="1.7" r="0.08" />
+  <bumper id="bumperC" x="0.646" y="1.7" r="0.08" />
  </bumpers>
  <standups>
-  <standup id="standL1" a="0.3047 1.5476" b="0.3653 1.5124" />
-  <standup id="standL2" a="0.3647 1.4276" b="0.4253 1.3924" />
-  <standup id="standR1" a="0.6503 1.5476" b="0.5897 1.5124" />
-  <standup id="standR2" a="0.5903 1.4276" b="0.5297 1.3924" />
+  <standup id="standL1" a="0.2882 1.5476" b="0.3488 1.5124" />
+  <standup id="standL2" a="0.3482 1.4276" b="0.4088 1.3924" />
+  <standup id="standR1" a="0.6338 1.5476" b="0.5732 1.5124" />
+  <standup id="standR2" a="0.5738 1.4276" b="0.5132 1.3924" />
  </standups>
  <rules locksForMultiball="0">
   <groups>

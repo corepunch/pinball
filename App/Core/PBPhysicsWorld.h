@@ -50,6 +50,7 @@ typedef NS_ENUM(uint8_t, PBBallState) {
     PBBallFree,
     PBBallInSaucer,
     PBBallHeldByMagnet,
+    PBBallInTransit,  // Underground, between a drop hole and where it comes up.
 };
 
 typedef struct {

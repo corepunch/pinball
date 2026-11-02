@@ -260,7 +260,7 @@
     PBPhysicsWorld *world;
     PBRuleEngine *rules = [self rulesFor:json world:&world];
     [world.table.standups enumerateObjectsUsingBlock:^(PBEdgeDef *standup, NSUInteger i, BOOL *stop) {
-        if ([standup.identifier hasPrefix:@"stand"]) [self hit:rules kind:PBEventStandup element:(NSInteger)i magnitude:0.1f];
+        if ([standup.identifier hasPrefix:@"stand"] || [standup.identifier hasPrefix:@"deck"]) [self hit:rules kind:PBEventStandup element:(NSInteger)i magnitude:0.1f];
     }];
     XCTAssertFalse(rules.multiballActive, @"the drops are still up");
     for (NSUInteger i = 0; i < world.table.dropTargets.count; i++) [self hit:rules kind:PBEventDropTarget element:(NSInteger)i magnitude:1];
@@ -271,11 +271,11 @@
     NSMutableDictionary *json = [self tableJSON:@"aurora"];
     // A closed box around the ball: no shove can get it out.
     json[@"walls"] = [json[@"walls"] arrayByAddingObject:@{ @"id": @"box", @"style": @"none", @"radius": @0.006, @"height": @0.05, @"closed": @YES,
-        @"points": @[ @[ @0.45, @0.9 ], @[ @0.55, @0.9 ], @[ @0.55, @1.0 ], @[ @0.45, @1.0 ] ] }];
+        @"points": @[ @[ @0.6, @0.6 ], @[ @0.7, @0.6 ], @[ @0.7, @0.7 ], @[ @0.6, @0.7 ] ] }];
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     NSInteger ball = [world spawnBallAtPlunger];
-    [world placeBall:ball at:simd_make_float2(0.5, 0.95) velocity:simd_make_float2(0, 0)];
+    [world placeBall:ball at:simd_make_float2(0.65, 0.65) velocity:simd_make_float2(0, 0)];
     for (int i = 0; i < 60 * 15; i++) [world advanceBy:1.0 / 60.0];
     XCTAssertGreaterThan(world.balls[ball].position.x, 0.9, @"it must end up back in the shooter lane");
 }
@@ -336,7 +336,7 @@
 - (void)testValidatorFindsWallsCrossing {
     NSMutableDictionary *json = [self tableJSON:@"aurora"];
     [json[@"walls"] addObject:@{ @"id": @"crossing", @"style": @"wall", @"height": @0.05, @"radius": @0.006,
-                                 @"points": @[ @[ @0.03, @0.8 ], @[ @0.5, @0.8 ] ] }];
+                                 @"points": @[ @[ @0.03, @1.32 ], @[ @0.3, @1.32 ] ] }];
     NSArray *issues = [self issuesForJSON:json];
     XCTAssertTrue([self issues:issues contain:@"crossing" and:@"guideOrbitL" kind:PBLayoutIssueOverlap] ||
                   [self issues:issues contain:@"crossing" and:@"magnet" kind:PBLayoutIssueOverlap], @"%@", issues);

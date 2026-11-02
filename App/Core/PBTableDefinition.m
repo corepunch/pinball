@@ -81,6 +81,7 @@ static PBLayerMask PBParseLayers(NSArray<NSString *> *names) {
         if ([name isEqualToString:@"playfield"]) mask |= PBLayerPlayfield;
         if ([name isEqualToString:@"ramp"]) mask |= PBLayerRamp;
         if ([name isEqualToString:@"captive"]) mask |= PBLayerCaptive;
+        if ([name isEqualToString:@"deck"]) mask |= PBLayerDeck;
     }
     return mask;
 }
@@ -105,6 +106,12 @@ static PBSpotDef *PBParseSpot(NSDictionary *json) {
     spot.color = json[@"color"];
     spot.model = json[@"model"];
     if (json[@"ejectDirection"]) spot.direction = simd_normalize(PBVec2(json[@"ejectDirection"]));
+    spot.layers = PBParseLayers(json[@"layers"]);
+    if (json[@"comesUpAt"]) {
+        spot.hasExit = YES;
+        spot.exit = PBVec2(json[@"comesUpAt"]);
+        spot.transitSeconds = [json[@"transitSeconds"] ?: @0.7f floatValue];
+    }
     return spot;
 }
 
@@ -115,6 +122,7 @@ static PBEdgeDef *PBParseEdge(NSDictionary *json) {
     edge.b = PBVec2(json[@"b"]);
     if (json[@"passDirection"]) edge.passDirection = PBVec2(json[@"passDirection"]);
     edge.vari = [json[@"vari"] boolValue];
+    edge.layers = PBParseLayers(json[@"layers"]);
     return edge;
 }
 
@@ -171,6 +179,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _apronY = [apron[@"y"] floatValue];
 
         NSDictionary *plunger = json[@"plunger"];
+        _deckHeight = [json[@"deck"][@"height"] floatValue];
         _plunger = [PBPlungerDef new];
         _plunger.position = simd_make_float2([plunger[@"x"] floatValue], [plunger[@"y"] floatValue]);
         _plunger.width = [plunger[@"width"] floatValue];
@@ -184,6 +193,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             wall.radius = [item[@"radius"] floatValue];
             wall.closed = [item[@"closed"] boolValue];
             wall.layers = PBParseLayers(item[@"layers"]);
+            wall.isDeck = [item[@"part"] isEqualToString:@"deck"];
             wall.points = PBParsePath(item[@"points"]);
             return wall;
         });
@@ -214,6 +224,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             flipper.tipRadius = [item[@"tipRadius"] floatValue];
             flipper.restAngle = PBRadians([item[@"restAngle"] floatValue]);
             flipper.activeAngle = PBRadians([item[@"activeAngle"] floatValue]);
+            flipper.layers = PBParseLayers(item[@"layers"]);
             return flipper;
         });
         _ramps = PBMap(json[@"ramps"], ^id(NSDictionary *item) {
@@ -234,6 +245,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             ramp.mouthA = PBVec2(item[@"mouth"][0]);
             ramp.mouthB = PBVec2(item[@"mouth"][1]);
             ramp.plasticUntil = [item[@"plasticUntil"] integerValue];
+            ramp.exitLayer = item[@"exitLayer"] ? PBParseLayers(@[ item[@"exitLayer"] ]) : PBLayerPlayfield;
             if ([authoring[@"path_sampled"] boolValue]) {
                 NSMutableData *path = [NSMutableData data];
                 for (NSArray *p in item[@"points"]) {

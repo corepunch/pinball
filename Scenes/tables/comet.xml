@@ -1,18 +1,18 @@
 <table id="comet" name="COMET TAIL" defaultSkin="orbital" base="base" kits="longL longR">
  <bumpers>
-  <bumper id="bumperA" x="0.4775" y="1.76" r="0.11" />
+  <bumper id="bumperA" x="0.461" y="1.76" r="0.11" />
  </bumpers>
  <standups>
-  <standup id="standL1" a="0.2897 1.5176" b="0.3503 1.4824" />
-  <standup id="standL2" a="0.3797 1.4126" b="0.4403 1.3774" />
-  <standup id="standR1" a="0.6653 1.5176" b="0.6047 1.4824" />
-  <standup id="standR2" a="0.5753 1.4126" b="0.5147 1.3774" />
+  <standup id="standL1" a="0.2732 1.5176" b="0.3338 1.4824" />
+  <standup id="standL2" a="0.3632 1.4126" b="0.4238 1.3774" />
+  <standup id="standR1" a="0.6488 1.5176" b="0.5882 1.4824" />
+  <standup id="standR2" a="0.5588 1.4126" b="0.4982 1.3774" />
  </standups>
  <magnets>
-  <magnet id="magnet" x="0.4775" y="0.64" r="0.09" holdSeconds="1.1" flingSpeed="3.4" />
+  <magnet id="magnet" x="0.461" y="0.64" r="0.09" holdSeconds="1.1" flingSpeed="3.4" />
  </magnets>
  <lamps>
-  <lamp id="lampMagnet" x="0.4775" y="0.64" size="0.04248" color="cyan" icon="6" bind="magnet" />
+  <lamp id="lampMagnet" x="0.461" y="0.64" size="0.04248" color="cyan" icon="6" bind="magnet" />
  </lamps>
  <rules locksForMultiball="0">
   <groups>

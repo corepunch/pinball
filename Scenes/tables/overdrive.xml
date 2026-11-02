@@ -1,28 +1,28 @@
 <table id="overdrive" name="OVERDRIVE" defaultSkin="orbital" base="base" kits="longL longR">
  <walls>
-  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.4775,0.815,0.05,40,140,16)" />
+  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.461,0.815,0.05,40,140,16)" />
  </walls>
  <bumpers>
-  <bumper id="bumperA" x="0.355" y="1.72" r="0.085" />
-  <bumper id="bumperB" x="0.6" y="1.72" r="0.085" />
+  <bumper id="bumperA" x="0.3385" y="1.72" r="0.085" />
+  <bumper id="bumperB" x="0.5835" y="1.72" r="0.085" />
  </bumpers>
  <dropTargets>
-  <dropTarget id="drop1" a="0.3995 1.2" b="0.4505 1.2" />
-  <dropTarget id="drop2" a="0.452 1.2" b="0.503 1.2" />
-  <dropTarget id="drop3" a="0.5045 1.2" b="0.5555 1.2" />
+  <dropTarget id="drop1" a="0.383 1.2" b="0.434 1.2" />
+  <dropTarget id="drop2" a="0.4355 1.2" b="0.4865 1.2" />
+  <dropTarget id="drop3" a="0.488 1.2" b="0.539 1.2" />
  </dropTargets>
  <standups>
-  <standup id="standL1" a="0.4403 1.5176" b="0.3797 1.4824" />
-  <standup id="standL2" a="0.3753 1.3876" b="0.3147 1.3524" />
-  <standup id="standR1" a="0.5147 1.5176" b="0.5753 1.4824" />
-  <standup id="standR2" a="0.5797 1.3876" b="0.6403 1.3524" />
+  <standup id="standL1" a="0.4238 1.5176" b="0.3632 1.4824" />
+  <standup id="standL2" a="0.3588 1.3876" b="0.2982 1.3524" />
+  <standup id="standR1" a="0.4982 1.5176" b="0.5588 1.4824" />
+  <standup id="standR2" a="0.5632 1.3876" b="0.6238 1.3524" />
  </standups>
  <saucers>
-  <saucer id="scoop" x="0.4775" y="0.79" r="0.03" ejectDirection="0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
+  <saucer id="scoop" x="0.461" y="0.79" r="0.03" ejectDirection="0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
  </saucers>
  <lamps>
-  <lamp id="lampLock" x="0.4775" y="0.695" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
-  <lamp id="lampFeature" x="0.4775" y="0.6" size="0.026" color="amber" icon="0" bind="playfieldX" />
+  <lamp id="lampLock" x="0.461" y="0.695" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
+  <lamp id="lampFeature" x="0.461" y="0.6" size="0.026" color="amber" icon="0" bind="playfieldX" />
  </lamps>
  <rules locksForMultiball="1">
   <groups>

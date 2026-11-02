@@ -47,6 +47,21 @@
  </prefab>
 
  <!-- A low raised piece with a trim, such as the floor sloping to the drain beneath the flippers. -->
+ <!-- The second level: a raised block with a rounded outline. The art shows on its top. -->
+ <prefab id="deck">
+  <polygon points="{outline}" role="cabinet_shell" sharp="50"><fillet radius=".02"/><sweep section="0,0 0,{height}"/></polygon>
+  <polygon points="{outline}" role="cabinet_shell" z="{height}"><fillet radius=".02"/></polygon>
+  <polygon points="{outline}" role="accent" sharp="80"><fillet radius=".02"/><sweep section="-.0042,{height-.006} -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,{height-.006}"/></polygon>
+ </prefab>
+
+ <!-- A tall toy to give the board some height. It has no ball surface. Built to unit radius. -->
+ <prefab id="beacon">
+  <lathe role="accent" segments="40" sharp="50" points="1,0 1,.3 .82,.42 .62,.48"/>
+  <lathe role="enamel" segments="40" sharp="50" points=".62,.46 .5,1.5 .42,3 .4,3.5"/>
+  <lathe role="accent" segments="40" sharp="50" points=".62,3.3 .62,3.55 .42,3.65"/>
+  <lathe role="jewel" segments="32" sharp="80" planar="1.6" points=".46,3.6 .46,4.3 .34,4.7 .001,4.9"/>
+ </prefab>
+
  <prefab id="slide">
   <polygon points="{outline}" role="cabinet_shell" z="{height}"/>
   <polygon points="{outline}" role="accent" sharp="80"><sweep section="-.0042,0 -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,0"/></polygon>

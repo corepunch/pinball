@@ -1,11 +1,11 @@
 <table id="solara" name="SOLAR WIND" defaultSkin="abyss" base="base" kits="shortL shortR">
  <bumpers>
-  <bumper id="bumperA" x="0.355" y="1.72" r="0.085" />
-  <bumper id="bumperB" x="0.6" y="1.72" r="0.085" />
+  <bumper id="bumperA" x="0.3385" y="1.72" r="0.085" />
+  <bumper id="bumperB" x="0.5835" y="1.72" r="0.085" />
  </bumpers>
  <standups>
-  <standup id="standL1" a="0.3297 1.4776" b="0.3903 1.4424" />
-  <standup id="standR1" a="0.6253 1.4776" b="0.5647 1.4424" />
+  <standup id="standL1" a="0.3132 1.4776" b="0.3738 1.4424" />
+  <standup id="standR1" a="0.6088 1.4776" b="0.5482 1.4424" />
  </standups>
  <rules locksForMultiball="0">
   <groups>

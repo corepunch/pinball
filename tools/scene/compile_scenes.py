@@ -83,6 +83,12 @@ def table_json(scene):
     table = json.loads(json.dumps(scene))
     place_bars(table)
     for ramp in table['ramps']:
+        ramp.setdefault('model', f"{table['id']}-{ramp['id']}")
+        # A ramp may be a few control points: the game gets the same smooth line as the mesh.
+        if not ramp.get('authoring', {}).get('path_sampled'):
+            ramp['points'] = [rounded(p) for p in ramp_paths.loft_path(ramp['points'])]
+            ramp['authoring']['path_sampled'] = True
+    for ramp in table['ramps']:
         ramp['plasticUntil'] = len(ramp['points']) - 1
         spec = spec_for(ramp)
         path = [Vector(p) for p in ramp['points']]
@@ -114,7 +120,9 @@ def walls_part(table, centred, skip=()):
         if wall['style'] in ('wall', 'rail', 'rubber'):
             built = geometry.build_wall([centred(*p) for p in expand_points(wall['points'])], wall['radius'], wall['height'])
             roles = ['accent' for _ in built.roles] if wall['radius'] < THIN_WALL else built.roles
-            data.add(built.vertices, built.faces, roles, None, 50)
+            # A wall on the second level stands on it.
+            base = table['deck']['height'] if 'deck' in wall.get('layers', []) else 0
+            data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)
     return data
 
 
@@ -166,7 +174,7 @@ def main():
     kit = {element.get('id'): element for element in ET.parse(ROOT / 'Scenes/kit.xml').getroot()}
     builder = prefabs.Builder(kit)
     # Helpers and table-driven prefabs are not parts of their own.
-    templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide'}
+    templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide', 'deck'}
     parts = {name: builder.build(name) for name in kit if name not in templates}
     base = table_xml.read(ROOT / 'Scenes/base.xml')
     flipper = base['flippers'][0]

@@ -930,6 +930,15 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     groove.eulerAngles = SCNVector3Make(0, 0.6f, 0);
 }
 
+- (void)addHoleAt:(simd_float2)position radius:(float)radius height:(float)height {
+    SCNCylinder *hole = [SCNCylinder cylinderWithRadius:radius height:0.001f];
+    hole.radialSegmentCount = 40;
+    SCNMaterial *black = [SCNMaterial material];
+    black.lightingModelName = SCNLightingModelConstant;
+    black.diffuse.contents = [self color:simd_make_float3(0.0f, 0.0f, 0.0f)];
+    [self addNodeWithGeometry:hole material:black].position = [self at:position height:height + 0.001f];
+}
+
 - (void)buildPlayfieldHardware {
     SCNMaterial *trim = [self accentMetal];
     for (PBSpotDef *rollover in _table.rollovers) {
@@ -947,7 +956,17 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         SCNTorus *lip = [SCNTorus torusWithRingRadius:saucer.radius * 1.12f pipeRadius:0.003f];
         lip.ringSegmentCount = 48;
         lip.pipeSegmentCount = 8;
-        [self addNodeWithGeometry:lip material:trim].position = [self at:saucer.position height:0.003f];
+        float height = saucer.layers & PBLayerDeck ? _table.deckHeight : 0.0f;
+        [self addNodeWithGeometry:lip material:trim].position = [self at:saucer.position height:height + 0.003f];
+        if (saucer.layers & PBLayerDeck) [self addHoleAt:saucer.position radius:saucer.radius * 1.12f height:height];
+        if (saucer.hasExit) {
+            // Where the ball comes back up.
+            SCNTorus *mouth = [SCNTorus torusWithRingRadius:_table.ballRadius * 1.1f pipeRadius:0.003f];
+            mouth.ringSegmentCount = 40;
+            mouth.pipeSegmentCount = 8;
+            [self addNodeWithGeometry:mouth material:trim].position = [self at:saucer.exit height:0.003f];
+            [self addHoleAt:saucer.exit radius:_table.ballRadius * 1.1f height:0.0f];
+        }
     }
 }
 
@@ -1106,7 +1125,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     const float height = 0.038f;
     for (PBFlipperDef *def in _table.flippers) {
         SCNNode *pivot = [SCNNode node];
-        pivot.position = [self at:def.pivot height:0.0f];
+        pivot.position = [self at:def.pivot height:def.layers & PBLayerDeck ? _table.deckHeight : 0.0f];
         pivot.eulerAngles = SCNVector3Make(0, def.restAngle, 0);
         [_root addChildNode:pivot];
         [_flipperNodes addObject:pivot];
@@ -1187,7 +1206,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 /// A round target. Its lens is its own, to light on its own.
-- (SCNNode *)addStandupFrom:(simd_float2)a to:(simd_float2)b {
+- (SCNNode *)addStandupFrom:(simd_float2)a to:(simd_float2)b height:(float)height {
     SCNNode *model = [_models nodeNamed:@"spot-target"];
     if (!model) return nil;
     [model enumerateChildNodesUsingBlock:^(SCNNode *child, BOOL *stop) { child.geometry = [child.geometry copy]; }];
@@ -1196,7 +1215,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     [_standupLenses addObject:lens];
     float scale = simd_distance(a, b) * 0.5f + 0.003f;
     model.scale = SCNVector3Make(scale, scale, scale);
-    model.position = [self at:(a + b) * 0.5f height:0];
+    model.position = [self at:(a + b) * 0.5f height:height];
     [_root addChildNode:model];
     return model;
 }
@@ -1215,7 +1234,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     _standupNodes = [NSMutableArray array];
     SCNMaterial *metal = [self metal];
     for (PBEdgeDef *def in _table.standups) {
-        SCNNode *round = [self addStandupFrom:def.a to:def.b];
+        SCNNode *round = [self addStandupFrom:def.a to:def.b height:def.layers & PBLayerDeck ? _table.deckHeight : 0.0f];
         [_standupNodes addObject:round ?: [self addTargetFrom:def.a to:def.b art:standup]];
     }
 
@@ -1579,7 +1598,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     const PBBall *balls = world.balls;
     for (NSInteger i = 0; i < world.ballCapacity && i < (NSInteger)_ballNodes.count; i++) {
         SCNNode *node = _ballNodes[(NSUInteger)i];
-        BOOL live = balls[i].state != PBBallInactive;
+        BOOL live = balls[i].state != PBBallInactive && balls[i].state != PBBallInTransit;
         node.hidden = !live;
         if (!live) continue;
         node.position = [self at:balls[i].position height:balls[i].z];

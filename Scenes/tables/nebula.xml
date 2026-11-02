@@ -1,27 +1,27 @@
 <table id="nebula" name="NEBULA" defaultSkin="orbital" base="base" kits="shortL longR">
  <walls>
-  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.38,0.875,0.05,40,140,16)" />
+  <wall id="scoopHood" style="rail" height="0.03" radius="0.021" points="arc(0.3635,0.875,0.05,40,140,16)" />
  </walls>
  <bumpers>
-  <bumper id="bumperA" x="0.365" y="1.81" r="0.055" />
-  <bumper id="bumperB" x="0.59" y="1.81" r="0.055" />
-  <bumper id="bumperC" x="0.4775" y="1.665" r="0.055" />
-  <bumper id="bumperD" x="0.305" y="1.62" r="0.055" />
-  <bumper id="bumperE" x="0.65" y="1.62" r="0.055" />
+  <bumper id="bumperA" x="0.3485" y="1.81" r="0.055" />
+  <bumper id="bumperB" x="0.5735" y="1.81" r="0.055" />
+  <bumper id="bumperC" x="0.461" y="1.665" r="0.055" />
+  <bumper id="bumperD" x="0.2885" y="1.62" r="0.055" />
+  <bumper id="bumperE" x="0.6335" y="1.62" r="0.055" />
  </bumpers>
  <standups>
-  <standup id="standL1" a="0.3297 1.4776" b="0.3903 1.4424" />
-  <standup id="standR1" a="0.6253 1.4776" b="0.5647 1.4424" />
+  <standup id="standL1" a="0.3132 1.4776" b="0.3738 1.4424" />
+  <standup id="standR1" a="0.6088 1.4776" b="0.5482 1.4424" />
  </standups>
  <saucers>
-  <saucer id="scoop" x="0.38" y="0.85" r="0.03" ejectDirection="-0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
+  <saucer id="scoop" x="0.3635" y="0.85" r="0.03" ejectDirection="-0.1 -1.0" ejectSpeed="2.6" captureSpeed="2.4" />
  </saucers>
  <stoppers>
-  <stopper id="centerPost" x="0.4775" y="0.062" r="0.016" />
+  <stopper id="centerPost" x="0.461" y="0.062" r="0.016" />
  </stoppers>
  <lamps>
-  <lamp id="lampLock" x="0.382" y="0.755" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
-  <lamp id="lampFeature" x="0.4775" y="0.75" size="0.026" color="amber" icon="0" bind="stopper" />
+  <lamp id="lampLock" x="0.3655" y="0.755" size="0.02596" color="green" icon="7" bind="lockLit" shape="arrow" angle="90" />
+  <lamp id="lampFeature" x="0.461" y="0.75" size="0.026" color="amber" icon="0" bind="stopper" />
  </lamps>
  <rules locksForMultiball="1">
   <groups>

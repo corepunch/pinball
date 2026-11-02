@@ -6,10 +6,10 @@
    "table": "aurora",
    "skin": "orbital",
    "goal": "score",
-   "count": 17000,
+   "count": 26000,
    "stars": [
-    320000,
-    770000
+    65000,
+    160000
    ]
   },
   {
@@ -18,10 +18,10 @@
    "table": "solara",
    "skin": "abyss",
    "goal": "bumpers",
-   "count": 8,
+   "count": 5,
    "stars": [
-    110000,
-    200000
+    92000,
+    170000
    ]
   },
   {
@@ -32,8 +32,8 @@
    "goal": "saucers",
    "count": 1,
    "stars": [
-    160000,
-    400000
+    69000,
+    260000
    ]
   },
   {
@@ -42,10 +42,10 @@
    "table": "neonrun",
    "skin": "orbital",
    "goal": "standups",
-   "count": 5,
+   "count": 3,
    "stars": [
-    55000,
-    99000
+    100000,
+    150000
    ]
   },
   {
@@ -56,8 +56,8 @@
    "goal": "drops",
    "count": 2,
    "stars": [
-    96000,
-    130000
+    53000,
+    120000
    ]
   },
   {
@@ -66,10 +66,10 @@
    "table": "comet",
    "skin": "orbital",
    "goal": "standups",
-   "count": 21,
+   "count": 16,
    "stars": [
-    110000,
-    170000
+    83000,
+    140000
    ]
   },
   {
@@ -80,8 +80,8 @@
    "goal": "ramps",
    "count": 1,
    "stars": [
-    140000,
-    220000
+    81000,
+    180000
    ]
   },
   {
@@ -90,10 +90,10 @@
    "table": "tide",
    "skin": "abyss",
    "goal": "drops",
-   "count": 7,
+   "count": 8,
    "stars": [
-    110000,
-    180000
+    89000,
+    130000
    ]
   },
   {
@@ -102,10 +102,10 @@
    "table": "pulsar",
    "skin": "orbital",
    "goal": "score",
-   "count": 35000,
+   "count": 15000,
    "stars": [
-    69000,
-    470000
+    40000,
+    300000
    ]
   },
   {
@@ -114,10 +114,10 @@
    "table": "marquee",
    "skin": "orbital",
    "goal": "score",
-   "count": 16000,
+   "count": 39000,
    "stars": [
-    49000,
-    75000
+    50000,
+    110000
    ]
   },
   {
@@ -126,10 +126,10 @@
    "table": "anchor",
    "skin": "abyss",
    "goal": "standups",
-   "count": 9,
+   "count": 1,
    "stars": [
-    86000,
-    170000
+    80000,
+    160000
    ]
   },
   {
@@ -138,10 +138,10 @@
    "table": "saloon",
    "skin": "abyss",
    "goal": "standups",
-   "count": 6,
+   "count": 2,
    "stars": [
-    72000,
-    440000
+    77000,
+    200000
    ]
   },
   {
@@ -150,10 +150,10 @@
    "table": "vortex",
    "skin": "orbital",
    "goal": "score",
-   "count": 78000,
+   "count": 60000,
    "stars": [
     100000,
-    180000
+    220000
    ]
   },
   {
@@ -162,9 +162,9 @@
    "table": "nebula",
    "skin": "orbital",
    "goal": "bumpers",
-   "count": 33,
+   "count": 23,
    "stars": [
-    740000,
+    500000,
     1300000
    ]
   },
@@ -176,8 +176,8 @@
    "goal": "multiballs",
    "count": 1,
    "stars": [
-    68000,
-    340000
+    48000,
+    170000
    ]
   },
   {
@@ -186,10 +186,10 @@
    "table": "carnival",
    "skin": "abyss",
    "goal": "saucers",
-   "count": 3,
+   "count": 1,
    "stars": [
-    170000,
-    720000
+    52000,
+    260000
    ]
   },
   {
@@ -198,10 +198,10 @@
    "table": "laser",
    "skin": "orbital",
    "goal": "drops",
-   "count": 5,
+   "count": 4,
    "stars": [
-    210000,
-    520000
+    120000,
+    570000
    ]
   },
   {
@@ -212,8 +212,8 @@
    "goal": "ramps",
    "count": 1,
    "stars": [
-    110000,
-    180000
+    64000,
+    96000
    ]
   },
   {
@@ -222,10 +222,10 @@
    "table": "siren",
    "skin": "abyss",
    "goal": "score",
-   "count": 170000,
+   "count": 450000,
    "stars": [
-    320000,
-    960000
+    680000,
+    1200000
    ]
   },
   {
@@ -236,8 +236,8 @@
    "goal": "jackpots",
    "count": 1,
    "stars": [
-    120000,
-    350000
+    140000,
+    810000
    ]
   },
   {
@@ -248,8 +248,8 @@
    "goal": "multiballs",
    "count": 1,
    "stars": [
-    130000,
-    570000
+    210000,
+    410000
    ]
   },
   {
@@ -258,10 +258,10 @@
    "table": "quasar",
    "skin": "orbital",
    "goal": "ramps",
-   "count": 1,
+   "count": 2,
    "stars": [
-    140000,
-    190000
+    89000,
+    180000
    ]
   },
   {
@@ -270,10 +270,10 @@
    "table": "abyssal",
    "skin": "abyss",
    "goal": "score",
-   "count": 74000,
+   "count": 130000,
    "stars": [
-    190000,
-    370000
+    300000,
+    460000
    ]
   },
   {
@@ -284,8 +284,8 @@
    "goal": "jackpots",
    "count": 1,
    "stars": [
-    580000,
-    1300000
+    140000,
+    580000
    ]
   },
   {
@@ -296,8 +296,8 @@
    "goal": "ramps",
    "count": 1,
    "stars": [
-    29000,
-    43000
+    41000,
+    110000
    ]
   },
   {
@@ -308,8 +308,8 @@
    "goal": "jackpots",
    "count": 1,
    "stars": [
-    400000,
-    1100000
+    210000,
+    810000
    ]
   },
   {
@@ -320,8 +320,8 @@
    "goal": "jackpots",
    "count": 1,
    "stars": [
-    71000,
-    1000000
+    600000,
+    1300000
    ]
   },
   {
@@ -330,10 +330,10 @@
    "table": "finale",
    "skin": "abyss",
    "goal": "score",
-   "count": 53000,
+   "count": 80000,
    "stars": [
-    81000,
-    400000
+    92000,
+    750000
    ]
   },
   {
@@ -344,8 +344,8 @@
    "goal": "wizards",
    "count": 1,
    "stars": [
-    910000,
-    1500000
+    230000,
+    1000000
    ]
   },
   {
@@ -354,10 +354,10 @@
    "table": "meridian",
    "skin": "orbital",
    "goal": "score",
-   "count": 75000,
+   "count": 99000,
    "stars": [
-    86000,
-    240000
+    110000,
+    330000
    ]
   }
  ]

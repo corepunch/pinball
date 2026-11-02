@@ -57,6 +57,7 @@ typedef struct {
     float length, baseRadius, tipRadius;
     float direction;   // +1 if rising means increasing angle.
     BOOL pressed, isLeft;
+    uint32_t layers;
 } PBFlipperState;
 
 typedef struct {
@@ -71,6 +72,7 @@ typedef struct {
     simd_float3 *points;
     float *distances;
     simd_float2 mouthA, mouthB;
+    uint32_t exitLayer;
 } PBRampState;
 
 typedef struct {
@@ -79,6 +81,10 @@ typedef struct {
     simd_float2 direction;
     float captureSpeed;
     BOOL armed;
+    uint32_t layers;
+    BOOL hasExit;
+    simd_float2 exit;
+    float transitSeconds;
 } PBSpotState;
 
 static inline simd_float2 PBClosestOnSegment(simd_float2 p, simd_float2 a, simd_float2 b, float *outT) {
@@ -240,7 +246,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         add(d.a, d.b, 0.006f, 0.3f, PBLayerPlayfield, PBColliderDrop, (NSInteger)i);
     }];
     [t.standups enumerateObjectsUsingBlock:^(PBEdgeDef *s, NSUInteger i, BOOL *stop) {
-        add(s.a, s.b, 0.005f, 0.4f, PBLayerPlayfield | PBLayerCaptive, PBColliderStandup, (NSInteger)i);
+        add(s.a, s.b, 0.005f, 0.4f, s.layers & PBLayerDeck ? PBLayerDeck : PBLayerPlayfield | PBLayerCaptive, PBColliderStandup, (NSInteger)i);
     }];
     [t.gates enumerateObjectsUsingBlock:^(PBEdgeDef *g, NSUInteger i, BOOL *stop) {
         add(g.a, g.b, 0.004f, 0.2f, PBLayerPlayfield, PBColliderGate, (NSInteger)i);
@@ -338,6 +344,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         f->baseRadius = def.baseRadius;
         f->tipRadius = def.tipRadius;
         f->isLeft = def.isLeft;
+        f->layers = (uint32_t)def.layers;
         f->direction = def.activeAngle > def.restAngle ? 1.0f : -1.0f;
     }
 
@@ -359,6 +366,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         r->distances = calloc((size_t)r->count, sizeof(float));
         r->mouthA = def.mouthA;
         r->mouthB = def.mouthB;
+        r->exitLayer = (uint32_t)def.exitLayer;
         for (NSInteger p = 0; p < r->count; p++) {
             r->points[p] = [def pointAtIndex:p];
             if (p > 0) r->distances[p] = r->distances[p - 1] + simd_distance(r->points[p].xy, r->points[p - 1].xy);
@@ -372,6 +380,13 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         return out;
     };
     _saucers = spots(t.saucers); _saucerCount = (NSInteger)t.saucers.count;
+    for (NSInteger i = 0; i < _saucerCount; i++) {
+        PBSpotDef *def = t.saucers[(NSUInteger)i];
+        _saucers[i].layers = (uint32_t)def.layers;
+        _saucers[i].hasExit = def.hasExit;
+        _saucers[i].exit = def.exit;
+        _saucers[i].transitSeconds = def.transitSeconds;
+    }
     _kickbacks = spots(t.kickbacks); _kickbackCount = (NSInteger)t.kickbacks.count;
     _magnets = spots(t.magnets); _magnetCount = (NSInteger)t.magnets.count;
     _rollovers = spots(t.rollovers); _rolloverCount = (NSInteger)t.rollovers.count;
@@ -519,6 +534,11 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     for (NSInteger i = 0; i < kMaxBalls; i++) {
         PBBall *ball = &_balls[i];
         if (ball->state == PBBallInSaucer && ball->holder == index) {
+            if (saucer->hasExit) {
+                ball->state = PBBallInTransit;
+                ball->holdTimer = saucer->transitSeconds;
+                continue;
+            }
             ball->state = PBBallFree;
             // A real scoop is never perfectly repeatable. Exactly the same eject every time can
             // send the ball round the same path back into the scoop, for ever.
@@ -603,6 +623,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         if (ball->state == PBBallInactive) continue;
         if (ball->state == PBBallInSaucer) continue;
         if (ball->state == PBBallHeldByMagnet) { [self stepHeldBall:i dt:dt]; continue; }
+        if (ball->state == PBBallInTransit) { [self stepBallInTransit:i dt:dt]; continue; }
         [self stepBall:i dt:dt];
     }
     [self collideBallsWithEachOther];
@@ -656,6 +677,22 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     }
 }
 
+- (void)stepBallInTransit:(NSInteger)index dt:(float)dt {
+    PBBall *ball = &_balls[index];
+    PBSpotState *hole = &_saucers[ball->holder];
+    ball->holdTimer -= dt;
+    if (ball->holdTimer > 0.0f) return;
+    ball->state = PBBallFree;
+    ball->position = hole->exit;
+    ball->layers = PBLayerPlayfield;
+    ball->z = _ballRadius;
+    ball->zVelocity = 0;
+    ball->velocity = hole->direction * hole->speed;
+    ball->stuckAnchor = ball->position;
+    ball->stuckTime = 0;
+    [self emit:PBEventSaucerEject element:ball->holder ball:index magnitude:hole->speed at:ball->position];
+}
+
 - (float)randomUnit {
     _random ^= _random << 13; _random ^= _random >> 17; _random ^= _random << 5;
     return (float)(_random & 0xFFFFFF) / (float)0xFFFFFF;
@@ -666,7 +703,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     simd_float2 previous = ball->position;
 
     simd_float2 acceleration = simd_make_float2(0.0f, -_gravity);
-    float groundZ = 0.0f;
+    float groundZ = ball->layers & PBLayerDeck ? _table.deckHeight : 0.0f;
     if (ball->ramp >= 0) {
         // The ramp's own slope does the work of slowing it, so a good shot carries over the top.
         acceleration *= kRampTableGravity;
@@ -756,7 +793,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 - (void)applyMagnet:(NSInteger)m toBall:(NSInteger)index dt:(float)dt {
     PBSpotState *magnet = &_magnets[m];
     PBBall *ball = &_balls[index];
-    if (!magnet->armed || ball->captive || ball->ramp >= 0) return;
+    if (!magnet->armed || ball->captive || ball->ramp >= 0 || (ball->layers & PBLayerDeck)) return;
     simd_float2 delta = magnet->position - ball->position;
     float distance = simd_length(delta);
     if (distance > magnet->radius) return;
@@ -891,9 +928,9 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 
 - (void)collideFlippers:(NSInteger)index {
     PBBall *ball = &_balls[index];
-    if (!(ball->layers & PBLayerPlayfield)) return;
     for (NSInteger i = 0; i < _flipperCount; i++) {
         PBFlipperState *f = &_flippers[i];
+        if (!(f->layers & ball->layers)) continue;
         simd_float2 axis = simd_make_float2(cosf(f->angle), sinf(f->angle));
         simd_float2 tip = f->pivot + axis * f->length;
         float t;
@@ -927,6 +964,11 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     PBBall *ball = &_balls[index];
     if (ball->captive) return;
 
+    if (ball->layers & PBLayerDeck) {
+        if ([self captureBall:index layer:PBLayerDeck]) return;
+        return;
+    }
+
     for (NSInteger s = 0; s < _spinnerCount; s++) {
         PBSpinnerState *spinner = &_spinners[s];
         if (ball->ramp < 0 && PBSegmentsCross(previous, ball->position, spinner->a, spinner->b)) {
@@ -950,18 +992,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 [self emit:PBEventKickback element:k ball:index magnitude:0 at:kick->position];
             }
         }
-        for (NSInteger w = 0; w < _saucerCount; w++) {
-            PBSpotState *saucer = &_saucers[w];
-            float distance = simd_distance(ball->position, saucer->position);
-            if (distance < saucer->radius && simd_length(ball->velocity) < saucer->captureSpeed) {
-                ball->state = PBBallInSaucer;
-                ball->holder = (int16_t)w;
-                ball->position = saucer->position;
-                ball->velocity = 0;
-                [self emit:PBEventSaucerCapture element:w ball:index magnitude:0 at:saucer->position];
-                return;
-            }
-        }
+        if ([self captureBall:index layer:PBLayerPlayfield]) return;
         for (NSInteger m = 0; m < _rampCount; m++) {
             PBRampState *ramp = &_ramps[m];
             if (ball->velocity.y > 0.0f && PBSegmentsCross(previous, ball->position, ramp->mouthA, ramp->mouthB)) {
@@ -976,7 +1007,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         if (ball->rampDistance >= ramp->length - 0.002f) {
             NSInteger finished = ball->ramp;
             ball->ramp = -1;
-            ball->layers = PBLayerPlayfield;
+            ball->layers = ramp->exitLayer;
             ball->zVelocity = 0;
             [self emit:PBEventRampComplete element:finished ball:index magnitude:0 at:ball->position];
         } else if (ball->rampDistance <= 0.002f && simd_dot(ball->position - previous, ramp->mouthB - ramp->mouthA) <= 1.0f && ball->velocity.y < 0.0f) {
@@ -986,6 +1017,24 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     }
 }
 
+- (BOOL)captureBall:(NSInteger)index layer:(uint32_t)layer {
+    PBBall *ball = &_balls[index];
+    for (NSInteger w = 0; w < _saucerCount; w++) {
+        PBSpotState *saucer = &_saucers[w];
+        if (!(saucer->layers & layer)) continue;
+        float distance = simd_distance(ball->position, saucer->position);
+        if (distance < saucer->radius && simd_length(ball->velocity) < saucer->captureSpeed) {
+            ball->state = PBBallInSaucer;
+            ball->holder = (int16_t)w;
+            ball->position = saucer->position;
+            ball->velocity = 0;
+            [self emit:PBEventSaucerCapture element:w ball:index magnitude:0 at:saucer->position];
+            return YES;
+        }
+    }
+    return NO;
+}
+
 - (void)collideBallsWithEachOther {
     for (NSInteger i = 0; i < kMaxBalls; i++) {
         PBBall *a = &_balls[i];
@@ -993,7 +1042,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         for (NSInteger j = i + 1; j < kMaxBalls; j++) {
             PBBall *b = &_balls[j];
             if (b->state != PBBallFree) continue;
-            if ((a->ramp >= 0) != (b->ramp >= 0)) continue;
+            if (!(a->layers & b->layers)) continue;
             simd_float2 delta = a->position - b->position;
             float reach = _ballRadius * 2.0f;
             float distanceSquared = simd_length_squared(delta);

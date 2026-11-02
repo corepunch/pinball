@@ -43,6 +43,13 @@ def bolt(data, radius, z, xy=(0, 0)):
     lathe(data, [(radius * .64, z + radius * .28), (radius * .58, z + radius * .56), (radius * .34, z + radius * .84), (.0001, z + radius * .94)], 'metal', 16, xy, sharp=80)
 
 
+def stud(data, radius, z, xy=(0, 0)):
+    """One squashed gold dome on a surface. The plate under it is too flat to show the key light's shadow, so it has its own, cast away from that light."""
+    shadow = [(xy[0] + radius * (.65 + 1.05 * math.cos(i * math.pi / 12)), xy[1] + radius * (.42 + 1.05 * math.sin(i * math.pi / 12))) for i in range(24)]
+    flat(data, shadow, z + .0003, 'dark')
+    lathe(data, [(radius, z), (radius, z + radius * .2), (radius * .84, z + radius * .42), (radius * .48, z + radius * .58), (.0001, z + radius * .62)], 'accent', 20, xy, sharp=80)
+
+
 def sweep(data, path, section, role, closed=False, band_roles=None, sharp=38):
     """Run a section along a path. Section points are (offset left of travel, height), from the right foot over the top."""
     n = len(path)

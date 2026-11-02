@@ -179,7 +179,7 @@ def walls_part(table, centred, skip=()):
             if wall['style'] == 'rail':
                 # Three screws down the middle of its diagonal, as the real thing is bolted down.
                 for at in rail_screws(points):
-                    mesher.bolt(data, .006, wall['height'] + base, at)
+                    mesher.stud(data, .006, wall['height'] + base, at)
     return data
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The path a ramp's mesh is lofted along, and checks that it is smooth.
 
-Plain Python, shared by tools/build_hardware_models.py inside Blender and by this checker:
+Plain Python, shared by tools/scene/compile_scenes.py and this checker:
 
     python3 tools/ramp_paths.py
 

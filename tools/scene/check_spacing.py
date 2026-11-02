@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Spot parts that look crowded on the phone, with no Xcode or Blender needed:
+"""Spot parts that look crowded on the phone, with no Xcode needed:
 
     python3 tools/scene/check_spacing.py [--list N] [--svg DIR]
 

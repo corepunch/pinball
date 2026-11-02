@@ -1,4 +1,4 @@
-"""Part operations, normals and COLLADA, with no Blender. Parts are the add-on's MeshData:
+"""Part operations, normals and COLLADA. Parts are geometry.MeshData:
 vertices, faces, a surface role per face, UVs, and the crease angle that keeps an edge sharp."""
 import math
 from xml.etree.ElementTree import Element, SubElement, ElementTree

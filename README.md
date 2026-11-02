@@ -3,15 +3,15 @@
 3D pinball in Objective-C and SceneKit, for iPhone. Straight-down camera, table fills the screen.
 
 Tables are JSON; skins contain a hardware atlas, palette, and optionally a separate playfield painting.
-Complete tables can be authored in Blender with the Pinball Builder curve modifier and gameplay properties, then exported to JSON and compiled SceneKit models. All sound is synthesized.
+Tables and every hardware part are written as XML in `Scenes/` and compiled to JSON and SceneKit models by `make scenes`; see [Art/SCENES.md](Art/SCENES.md). All sound is synthesized.
 
 The default **Orbital** skin pairs illustrated space art with ivory/vermilion enamel and champagne trim.
 **Abyss** uses deep-sea illustration, seafoam enamel and brass. Both follow the concepts in
 `Art/Concepts/cadet-inspired-redesign.png`: a table that uses the phone's edges as its own, deep hook channels
 with evenly spaced four-phase chevron lights, jewelled bumpers with authored idle/hit caps, low molded guide
 housings and larger, fewer inserts. The ball is 20% larger, with clearances and progression retuned for it.
-Backgrounds are full-bleed illustrations without printed rulers, compasses, borders or title panels. Classic and Neon remain available. The editable
-Open `Art/Models/pinball-levels.blend` for the complete editable tables. The installable add-on and workflow are in [Art/BLENDER_AUTHORING.md](Art/BLENDER_AUTHORING.md); hardware rebuild details are in [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
+Backgrounds are full-bleed illustrations without printed rulers, compasses, borders or title panels. Classic and Neon remain available.
+The hardware's look, materials and lighting are described in [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
 
 ```bash
 open Pinball.xcodeproj
@@ -115,7 +115,7 @@ App/Scene      PBTableScene       builds the SceneKit graph, mirrors game state 
                PBGeometry         procedural meshes
                PBPlayfieldPainter composites art with crisp lamps, wires, contact shadows
                PBSkin             loads per-skin layouts, sources, materials and atlas states
-               PBModelLibrary     loads Blender mesh kits and isolates animated instances
+               PBModelLibrary     loads the compiled mesh kits and isolates animated instances
 App/Audio      PBSoundEngine      synthesized sound
 App/UI         PBGameUI           menus and the gameplay HUD
                Model/PBMenuFlow   navigation and settings, independent of graphics
@@ -150,8 +150,8 @@ Run with `-PBLevel <n>` to show that level's table behind the menus. `-PBTable <
 
 ## Adding a table
 
-1. Copy a file in `GameData/Tables` and move things around. No code or project changes are needed.
-2. Rebuild the meshes ([Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md)), which covers every table. A test fails if any are missing.
+1. Add a file in `Scenes/tables` ([Art/SCENES.md](Art/SCENES.md)) and list it in `GameData/Levels.json`. No code or project changes are needed.
+2. `make scenes` compiles its JSON and meshes, for every table. A test fails if any are missing.
 3. Run `PinballCoreTests`, which covers every table automatically. An autopilot plays 25 simulated minutes
    and fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
 4. Run the app with `-PBTable <id>` to play it, or `PB_PREVIEW_TABLE=<id> tools/render_preview.sh` for a render.

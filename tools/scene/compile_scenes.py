@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the game's data from Scenes/*.xml, with no Blender:
+"""Build the game's data from Scenes/*.xml:
 
     python3 tools/scene/compile_scenes.py [--out DIR] [--tables-only]
 

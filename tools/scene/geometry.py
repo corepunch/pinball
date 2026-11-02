@@ -1,8 +1,13 @@
-"""Single-mesh channel generator. Geometry functions do not create Blender objects."""
+"""Ramp channels, walls and their supports as plain mesh data, in pure Python. Used by compile_scenes.py."""
 from dataclasses import dataclass, asdict
 import math
-from mathutils import Vector
-from . import pathing
+import sys
+from pathlib import Path
+
+from vector import Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import ramp_paths as pathing  # noqa: E402
 
 
 FLOOR_SHEEN = .55  # How far the floor's normals lean along the grain.

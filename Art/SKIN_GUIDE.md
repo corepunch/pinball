@@ -26,7 +26,7 @@ Material controls under `materials` are `metalness`, `roughness`, `playfieldRefl
 `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
 sleeves of skins with no model kit.
 Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
-reflections. `modelKit: "premium"` selects the Blender-authored domed bumper, insert socket, and ramp
+reflections. `modelKit: "premium"` selects the compiled domed bumper, insert socket, and ramp
 channel meshes; see [MODEL_GUIDE.md](MODEL_GUIDE.md). New decorative meshes do not alter collision
 geometry or scoring.
 

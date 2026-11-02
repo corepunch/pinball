@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// The scene reads this too, so the test sees what the player sees.
 extern const float PBTableCameraTilt;
 
-/// Drawn size of round hardware relative to its table value. Blender's manifest records
+/// Drawn size of round hardware relative to its table value. Art/Models/manifest.json records
 /// the real model extents, and a test keeps these in step with them.
 extern const float PBBumperFootprintScale;
 extern const float PBLampFootprintScale;

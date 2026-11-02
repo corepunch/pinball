@@ -4,7 +4,6 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 __pycache__/
-*.blend1
 reference/
 research_notes/
 reports/

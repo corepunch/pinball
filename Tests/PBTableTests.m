@@ -68,7 +68,7 @@
     return [PBLayoutValidator issuesForTable:[[PBTableDefinition alloc] initWithJSONData:data error:NULL]];
 }
 
-- (void)testBlenderSamplesAndModifierDimensionsSurviveLoading {
+- (void)testSampledRampPathsAndAuthoringDimensionsSurviveLoading {
     NSMutableDictionary *json = [self tableJSON:@"features"];
     NSMutableDictionary *ramp = json[@"ramps"][0];
     NSMutableDictionary *settings = [ramp[@"authoring"] mutableCopy];
@@ -78,7 +78,7 @@
     ramp[@"authoring"] = settings;
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
     PBRampDef *loaded = table.ramps[0];
-    XCTAssertEqual(loaded.pointCount, [ramp[@"points"] count], @"Blender's samples must not be smoothed again");
+    XCTAssertEqual(loaded.pointCount, [ramp[@"points"] count], @"sampled paths must not be smoothed again");
     XCTAssertEqualWithAccuracy(loaded.wallHeight, .047, 1e-6);
     XCTAssertEqualWithAccuracy(loaded.railWidth, .009, 1e-6);
     for (NSInteger i = 0; i < loaded.pointCount; i++) {
@@ -368,7 +368,7 @@
 }
 
 // Footprints are only honest if they cover the models actually drawn.
-- (void)testFootprintsCoverTheBlenderModels {
+- (void)testFootprintsCoverTheCompiledModels {
     NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../Art/Models/manifest.json"];
     NSDictionary *assets = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:path] options:0 error:NULL][@"assets"];
     XCTAssertLessThanOrEqual([assets[@"bumper-base"][@"radius"] floatValue], PBBumperFootprintScale);

@@ -3,7 +3,7 @@
 The board is text. `Scenes/` is the source, and nothing else is edited by hand:
 
 ```sh
-make scenes    # Needs Python and Xcode's scntool, not Blender.
+make scenes    # Needs Python and Xcode's scntool.
 ```
 
 | Source | Becomes |

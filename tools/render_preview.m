@@ -241,7 +241,7 @@ int main(int argc, const char *argv[]) {
                     SCNMaterial *otherIdle = otherPainted.firstMaterial;
                     PBRequire(idle != nil, @"missing bumper node");
                     if (skin.modelKit) {
-                        PBRequire(cap.childNodes.count >= 3, @"Blender bumper kit failed to load");
+                        PBRequire(cap.childNodes.count >= 3, @"bumper kit failed to load");
                         PBRequire([scene.scene.rootNode childNodeWithName:table.ramps.firstObject.model ?: [NSString stringWithFormat:@"%@-%@", table.identifier, table.ramps.firstObject.identifier] recursively:YES] != nil, @"Blender ramp failed to load");
                     }
                     [game setLeftPressed:YES];

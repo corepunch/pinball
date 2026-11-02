@@ -387,7 +387,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     return material;
 }
 
-/// Blender exports semantic material names so a single mesh kit serves every skin.
+/// Models carry semantic material names (roles) so a single mesh kit serves every skin.
 - (void)skinModel:(SCNNode *)root overrides:(NSDictionary<NSString *, SCNMaterial *> *)overrides {
     if (!_modelMaterials) {
         SCNMaterial *glow = [SCNMaterial material];

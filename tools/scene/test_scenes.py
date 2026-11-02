@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks for the scene format: run by `make test`, with no Blender or Xcode needed."""
+"""Checks for the scene format: run by `make test`, with no Xcode needed."""
 import json
 import math
 import sys

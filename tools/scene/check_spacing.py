@@ -67,7 +67,7 @@ MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner'
 # Lines meant to be parallel, mirrored or not: a part's name and which of its segments.
 MAX_ANGLE_OFF = .25  # Degrees.
 MATCHED_ANGLES = {
-    'slope': (('flipperL', 0), ('flipperR', 0), ('inlaneL', 1), ('inlaneR', 1), ('slingBackL', 1), ('slingBackR', 1),
+    'slope': (('flipperL', 0), ('flipperR', 0), ('inlaneL', 0), ('inlaneR', 0), ('slingBackL', 1), ('slingBackR', 1),
               ('plasticSlingL', 1), ('plasticSlingR', 1), ('apronL', 0), ('apronR', 0)),
     'guide': (('orbitGateL', 0), ('orbitGateR', 0)),
 }
@@ -177,7 +177,7 @@ def parts_of(table):
             continue
         points = compile_scenes.expand_points(wall['points'])
         if wall['style'] in ('wall', 'rail', 'rubber'):
-            add(wall['id'], 'wall').line(points, wall['radius'], 0, wall['height'])
+            add(wall['id'], 'wall').line(points + points[:1] if wall.get('closed') else points, wall['radius'], 0, wall['height'])
         elif wall['style'] == 'plastic':
             add(wall['id']).line(points + points[:1], .0042, 0, wall['height'])
         elif wall['id'] == 'outer':

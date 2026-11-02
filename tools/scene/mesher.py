@@ -107,6 +107,20 @@ def inset_polygon(outline, distance):
     return out
 
 
+def raised_outline(outline, radius, height):
+    """A plate rising out of the board: an outline, which may be concave, grown by the collider's radius, with a small chamfer."""
+    # Arcs share their end points with what follows them.
+    outline = [p for i, p in enumerate(outline) if math.dist(p, outline[i - 1]) > 1e-5]
+    rim = inset_polygon(ccw(outline), -radius)
+    data = MeshData()
+    rings = [[(*p, z) for p in inset_polygon(rim, inset)] for inset, z in ((0, 0), (0, height - .002), (.002, height))]
+    n = len(rim)
+    faces = [(k * n + i, k * n + (i + 1) % n, (k + 1) * n + (i + 1) % n, (k + 1) * n + i) for k in range(2) for i in range(n)]
+    data.add([v for ring in rings for v in ring], faces, ['cabinet_shell'] * len(faces), None, 50)
+    data.add(rings[-1], [tuple(range(n))], 'cabinet_shell', None, 90)
+    return data
+
+
 def filleted(outline, radius, arc=8):
     """A convex counter-clockwise polygon with round corners."""
     out = []

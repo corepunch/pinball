@@ -67,7 +67,7 @@ Cues: `bumper`, `sling`, `drop`, `standup`, `saucer`, `spinner`, `ramp`, `lock`,
 
 ## Tables
 
-A table is its layout and rules. A plastic wall can name its kit prefab with `part`, as the floors under the flippers do. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep at least 0.0625 of lane for the ball, or it becomes a trap.
+A table is its layout and rules. A plastic wall can name its kit prefab with `part`, as the floors under the flippers do. A rail with `closed="true"` is a steel plate whose `points` are its outline, grown by `radius`, which is also what the ball hits; its first edge carries the three screws, as the inlane guides do. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep at least 0.0625 of lane for the ball, or it becomes a trap.
 
 ### Layout rules
 

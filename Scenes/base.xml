@@ -10,11 +10,12 @@
   <wall id="shooterInner" style="wall" height="0.03" radius="0.008" points="0.922,-0.01 0.922,1.618" />
   <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1955,0.585 0.1955,0.3636 dir(-slope,0.12689)" />
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7265,0.585 0.7265,0.3636 dir(180+slope,0.12689)" />
-  <!-- Steel inlane guides, as wide as the flipper's base, that run down its slope and wrap round the back of its
-       pivot on an arc concentric with it, two centimetres clear of the bat. The flippers sit 0.21 up the board so the
-       wrap's end still leaves a ball's width to the apron below, where the outlane empties into the drain. -->
-  <wall id="inlaneL" style="rail" height="0.03" radius="0.024" points="0.0995,0.528 0.0995,0.2893 arc(0.2765,0.21,0.068,157.5,225,10)" />
-  <wall id="inlaneR" style="rail" height="0.03" radius="0.024" points="0.8225,0.528 0.8225,0.2893 arc(0.6455,0.21,0.068,22.5,-45,10)" />
+  <!-- Steel inlane guides, drawn as outlines: a narrow upright with a round top, a wide elbow, and a wide diagonal down
+       the flipper's slope. Its end is cut concave round the flipper's base, concentric with the pivot. The top edge runs
+       in line with the top of the bat, so a ball rolls straight on, and the plate is as high as the bat so the lens
+       leans both alike and they line up on screen. -->
+  <wall id="inlaneL" style="rail" closed="true" height="0.038" radius="0.004" points="0.11182,0.30886 dir(-slope,0.15437) arc(0.25004,0.23999,0.004,65,-48.578,4) arc(0.2765,0.21,0.036,131.422,195.542,12) arc(0.23796,0.19928,0.004,15.542,-115,4) 0.23627,0.19566 dir(180-slope,0.13684) arc(0.1355,0.30333,0.055,245,180,8) arc(0.0875,0.484,0.007,180,0,6) arc(0.1245,0.33605,0.03,180,245,6)" />
+  <wall id="inlaneR" style="rail" closed="true" height="0.038" radius="0.004" points="0.81018,0.30886 dir(180+slope,0.15437) arc(0.67196,0.23999,0.004,115,228.578,4) arc(0.6455,0.21,0.036,48.578,-15.542,12) arc(0.68404,0.19928,0.004,164.458,295,4) 0.68573,0.19566 dir(slope,0.13684) arc(0.7865,0.30333,0.055,-65,0,8) arc(0.8345,0.484,0.007,0,180,6) arc(0.7975,0.33605,0.03,0,-65,6)" />
   <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.348,0.004 dir(180-slope,0.41708) -0.03,-0.03 0.348,-0.03" />
   <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.574,0.004 dir(slope,0.38398) 0.922,-0.03 0.574,-0.03" />
  </walls>
@@ -36,10 +37,10 @@
   <gate id="shooterGate" a="0.922 1.618" b="1.0 1.681" passDirection="0.0 1.0" />
  </gates>
  <lamps>
-  <lamp id="lampOutlaneL" x="0.0423" y="0.611" size="0.017" color="green" icon="12" bar="outlaneLeft" />
-  <lamp id="lampSpecial" x="0.8797" y="0.611" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
-  <lamp id="lampInlaneL" x="0.155" y="0.62" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
-  <lamp id="lampInlaneR" x="0.767" y="0.62" size="0.017" color="amber" icon="0" bar="inlaneRight" />
+  <lamp id="lampOutlaneL" x="0.0405" y="0.508" size="0.017" color="green" icon="12" bar="outlaneLeft" />
+  <lamp id="lampSpecial" x="0.8815" y="0.508" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
+  <lamp id="lampInlaneL" x="0.1435" y="0.508" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
+  <lamp id="lampInlaneR" x="0.7785" y="0.508" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>
  <plastics>
   <plastic id="plasticSlingL" height="0" points="0.1885,0.6 0.1885,0.3592 dir(-slope,0.14013)" />

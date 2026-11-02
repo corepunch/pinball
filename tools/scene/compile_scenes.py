@@ -151,6 +151,17 @@ def table_json(scene):
     return table
 
 
+def rail_screws(outline):
+    """Three spots along an outline's first edge, half way across to the edge that runs back alongside it."""
+    (ax, ay), (bx, by) = outline[0], outline[1]
+    length = math.hypot(bx - ax, by - ay)
+    area = sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(outline, outline[1:] + outline[:1]))
+    # The inside of the outline, square to the edge.
+    side = (-(by - ay) / length, (bx - ax) / length) if area > 0 else ((by - ay) / length, -(bx - ax) / length)
+    across = max((x - ax) * side[0] + (y - ay) * side[1] for x, y in outline) * .5
+    return [(ax + (bx - ax) * share + side[0] * across, ay + (by - ay) * share + side[1] * across) for share in (.12, .5, .88)]
+
+
 def walls_part(table, centred, skip=()):
     data = mesher.MeshData()
     for wall in table['walls']:
@@ -158,7 +169,7 @@ def walls_part(table, centred, skip=()):
             continue
         if wall['style'] in ('wall', 'rail', 'rubber'):
             points = [centred(*p) for p in expand_points(wall['points'])]
-            built = geometry.build_wall(points, wall['radius'], wall['height'])
+            built = mesher.raised_outline(points, wall['radius'], wall['height']) if wall.get('closed') else geometry.build_wall(points, wall['radius'], wall['height'])
             # A rail is a steel guide, a rubber wall a black rubber band, a thin wall solid metal; anything else is a painted plank.
             look = 'metal' if wall['style'] == 'rail' else 'black_rubber' if wall['style'] == 'rubber' else 'accent' if wall['radius'] < THIN_WALL else None
             roles = [look for _ in built.roles] if look else built.roles
@@ -166,11 +177,9 @@ def walls_part(table, centred, skip=()):
             base = table['deck']['height'] if 'deck' in wall.get('layers', []) else 0
             data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)
             if wall['style'] == 'rail':
-                # Three screws along the guide, as the real thing is bolted down.
-                lengths = geometry.arc_lengths([Vector(p) for p in points])
-                for share in (.2, .5, .8):
-                    at = geometry.sample([Vector(p) for p in points], lengths, lengths[-1] * share)[0]
-                    mesher.bolt(data, min(.006, wall['radius'] * .3), wall['height'] + base, (at.x, at.y))
+                # Three screws down the middle of its diagonal, as the real thing is bolted down.
+                for at in rail_screws(points):
+                    mesher.bolt(data, .006, wall['height'] + base, at)
     return data
 
 

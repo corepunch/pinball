@@ -31,7 +31,7 @@ static void PBExportChannelWalls(PBTableScene *scene, SCNRenderer *renderer, PBT
             }
         }
     }];
-    PBRequire(hasLining, @"channel inner-wall lining failed to load");
+    PBRequire(hasLining || table.ramps.count == 0, @"channel inner-wall lining failed to load");
     SCNVector3 camera = scene.cameraNode.position;
     CGFloat zoom = scene.cameraNode.camera.orthographicScale;
     float top = 0;

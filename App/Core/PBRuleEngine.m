@@ -492,16 +492,18 @@ static const double kRampComboSeconds = 8.0;
     _ballSaveTimer = MAX(_ballSaveTimer, 12.0);
     [self showMessage:@"MULTIBALL"];
     [self.delegate ruleEngine:self fanfare:@"multiball"];
-    for (NSInteger i = 1; i < _rules.multiballBalls; i++) [self addBallAfter:kBallAddDelay * (double)i];
+    for (NSInteger i = 1; i < _rules.multiballBalls; i++) [self addBallAfter:kBallAddDelay * (double)i plunge:YES];
 }
 
-- (void)addBallAfter:(double)delay {
+/// Serves a ball at the plunger. Multiball's extra balls launch themselves, since the player
+/// already has a ball in play; anything else waits for the player to pull the plunger.
+- (void)addBallAfter:(double)delay plunge:(BOOL)plunge {
     _ballsPending += 1;
     [self after:delay do:^{
         self->_ballsPending -= 1;
         if (self->_phase != PBGamePhasePlaying) return;
         [self->_world spawnBallAtPlunger];
-        [self after:0.45 do:^{ [self->_world autoPlunge]; }];
+        if (plunge) [self after:0.45 do:^{ [self->_world autoPlunge]; }];
     }];
 }
 
@@ -556,7 +558,7 @@ static const double kRampComboSeconds = 8.0;
     if (_ballSaveTimer > 0 && !_tilted) {
         [self showMessage:@"BALL SAVED"];
         [self.delegate ruleEngine:self fanfare:@"ballSave"];
-        [self addBallAfter:0.5];
+        [self addBallAfter:0.5 plunge:NO];
         return;
     }
     NSInteger remaining = _world.activeBallCount;

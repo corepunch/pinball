@@ -139,6 +139,9 @@ tunnel at a generic physics step.
 ## Levels
 
 `GameData/Levels.json` is the level list: each entry pairs a table and skin with a goal and two star scores.
+There is one level for now, `aurora`, which is the bare base from `Scenes/base.xml` with nothing else on the board;
+the old 30 levels were removed, and level 1 is being rebuilt from this empty board. `Tests/Fixtures/features.json`
+keeps a full board (ramp, deck, drops, stand-ups, scoops, bumpers) so the rules those parts use stay tested.
 The goal (`score`, or a count of `ramps`, `bumpers`, `drops`, `saucers`, `spinners`, `multiballs` or `jackpots`)
 earns the first star and unlocks the next level; the two scores earn the others. Progress is saved by level id,
 so levels can be reordered or added. `testEveryGoalIsReachableAndThreeStarsAreNotAutomatic` plays autopilot games

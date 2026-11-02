@@ -10,7 +10,7 @@
 static const double kNudgeThreshold = 1.9;  // In g. A deliberate shove, not a normal grip shift.
 static const float kNudgeImpulse = 0.42f;
 // A rolling ball touches its surface almost every frame, at low speed. Only real bounces buzz.
-static const float kHapticMinWallImpact = 0.7f;
+static const float kHapticMinWallImpact = 0.4f;
 // iOS quietly stops playing impacts requested faster than the motor can follow.
 static const NSTimeInterval kHapticMinInterval = 0.06;
 
@@ -42,7 +42,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
     _flipperHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleRigid];
     _impactHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
-    _springHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleSoft];
+    _springHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
     [_flipperHaptic prepare];
     [_impactHaptic prepare];
     [_springHaptic prepare];
@@ -201,7 +201,8 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
             break;
         case PBEventWallHit:
             if (event->magnitude < kHapticMinWallImpact) return;
-            intensity = 0.2 + 0.3 * MIN(1.0f, event->magnitude / 3.0f);
+            // A bounce is felt as a knock: a gentle one is already firm, a hard one is full strength.
+            intensity = 0.5 + 0.5 * MIN(1.0f, event->magnitude / 2.5f);
             break;
         case PBEventBumper:
         case PBEventSling:

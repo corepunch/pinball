@@ -5,7 +5,7 @@
 #import "PBPhysicsWorld.h"
 
 static const double kStepDuration = 1.0 / 960.0;
-static const float kPlungerCoils = 12.0f;  // Over the 0.9 s pull, slower than haptics can follow.
+static const float kPlungerCoils = 15.0f;  // Over the 0.9 s pull: one every 60 ms, as fast as the haptic motor follows.
 static const double kMaxCatchUp = 0.05;
 static const float kMaxBallSpeed = 7.0f;
 static const float kRollingDrag = 0.045f;

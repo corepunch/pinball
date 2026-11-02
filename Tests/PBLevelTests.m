@@ -85,11 +85,11 @@
 
 #pragma mark Catalog
 
-- (void)testThereAreThirtyLevelsEachWithItsOwnTable {
+- (void)testEveryLevelHasItsOwnTable {
     NSMutableSet *tables = [NSMutableSet set];
     for (PBLevelDef *level in [self shippingCatalog].levels) [tables addObject:level.table];
-    XCTAssertEqual([self shippingCatalog].levels.count, 30u);
-    XCTAssertEqual(tables.count, 30u);
+    XCTAssertGreaterThan([self shippingCatalog].levels.count, 0u);
+    XCTAssertEqual(tables.count, [self shippingCatalog].levels.count);
 }
 
 - (void)testShippingLevelsUseTablesAndSkinsThatExist {

@@ -139,7 +139,7 @@
             coils++;
         }];
     }
-    XCTAssertEqual(coils, 12);
+    XCTAssertEqual(coils, 15);
     XCTAssertEqual(last, 1.0f);
 }
 

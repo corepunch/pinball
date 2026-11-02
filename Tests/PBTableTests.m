@@ -32,9 +32,17 @@
 
 @implementation PBTableTests
 
+/// A shipped table from GameData/Tables, or a fixture from Tests/Fixtures: `features` is a full board
+/// (ramp, deck, drops, stand-ups, scoops, bumpers) for testing rules that no shipped table uses yet.
+- (NSString *)pathForTable:(NSString *)name {
+    NSString *tests = [[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent];
+    NSString *shipped = [tests stringByAppendingFormat:@"/../GameData/Tables/%@.json", name];
+    if ([NSFileManager.defaultManager fileExistsAtPath:shipped]) return shipped;
+    return [tests stringByAppendingFormat:@"/Fixtures/%@.json", name];
+}
+
 - (PBTableDefinition *)loadTable:(NSString *)name {
-    NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent]
-                      stringByAppendingFormat:@"/../GameData/Tables/%@.json", name];
+    NSString *path = [self pathForTable:name];
     NSError *error;
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSData dataWithContentsOfFile:path] error:&error];
     XCTAssertNotNil(table, @"%@", error);
@@ -51,8 +59,7 @@
 }
 
 - (NSMutableDictionary *)tableJSON:(NSString *)name {
-    NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent]
-                      stringByAppendingFormat:@"/../GameData/Tables/%@.json", name];
+    NSString *path = [self pathForTable:name];
     return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:path] options:NSJSONReadingMutableContainers error:NULL];
 }
 
@@ -62,7 +69,7 @@
 }
 
 - (void)testBlenderSamplesAndModifierDimensionsSurviveLoading {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     NSMutableDictionary *ramp = json[@"ramps"][0];
     NSMutableDictionary *settings = [ramp[@"authoring"] mutableCopy];
     settings[@"path_sampled"] = @YES;
@@ -84,7 +91,7 @@
 
 - (void)testBallDoesNotSettleBetweenRampAndDropTargetHousing {
     // A hidden wall under the ramp used to end just below the housing's corner, leaving a dip.
-    for (NSArray *drop in @[ @[ @"aurora", @0.70, @1.08 ], @[ @"meridian", @0.25, @1.08 ] ]) {
+    for (NSArray *drop in @[ @[ @"features", @0.70, @1.08 ] ]) {
         PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:drop[0]] options:0 error:NULL] error:NULL];
         PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
         NSInteger ball = [world spawnBallAtPlunger];
@@ -102,7 +109,7 @@
 
 - (void)testASlingshotsTopTipDoesNotFire {
     // A tip that fired threw a ball back up through the orbit gate that had just dropped it there, for ever.
-    for (NSString *name in @[ @"aurora", @"meridian" ]) {
+    for (NSString *name in [[self allTableNames] arrayByAddingObject:@"features"]) {
         PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:name] options:0 error:NULL] error:NULL];
         PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
         NSInteger ball = [world spawnBallAtPlunger];
@@ -117,7 +124,7 @@
 }
 
 - (void)testABallFallingBehindRollsUnderTheFlippersToTheDrain {
-    for (NSString *name in @[ @"aurora", @"meridian" ]) {
+    for (NSString *name in [[self allTableNames] arrayByAddingObject:@"features"]) {
         PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:[self tableJSON:name] options:0 error:NULL] error:NULL];
         for (NSNumber *lane in @[ @0.884f, @0.2f, @0.75f ]) {
             PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
@@ -148,7 +155,7 @@
 
 /// A table whose left targets, when both are hit, do one thing.
 - (NSMutableDictionary *)tableWithAction:(NSString *)action {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     for (NSMutableDictionary *group in json[@"rules"][@"groups"]) {
         if ([group[@"id"] isEqualToString:@"standLeft"]) group[@"actions"] = @[ action ];
     }
@@ -175,7 +182,7 @@
 }
 
 - (void)testVariTargetScoresByHowHardItIsHit {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     NSInteger index = 0;
     for (NSMutableDictionary *standup in json[@"standups"]) {
         if ([standup[@"id"] isEqualToString:@"standL1"]) { standup[@"vari"] = @YES; index = (NSInteger)[json[@"standups"] indexOfObject:standup]; }
@@ -216,7 +223,7 @@
         paid[attempt] = rules.score - before;
     }
     XCTAssertGreaterThan(paid[0], paid[1]);
-    XCTAssertGreaterThan(paid[1], [[self loadTable:@"aurora"].rules scoreFor:@"saucer"]);
+    XCTAssertGreaterThan(paid[1], [[self loadTable:@"features"].rules scoreFor:@"saucer"]);
 }
 
 - (void)testMysteryAwardIsSpentByTheScoop {
@@ -235,7 +242,7 @@
 
 - (void)testBonusHeldCarriesToTheNextBall {
     PBPhysicsWorld *world;
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     for (NSMutableDictionary *group in json[@"rules"][@"groups"]) {
         if ([group[@"id"] isEqualToString:@"standLeft"]) group[@"actions"] = @[ @"bonusX", @"holdBonus" ];
     }
@@ -255,7 +262,7 @@
 }
 
 - (void)testWizardModeNeedsEveryBankOfTargets {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     json[@"rules"][@"wizard"] = @YES;
     PBPhysicsWorld *world;
     PBRuleEngine *rules = [self rulesFor:json world:&world];
@@ -268,7 +275,7 @@
 }
 
 - (void)testABallTheSearchCannotFreeIsServedAgain {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     // A closed box around the ball: no shove can get it out.
     json[@"walls"] = [json[@"walls"] arrayByAddingObject:@{ @"id": @"box", @"style": @"none", @"radius": @0.006, @"height": @0.05, @"closed": @YES,
         @"points": @[ @[ @0.6, @0.6 ], @[ @0.7, @0.6 ], @[ @0.7, @0.7 ], @[ @0.6, @0.7 ] ] }];
@@ -281,7 +288,7 @@
 }
 
 - (void)testGeneratedColumnIsAnActualPlayfieldCollider {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     json[@"physics"][@"gravity"] = @0;
     for (NSString *key in @[ @"walls", @"posts", @"bumpers", @"slingshots", @"dropTargets", @"standups", @"rollovers", @"spinners", @"saucers", @"gates", @"kickbacks", @"magnets", @"captiveBalls" ]) json[key] = @[];
     NSMutableDictionary *ramp = json[@"ramps"][0];
@@ -317,7 +324,7 @@
 
 // The checks above are only worth having if each one still fires.
 - (void)testValidatorFindsALampOnABumper {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     NSMutableDictionary *lamp = json[@"lamps"][0], *bumper = json[@"bumpers"][0];
     lamp[@"x"] = bumper[@"x"];
     lamp[@"y"] = bumper[@"y"];
@@ -325,7 +332,7 @@
 }
 
 - (void)testValidatorFindsARampOverABumper {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     NSMutableDictionary *ramp = json[@"ramps"][0], *bumper = json[@"bumpers"][0];
     NSArray *point = ramp[@"points"][3];
     bumper[@"x"] = point[0];
@@ -334,7 +341,7 @@
 }
 
 - (void)testValidatorFindsWallsCrossing {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     [json[@"walls"] addObject:@{ @"id": @"crossing", @"style": @"wall", @"height": @0.05, @"radius": @0.006,
                                  @"points": @[ @[ @0.03, @1.32 ], @[ @0.3, @1.32 ] ] }];
     NSArray *issues = [self issuesForJSON:json];
@@ -343,7 +350,7 @@
 }
 
 - (void)testValidatorFindsAGapTooNarrowForTheBall {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     NSMutableDictionary *a = json[@"bumpers"][0], *b = json[@"bumpers"][1];
     b[@"x"] = @([a[@"x"] floatValue] + [a[@"r"] floatValue] * 2.0f * 1.14f + 0.02f);
     b[@"y"] = a[@"y"];
@@ -351,7 +358,7 @@
 }
 
 - (void)testValidatorFindsDecorOnTheApron {
-    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    NSMutableDictionary *json = [self tableJSON:@"features"];
     json[@"decor"] = [@[ @{ @"id": @"sunken", @"model": @"gear", @"x": @0.5, @"y": @0.0, @"size": @0.02 } ] mutableCopy];
     BOOL found = NO;
     for (PBLayoutIssue *issue in [self issuesForJSON:json]) {
@@ -476,6 +483,22 @@
     XCTAssertTrue(top > 0.85f || world.balls[index].state != PBBallFree, @"%@: a full flip should reach the upper playfield, reached %.3f", table.identifier, top);
 }
 
+// A saved ball comes back to the plunger and waits there: launching it is the player's job.
+- (void)testASavedBallWaitsAtThePlungerForThePlayer {
+    PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0];
+    [game requestNewGame]; [game update:1.0 / 60.0];
+    [game setRightPressed:YES]; for (int i = 0; i < 60; i++) [game update:1.0 / 60.0];
+    [game setRightPressed:NO]; for (int i = 0; i < 30; i++) [game update:1.0 / 60.0];
+    XCTAssertFalse(game.world.isBallOnPlunger, @"the launch left the lane");
+    for (NSInteger i = 0; i < game.world.ballCapacity; i++) if (game.world.balls[i].state != PBBallInactive) [game.world removeBall:i];
+    PBEvent drain = { .kind = PBEventDrain };
+    [game.rules handleEvent:&drain];
+    for (int i = 0; i < 60 * 4; i++) [game update:1.0 / 60.0];
+    XCTAssertEqual(game.rules.ballNumber, 1, @"drained inside the ball save, so the same ball goes on");
+    XCTAssertEqual(game.world.activeBallCount, 1);
+    XCTAssertTrue(game.world.isBallOnPlunger, @"it must sit at the plunger until the player launches it");
+}
+
 // Arming it takes both left targets and then a left outlane ball, too rare to count on in autoplay.
 - (void)testArmedKickbackSavesALeftOutlaneBall {
     PBTableDefinition *table = [self loadTable:@"aurora"];
@@ -504,7 +527,8 @@
     PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
     [game addObserver:stats];
     game.autopilot = YES;
-    NSMutableArray *mustHappen = [@[ @"bumper", @"sling", @"fanfare:gameOver" ] mutableCopy];
+    NSMutableArray *mustHappen = [@[ @"sling", @"fanfare:gameOver" ] mutableCopy];
+    if (table.bumpers.count) [mustHappen addObject:@"bumper"];
     if (table.dropTargets.count) [mustHappen addObject:@"drop"];
     if (table.spinners.count) [mustHappen addObject:@"spinner"];
     if (table.saucers.count) [mustHappen addObject:@"saucer"];

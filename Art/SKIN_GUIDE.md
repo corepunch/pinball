@@ -23,7 +23,7 @@ The `inserts` slot is a 4×4 glyph sheet with optional `cellBleed` to exclude it
 
 Material controls under `materials` are `metalness`, `roughness`, `playfieldReflectivity`, `bloom`,
 `rampOpacity` and `rampGlass` (the ramp's tint; opacity 1 is solid sheet metal). All metal is a tinted MatCap: `matcap` and `rampMatcap` name them (`courtyard`, `studio`, `sunrise`). `rampBlur` (a mip bias) and `rampGloss` (0 to 1) set how satin the channel looks. `capBase` and `capStar` paint the bumper caps. Palette
-`cover` is the laser-cut covers' flat colour (the board's rim, the shooter-lane tunnel). `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
+`shell` is the cabinet's and the walls' colour. `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
 sleeves of skins with no model kit.
 Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
 reflections. `modelKit: "premium"` selects the compiled domed bumper, insert socket, and ramp

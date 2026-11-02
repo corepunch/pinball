@@ -33,16 +33,14 @@ static void PBExportChannelWalls(PBTableScene *scene, SCNRenderer *renderer, PBT
     }];
     PBRequire(hasLining || table.ramps.count == 0, @"channel inner-wall lining failed to load");
     SCNVector3 camera = scene.cameraNode.position;
-    CGFloat zoom = scene.cameraNode.camera.orthographicScale;
     float top = 0;
     for (PBRampDef *ramp in table.ramps) for (NSInteger i = 0; i < ramp.pointCount; i++) top = MAX(top, [ramp pointAtIndex:i].y);
-    scene.cameraNode.camera.orthographicScale = .23;
-    scene.cameraNode.position = SCNVector3Make(camera.x, camera.y, -(top - .09f - table.size.y * .5f) + camera.y * tanf(PBTableCameraTilt * (float)M_PI / 180.0f));
+    // A close-up: the same lens, lowered over the ramps' top end.
+    scene.cameraNode.position = SCNVector3Make(camera.x, .46f / (2.0f * tanf(PBTableCameraFOV * .5f * (float)M_PI / 180.0f)), -(top - .09f - table.size.y * .5f));
     NSImage *image = [renderer snapshotAtTime:2.016 withSize:CGSizeMake(1000, 450) antialiasingMode:SCNAntialiasingModeMultisampling4X];
     NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:image.TIFFRepresentation];
     PBRequire([[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}] writeToFile:path atomically:YES], @"channel wall close-up failed");
     scene.cameraNode.position = camera;
-    scene.cameraNode.camera.orthographicScale = zoom;
     NSLog(@"Verified channel lining and exported gameplay-angle close-up %@", path);
 }
 
@@ -141,13 +139,12 @@ static void PBExportRampChase(PBTableScene *scene, SCNRenderer *renderer, PBGame
 
 static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PBTableDefinition *table, NSString *path) {
     SCNVector3 camera = scene.cameraNode.position;
-    CGFloat zoom = scene.cameraNode.camera.orthographicScale;
     simd_float2 centre = simd_make_float2(0, 0);
     for (PBSpotDef *bumper in table.bumpers) centre += bumper.position;
     centre /= (float)MAX(table.bumpers.count, 1);
-    scene.cameraNode.camera.orthographicScale = 0.11;
-    scene.cameraNode.position = SCNVector3Make(centre.x - table.size.x * 0.5f, camera.y,
-                                               -(centre.y - table.size.y * 0.5f) + camera.y * tanf(PBTableCameraTilt * (float)M_PI / 180.0f));
+    // A close-up: the same lens, lowered over the bumpers.
+    scene.cameraNode.position = SCNVector3Make(centre.x - table.size.x * 0.5f, .22f / (2.0f * tanf(PBTableCameraFOV * .5f * (float)M_PI / 180.0f)),
+                                               -(centre.y - table.size.y * 0.5f));
     const int frames = 72;
     CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:path],
                                                                        CFSTR("com.compuserve.gif"), frames, NULL);
@@ -169,7 +166,6 @@ static void PBExportTiltAnimation(PBTableScene *scene, SCNRenderer *renderer, PB
     PBRequire(CGImageDestinationFinalize(destination), @"tilt animation export failed");
     CFRelease(destination);
     scene.cameraNode.position = camera;
-    scene.cameraNode.camera.orthographicScale = zoom;
     NSLog(@"Exported actual-scene tilt animation %@", path);
 }
 

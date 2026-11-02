@@ -464,15 +464,15 @@ def wall_outline(points, radius, arc=8):
     return outline[::-1]
 
 
-def build_wall(points, radius, height, trim=.0042):
-    """A thick piece rising out of the board from a line, with a gold trim around its top."""
+def build_wall(points, radius, height):
+    """A plank rising out of the board along a line: plain sides and top, with round ends and a small chamfer."""
     if len(points) < 2:
         raise ValueError('A wall needs at least two points')
-    if radius <= trim or height <= .006:
-        raise ValueError('Wall is too thin or too low for its trim')
+    if radius <= .003 or height <= .006:
+        raise ValueError('Wall is too thin or too low')
     data = MeshData()
-    stations = [(0, 0), (0, height - .0045), (trim * .2, height - .001), (trim * .65, height), (trim, height - .0007)]
-    roles = ['cabinet_shell', 'accent', 'accent', 'accent']
+    stations = [(0, 0), (0, height - .002), (.002, height)]
+    roles = ['cabinet_shell', 'cabinet_shell']
     rings = [[(*p, z) for p in wall_outline(points, radius - inset)] for inset, z in stations]
     n = len(rings[0])
     vertices = [v for ring in rings for v in ring]

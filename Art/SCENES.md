@@ -9,11 +9,11 @@ make scenes    # Needs Python and Xcode's scntool.
 | Source | Becomes |
 | --- | --- |
 | `Scenes/tables/*.xml` | One table each: `GameData/Tables/*.json`, plus its own walls and plastics |
-| `Scenes/base.xml` | What every table must have: flippers, slingshots, inlanes and outlanes with their lamps, floors, plunger, the arched rim, the cabinet and tunnel covers, scores. One shared model each |
+| `Scenes/base.xml` | What every table must have: flippers, slingshots, steel inlane guides and outlanes with their lamps, floors, plunger, the arched outer wall, scores. One shared model each |
 | `Scenes/ramps.xml` | Ramp kits, with the walls that go with them. A table takes one for each side with `kits="longL longR"` |
 | `Scenes/kit.xml` | Every reusable part |
 
-The table's `padding="x y"` is how much board the phone shows past the table's sides and below its bottom edge: room for the covers, and for text in the corners the arch leaves free.
+The table's `padding="x y"` is how much board the phone shows past the table's sides and below its bottom edge. The cabinet fills everything outside the outer wall, in the skin's `shell` colour, so an arched outer wall reads as an arch with the readouts in the corners it leaves free; nothing has to be authored for it.
 
 `GameData/Tables`, `Art/Models/premium/*.dae` and `GameData/Models/premium/*.scn` are compiled output. Skins, and `GameData/Levels.json` (the campaign), are edited directly; `make playtest PLAYTEST=--tune` sets a level's goal and stars.
 
@@ -52,10 +52,6 @@ All shapes take `role`, `sharp` (crease angle), `z`, `at`, `scale`, `mirror`, an
 
 Also `<use prefab="…" at="x,y" name="value"…>` places a prefab with its variables set, and `<each-corner points inset>` repeats its contents at each corner. A `role` is a surface the game binds to the skin's material; see `skinModel` in `PBTableScene.m`.
 
-## Covers
-
-A cover is a laser-cut board: `<cover id height thickness points>` is a flat plate over its outline, at `height`, and each `<stencil points>` inside it is a hole cut through it (the stencil-for-boolean approach: draw the shape you want gone, and the compiler subtracts it). Outlines and stencils are point lists, so `arc(cx,cy,r,from,to,steps)` draws a curve and `arc(cx,cy,r,0,360,24)` a whole circle; the compiler drops the corners arcs repeat. A stencil with an `<array path count/>` inside it is one hole repeated `count` times along `path`, evenly by length, each turned to follow the path (the hole's y axis runs along it): the tunnel's windows are one slot and an array. Stencils must not overlap one another, and the compiler refuses a cover whose holes do; merge overlapping shapes into one outline. A cover without `thickness` stands on the floor. Keep every cover at one height, the base's 0.075: the covers are one level, and the ball rolls on the floor beneath them, so a roof is a thin cover flush with the rim, not a plate above it. `along="<wall id>"` gives a cover the shape of that wall, its radius thick with round ends, for a guide that is board rather than hardware; give the wall `style="none"` so it stops the ball without being drawn. A plastic wall with `drawn="false"` is the same idea for a floor: the base's aprons stop the ball under the flippers, and the cabinet cover's cutout follows their slopes. The base's `cabinet` cover is the board's rim and everything past it, with the whole play area and the arch cut out; its `tunnel` roofs the shooter lane at ball height, so the ball disappears under it and comes out at the top; `railL` and `railR` are the inlane guides. Covers are drawn, not felt: the walls under them do the stopping. Their colour is the skin's `cover`.
-
 ## Scripts
 
 Flashers and other effects are not built in: a table's `<rules><script>` says what happens on a cue, with the same actions a group has.
@@ -86,7 +82,8 @@ Judge a layout as the player sees it: through the 30 degree camera, on a phone, 
 - **The second level.** `<deck height="...">` sets its height, and a `plastic` wall with `part="deck"` is its raised block, solid to balls on the board. A ramp reaches it with `exitLayer="deck"`, and parts on it say `layers="deck"`: walls, stand-ups, a flipper, a hole. Keep it to about a quarter of the table's width at the back or side, and always give it a hole as the way down.
 - **Drop holes.** A saucer with `comesUpAt="x y"` swallows the ball, and after `transitSeconds` brings it up there, moving along `ejectDirection`.
 - **Check shots with `make shots`.** It fires real flipper shots on this Mac in seconds, and fails if no flipper reaches a ramp, hole or orbit. Use `--fan` through `tools/playtest/run_shots.py` to see each shot's heading, so parts can go on real shot lines.
-- **A wall under 0.01 radius is solid metal,** as the shooter lane's is: too thin for a coloured top (`THIN_WALL`).
+- **Walls are planks**: plain sides and top in the skin's shell colour, with a small chamfer and no trim. One under 0.0075 radius is solid metal instead, too thin for a plank top (`THIN_WALL`). The shooter lane's wall is 0.008: a 1 cm plank.
+- **Inlane guides are `style="rail"`:** steel, thicker than the flipper, with three screws, running down the flipper's slope and ending in an arc concentric with its pivot that wraps the back of the flipper. Keep the wrap short enough that a ball falling behind the flipper still rolls down the apron: the physics tests check it.
 - **The ball can always get under the flippers.** Below them the board stays open, and a low floor each side (`apronL`, `apronR`) slopes to the drain between them, so a ball falling behind rolls under and out. Their slope matches the flippers' at rest: any shallower and the ball wedges under a flipper's tip. Don't block this space.
 - **Centred parts sit on x = 0.461,** left of the screen's centre (0.5), because the shooter lane takes up the right side.
 - **Fit lamps to their lanes.** A lane is about 0.0625 wide, so its lamp has `size="0.017"` and sits above the wall ends rather than beside them.

@@ -68,8 +68,8 @@ int main(int argc, const char *argv[]) {
         SKNode *pause = [ui childNodeWithName:@"//hud.pause"];
         SKNode *message = [ui childNodeWithName:@"//hud.message"];
         Require(score && balls && pause && message, @"HUD nodes exist");
-        // The arch's crown is 125 pt down the phone, and its shoulders leave about 120 pt free each side at the readouts' height.
-        Require(CGRectGetMaxX([score calculateAccumulatedFrame]) <= 132, @"the widest score stays in the left shoulder");
+        // The arch's crown is about 115 pt down the phone, and its shoulders leave about 125 pt free each side at the readouts' height.
+        Require(CGRectGetMaxX([score calculateAccumulatedFrame]) <= 126, @"the widest score stays in the left shoulder");
         Require(CGRectGetMinX([balls calculateAccumulatedFrame]) >= 270, @"the ball readout stays in the right shoulder");
         Require(CGRectGetMaxX([pause calculateAccumulatedFrame]) < 348, @"pause clears the right edge");
         Require(message.frame.size.width <= 291, @"event text stays in the band above the arch");

@@ -18,10 +18,22 @@ import compile_scenes  # noqa: E402
 import mesher  # noqa: E402
 import table_xml  # noqa: E402
 
-TILT = math.radians(30)  # PBTableCameraTilt
+# The camera: straight down from above the middle of the visible board, as PBLayoutValidator has it.
+FOV = math.radians(70)   # PBTableCameraFOV
+BAND = .35               # PBTableCameraBand
+PHONE_ASPECT = 2.17      # PBTablePhoneAspect
+VIEW = {'size': (1, 2.286), 'padding': (0, 0)}
+
+
+def set_view(table):
+    VIEW.update(size=tuple(table['size']), padding=tuple(table.get('padding', (0, 0))))
+
+
+def visible_height():
+    size, padding = VIEW['size'], VIEW['padding']
+    return max(size[1] + padding[1] + BAND, (size[0] + 2 * padding[0]) * PHONE_ASPECT)
 POINTS = 393  # A table's width on the phone.
 MIN_GAP = 5  # Points of clear board between two parts. Below this they read as touching.
-MAX_MISALIGNED = 2  # Points of difference between the tops of parts meant to line up.
 
 # Parts built as one assembly: they touch on purpose, so gaps inside a group are not measured.
 ASSEMBLIES = (
@@ -33,8 +45,8 @@ ASSEMBLIES = (
     # The floors under the flippers meet the board's sides.
     {'outer', 'apronL'},
     {'shooterInner', 'apronR'},
-    {'flipperL', 'railL', 'plasticSlingL'},
-    {'flipperR', 'railR', 'plasticSlingR'},
+    {'flipperL', 'inlaneL', 'plasticSlingL'},
+    {'flipperR', 'inlaneR', 'plasticSlingR'},
     {'rampL', 'lampRampL'},
     {'rampR', 'lampRampR'},
     # The older tables' left ramps run close along the board's edge since the centre moved. Their layouts get redone.
@@ -44,13 +56,11 @@ ASSEMBLIES = (
     # Corner flashers stand high over the cabinet's edge.
     {'outer', 'flashTL', 'flashTR'},
 )
-# Parts that top out on one line across the screen, as a real machine's lower playfield does.
-ALIGNED_TOPS = {'lower row': {'railL', 'plasticSlingL', 'plasticSlingR', 'railR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
 # The board's axis: the middle of the play area, between the left wall and the shooter lane.
 AXIS = .461
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
-MIRRORED = (('flipperL', 'flipperR'), ('railL', 'railR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
+MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
             ('lampInlaneL', 'lampInlaneR'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
 # Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
 MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
@@ -64,7 +74,12 @@ MATCHED_ANGLES = {
 
 
 def project(x, y, z=0.0):
-    return x, y * math.cos(TILT) + z * math.sin(TILT)
+    """Where a point at height z lands on the floor as the phone sees it: raised parts lean away from the centre."""
+    visible = visible_height()
+    distance = visible / (2 * math.tan(FOV / 2))
+    cx, cy = VIEW['size'][0] / 2, visible / 2 - VIEW['padding'][1]
+    k = distance / max(distance - z, .01)
+    return cx + (x - cx) * k, cy + (y - cy) * k
 
 
 class Part:
@@ -74,9 +89,12 @@ class Part:
         self.name, self.kind = name, kind
         self.capsules, self.triangles = [], []
         self.owns = None
+        self.top = None  # How far up the board the part's footprint reaches, before the camera.
 
     def line(self, points, radius, z0=0.0, z1=None):
         """A rounded line, swept from its height z0 to z1: tall parts cover more of the screen."""
+        reach = max(p[1] for p in points) + radius
+        self.top = reach if self.top is None else max(self.top, reach)
         for z in (z0,) if z1 is None else (z0, z1):
             flat = [project(*p, z) for p in points]
             self.capsules += [(a, b, radius) for a, b in zip(flat, flat[1:] or flat)]
@@ -146,6 +164,7 @@ def gap(p, q, limit=.08):
 
 def parts_of(table):
     """Every visible part, sized as PBTableScene places the kit's models."""
+    set_view(table)
     parts = []
 
     def add(name, kind='part'):
@@ -163,11 +182,6 @@ def parts_of(table):
             add(wall['id']).line(points + points[:1], .0042, 0, wall['height'])
         elif wall['id'] == 'outer':
             add(wall['id'], 'wall').line(points, wall['radius'])
-    walls = {w['id']: w for w in table['walls']}
-    for cover in table.get('covers', []):
-        if 'along' in cover:
-            wall = walls[cover['along']]
-            add(cover['id'], 'wall').line(compile_scenes.expand_points(wall['points']), wall['radius'], 0, cover['height'])
     for plastic in table['plastics']:
         # Rounded as the slingshot prefab rounds it: its corners reach less far than its outline's.
         points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
@@ -248,10 +262,6 @@ def problems(table, parts=None):
             clear = gap(a, b) * POINTS
             if clear < MIN_GAP and not ({a.kind, b.kind} == {'wall', 'ramp'} and clear < 0):
                 found.append((clear, a.name, b.name))
-    for row, names in ALIGNED_TOPS.items():
-        tops = {p.name: p.bounds()[3] for p in parts if p.name in names}
-        if tops and (max(tops.values()) - min(tops.values())) * POINTS > MAX_MISALIGNED:
-            found.append((None, row, 'tops not level, in pt below the highest: ' + ', '.join(f'{name} {(max(tops.values()) - top) * POINTS:.1f}' for name, top in tops.items())))
     found += unmirrored(table, parts)
     return sorted(found, key=lambda f: (f[0] is None, f[0] if f[0] is not None else 0))
 
@@ -313,7 +323,8 @@ def unmirrored(table, parts):
 
 def write_svg(table, parts, found, path):
     """The measured shapes, with offenders in red, to compare against a screenshot."""
-    scale, height = 600, math.cos(TILT) * table['size'][1] * 600 + 60
+    set_view(table)
+    scale, height = 600, visible_height() * 600
     named = {n for f in found if f[0] is not None for n in f[1:]}
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {scale} {height:.0f}"><rect width="100%" height="100%" fill="#111"/>']
     for part in parts:

@@ -70,15 +70,6 @@ for path in table_xml.table_paths():
     for rollover in compiled['rollovers']:
         assert rollover['id'] in lamps, f"{path.stem}/{rollover['id']}: a rollover belongs to a lamp"
         assert rollover['x'] == lamps[rollover['id']]['x'] and abs(lamps[rollover['id']]['y'] - rollover['y'] - compile_scenes.BAR_BELOW_LAMP) < 1e-6, f"{path.stem}/{rollover['id']}: bar out of place"
-    # Every cover's top is its outline less its stencils: a hole the clipper filled in would show here.
-    size = compiled['size']
-    centred = lambda x, y: (x - size[0] * .5, y - size[1] * .5)
-    for cover in compiled.get('covers', []):
-        if 'along' in cover:
-            continue
-        part = compile_scenes.cover_part({'walls': compiled['walls'], 'covers': [cover]}, centred)
-        top = sum(abs(mesher.signed_area([part.vertices[i][:2] for i in face])) for face in part.faces if all(abs(part.vertices[i][2] - cover['height']) < 1e-9 for i in face))
-        assert abs(top - compile_scenes.cover_top_area(cover, centred)) < 1e-6, f"{path.stem}/{cover['id']}: the cover's holes are not all cut"
     # An arrow under a part is generated there, centred on the part and clear of it, so it cannot drift.
     for kind in ('spinners', 'saucers', 'kickbacks', 'standups', 'bumpers'):
         for part in compiled.get(kind, []):
@@ -86,31 +77,6 @@ for path in table_xml.table_paths():
                 lamp = next(l for l in compiled['lamps'] if l.get('arrowFor') == part['id'])
                 x, bottom = compile_scenes.footprint(kind, part, compiled)
                 assert lamp['x'] == round(x, 6) and lamp['y'] + lamp['size'] * .8 < bottom, f"{path.stem}/{part['id']}: arrow out of place"
-# A cover is its outline with its stencils cut out: what is left on top is exactly that much board.
-plate = mesher.MeshData()
-mesher.slab(plate, [(0, 0), (4, 0), (4, 4), (0, 4)], [[(1, 1), (2, 1), (2, 2), (1, 2)], [(3, 3), (3.5, 3), (3.5, 3.5), (3, 3.5)]], 0, .1, 'cover')
-top = sum(abs(mesher.signed_area([plate.vertices[i][:2] for i in t])) for face in plate.faces if all(abs(plate.vertices[i][2] - .1) < 1e-9 for i in face) for t in mesher.triangulate(plate.vertices, face))
-assert abs(top - (16 - 1 - .25)) < 1e-9, 'stencils cut holes in the cover'
-# An array repeats one hole along a path, turned to follow it; holes that overlap are refused.
-slots = compile_scenes.arrayed([(-1, -.5), (1, -.5), (1, .5), (-1, .5)], {'path': [[0, 0], [0, 10], [10, 10]], 'count': 4})
-assert len(slots) == 4 and abs(slots[0][0][0] - -1) < 1e-9 and abs(slots[0][0][1] - 2) < 1e-9, 'the first copy sits 2.5 up the path, unturned'
-assert abs(slots[3][0][0] - 7) < 1e-9 and abs(slots[3][0][1] - 11) < 1e-9, 'a copy on the second leg is turned a quarter turn, its y axis along the path'
-try:
-    compile_scenes.stencil_holes({'id': 'c', 'stencils': [{'id': 'a', 'points': [[0, 0], [2, 0], [2, 2], [0, 2]]}, {'id': 'b', 'points': [[1, 1], [3, 1], [3, 3], [1, 3]]}]})
-    raise AssertionError('overlapping stencils must fail')
-except ValueError:
-    pass
-# A cover along a wall is that wall's shape: a straight bar's outline is a stadium.
-bar = mesher.outline_along([(0, 0), (2, 0)], .5, 16)
-assert abs(abs(mesher.signed_area(bar)) - (2 + math.pi * .25)) < .01 and mesher.signed_area(bar) > 0, 'outline_along is a round-ended, counter-clockwise bar'
-bent = mesher.outline_along([(0, 0), (1, 0), (1, 1)], .1, 16)
-# Two bars less the square they share at the inside of the bend, plus a quarter disc outside it and the two end caps.
-assert abs(mesher.signed_area(bent) - (2 * .2 - .01 + math.pi * .01 / 4 + math.pi * .01)) < .002, 'a bend is mitred inside and rounded outside'
-try:
-    mesher.slab(mesher.MeshData(), [(0, 0), (1, 0), (1, 1), (0, 1)], [[(2, 2), (3, 2), (3, 3)]], 0, .1, 'cover')
-    raise AssertionError('a stencil outside the cover must fail')
-except ValueError:
-    pass
 arrowed = {'id': 't', 'physics': {'ballRadius': .03}, 'lamps': [], 'spinners': [{'id': 'spin', 'a': [0, 1], 'b': [.1, 1], 'arrow': 'cyan', 'arrowBind': 'orbitHot'}]}
 compile_scenes.place_arrows(arrowed)
 assert arrowed['lamps'][0]['id'] == 'lampSpin' and arrowed['lamps'][0]['x'] == .05 and arrowed['lamps'][0]['y'] < 1 - .008 - compile_scenes.ARROW_GAP and arrowed['lamps'][0]['bind'] == 'orbitHot', 'arrow="colour" makes an arrow lamp under the part'
@@ -128,11 +94,11 @@ table_xml.finished(named)
 assert named['walls'][0]['points'][1] == [round(1 - math.sqrt(3), 6), 2.0] and named['gates'][0]['b'] == [round(math.sqrt(3), 6), -1.0] and named['flippers'][0]['restAngle'] == 210, 'named rotations and dir() resolve'
 assert 'dir' not in json.dumps(table_xml.read(ROOT / 'Scenes/base.xml')['walls']), 'the game reads plain points'
 crooked = compile_scenes.table_json(table_xml.read(table_xml.table_paths()[0]))
-next(w for w in crooked['walls'] if w['id'] == 'inlaneL')['points'][2][1] += .02
+next(w for w in crooked['walls'] if w['id'] == 'inlaneL')['points'][1][1] += .02
 assert any(f[1] == 'slope angles' for f in check_spacing.unmatched_angles(crooked)), 'the checker sees a line off its angle'
 # The checker sees one side of the board growing wider than the other.
 lanes = {'walls': [dict(id='l', points=[[0, 0], [0, 1]], radius=.01), dict(id='m', points=[[.1, 0], [.1, 1]], radius=.01), dict(id='r', points=[[.3, 0], [.3, 1]], radius=.01)]}
 assert abs(check_spacing.lane_width(lanes, 'l', 'm', .5) - .08) < 1e-9 and abs(check_spacing.lane_width(lanes, 'm', 'r', .5) - .18) < 1e-9, 'lanes are measured between wall faces'
 raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
-assert check_spacing.gap(near[0], raised) > .03, 'spacing is measured through the camera: height moves a part up the screen'
+assert check_spacing.gap(near[0], raised) > 0 and raised.capsules[0][0][0] < -.03, 'spacing is measured through the lens: a raised part leans away from the centre of the view'
 print('SCENES PASSED')

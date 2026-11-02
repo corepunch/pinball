@@ -27,9 +27,9 @@ ROLES = {
     'rubber': (.62, .58, .47, 1), 'black_rubber': (.012, .012, .014, 1), 'skirt_lamp': (1, .2, .08, 1), 'cap_art': (.7, .2, .12, 1), 'enamel': (.86, .78, .6, 1),
     'lens': (.9, .95, 1, .18), 'glow': (.2, .8, 1, 1), 'glow_amber': (1, .65, .16, 1), 'jewel': (.2, .8, 1, 1), 'ramp_floor': (.58, .62, .66, 1),
     'sling_lens': (1, .25, .1, 1), 'sling_lens_0': (1, .25, .1, 1), 'sling_lens_1': (1, .25, .1, 1), 'target_lens': (1, .25, .1, 1), 'amber_lens': (1, .65, .16, 1), 'wall_art': (.05, .12, .14, 1), 'block_art': (.05, .18, .18, 1),
-    'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1), 'cover': (.3, .07, .11, 1),
+    'flipper_art': (.9, .85, .7, 1), 'target_art': (.6, .3, .15, 1),
 }
-THIN_WALL = .01  # A wall of less radius has no room for a coloured top: it is solid metal.
+THIN_WALL = .0075  # A wall of less radius has no room for a plank top: it is solid metal.
 BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
 ARROW_GAP = .03        # Clear board between a part's footprint and the point of the arrow under it: what a lamp leaves to its bar.
 ARROW_SIZE = .026
@@ -157,91 +157,19 @@ def walls_part(table, centred, skip=()):
         if wall['id'] in skip:
             continue
         if wall['style'] in ('wall', 'rail', 'rubber'):
-            built = geometry.build_wall([centred(*p) for p in expand_points(wall['points'])], wall['radius'], wall['height'])
-            roles = ['accent' for _ in built.roles] if wall['radius'] < THIN_WALL else built.roles
+            points = [centred(*p) for p in expand_points(wall['points'])]
+            built = geometry.build_wall(points, wall['radius'], wall['height'])
+            # A rail is a steel guide; a thin wall is solid metal; anything else is a painted plank.
+            roles = ['metal' for _ in built.roles] if wall['style'] == 'rail' else ['accent' for _ in built.roles] if wall['radius'] < THIN_WALL else built.roles
             # A wall on the second level stands on it.
             base = table['deck']['height'] if 'deck' in wall.get('layers', []) else 0
             data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)
-    return data
-
-
-def closed_outline(points):
-    """An outline without repeated corners, as arcs that meet their neighbours or close a circle leave."""
-    out = []
-    for p in points:
-        if not out or math.dist(out[-1], p) > 1e-7:
-            out.append(p)
-    if len(out) > 1 and math.dist(out[0], out[-1]) < 1e-7:
-        out.pop()
-    return out
-
-
-def arrayed(shape, array):
-    """A stencil's `array`: the shape repeated `count` times along `path`, evenly by length, each
-    turned to follow the path, with the shape's y axis along it."""
-    path = closed_outline(expand_points(array['path']))
-    if len(path) < 2:
-        raise ValueError('an array needs a path of at least two points')
-    lengths = [0.0]
-    for a, b in zip(path, path[1:]):
-        lengths.append(lengths[-1] + math.dist(a, b))
-    count = int(array['count'])
-    out = []
-    for i in range(count):
-        s = lengths[-1] * (i + .5) / count
-        k = max(1, next((k for k in range(1, len(lengths)) if lengths[k] >= s), len(lengths) - 1))
-        a, b = path[k - 1], path[k]
-        t = (s - lengths[k - 1]) / max(lengths[k] - lengths[k - 1], 1e-9)
-        at = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
-        turn = math.atan2(b[1] - a[1], b[0] - a[0]) - math.pi / 2
-        out.append([(at[0] + p[0] * math.cos(turn) - p[1] * math.sin(turn), at[1] + p[0] * math.sin(turn) + p[1] * math.cos(turn)) for p in shape])
-    return out
-
-
-def inside(point, polygon):
-    x, y = point
-    hit = False
-    for (x0, y0), (x1, y1) in zip(polygon, polygon[1:] + polygon[:1]):
-        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
-            hit = not hit
-    return hit
-
-
-def stencil_holes(cover):
-    """Every hole a cover's stencils cut, arrays spread out, checked against one another."""
-    holes = []
-    for stencil in cover.get('stencils', []):
-        shape = closed_outline(expand_points(stencil['points']))
-        holes += [(stencil['id'], h) for h in (arrayed(shape, stencil['array']) if 'array' in stencil else [shape])]
-    for i, (name, hole) in enumerate(holes):
-        for other, their in holes[i + 1:]:
-            if any(inside(p, their) for p in hole) or any(inside(p, hole) for p in their):
-                raise ValueError(f"{cover['id']}: stencils {name} and {other} overlap; merge them into one outline")
-    return [h for _, h in holes]
-
-
-def cover_top_area(cover, centred):
-    """What a cover's top should measure: its outline less its holes."""
-    outline = closed_outline([centred(*p) for p in expand_points(cover['points'])])
-    return abs(mesher.signed_area(outline)) - sum(abs(mesher.signed_area([centred(*p) for p in h])) for h in stencil_holes(cover))
-
-
-def cover_part(table, centred, skip=()):
-    """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
-    data = mesher.MeshData()
-    walls = {w['id']: w for w in table['walls']}
-    for cover in table.get('covers', []):
-        if cover['id'] in skip:
-            continue
-        if 'along' in cover:
-            # A cover shaped like a wall: an undrawn wall does the stopping, and the cover is what shows.
-            wall = walls[cover['along']]
-            outline = mesher.outline_along([centred(*p) for p in expand_points(wall['points'])], wall['radius'])
-        else:
-            outline = closed_outline([centred(*p) for p in expand_points(cover['points'])])
-        holes = [[centred(*p) for p in hole] for hole in stencil_holes(cover)]
-        thickness = cover.get('thickness', cover['height'])
-        mesher.slab(data, outline, holes, cover['height'] - thickness, thickness, 'cover')
+            if wall['style'] == 'rail':
+                # Three screws along the guide, as the real thing is bolted down.
+                lengths = geometry.arc_lengths([Vector(p) for p in points])
+                for share in (.2, .5, .8):
+                    at = geometry.sample([Vector(p) for p in points], lengths, lengths[-1] * share)[0]
+                    mesher.bolt(data, min(.006, wall['radius'] * .3), wall['height'] + base, (at.x, at.y))
     return data
 
 
@@ -254,7 +182,7 @@ def plastics_part(table, centred, builder, skip=()):
     data = mesher.MeshData()
     # Each bouncer gets its own lens, in the order of the table's slingshots, to light when it is hit.
     shapes = [(p['id'], expand_points(p['points']), 'slingshot', f'sling_lens_{i}') for i, p in enumerate(table['plastics'])]
-    shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic' and w.get('drawn', True)]
+    shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic']
     for name, path, prefab, lens in shapes:
         if name in skip:
             continue
@@ -299,18 +227,17 @@ def main():
     flipper = base['flippers'][0]
     size = base['size']
     centred = lambda x, y, s=size: (x - s[0] * .5, y - s[1] * .5)
-    common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']} | {c['id'] for c in base.get('covers', [])}
+    common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']}
     # Parts every table has are one model each, however many tables there are.
     parts['common-flipper'] = builder.build('flipper', {'base': flipper['baseRadius'] / flipper['length'], 'tip': flipper['tipRadius'] / flipper['length']})
     parts['common-walls'] = walls_part(base, centred)
     parts['common-plastics'] = plastics_part(base, centred, builder)
-    parts['common-cover'] = cover_part(base, centred)
     for path in table_xml.table_paths():
         table = table_json(table_xml.read(path))
         (tables / f"{table['id']}.json").write_text(json.dumps(table, indent=1) + '\n')
         if args.tables_only:
             continue
-        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common)), ('cover', cover_part(table, centred, common))):
+        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common))):
             if data.faces:
                 parts[f"{table['id']}-{suffix}"] = data
         for ramp in table['ramps']:

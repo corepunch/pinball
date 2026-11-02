@@ -715,14 +715,14 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 }
 
 - (void)renderHUD {
-    // Dot-matrix readouts on the cover: the score and the ball count in the corners the arch
+    // Dot-matrix readouts on the cabinet: the score and the ball count in the corners the arch
     // leaves free either side of its crown, and the goal or message in the band above it.
     CGFloat wingY = _logicalHeight - MAX(_topInset - 30, 30);
     PBUIKey *pause = [self key:@"pause" title:nil action:PBUIPause x:326 y:wingY width:30 parent:_root];
     pause.name = @"hud.pause";
 
     CGFloat top = MAX(_topInset, 26);
-    CGFloat shoulderY = _logicalHeight - top - 84;
+    CGFloat shoulderY = _logicalHeight - top - 71;
 
     _scoreSprite = [SKSpriteNode node];
     _scoreSprite.name = @"hud.score";
@@ -822,7 +822,7 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
     [self applyChange:^{
     if (self->_scoreSprite) {
         NSString *digits = [NSString stringWithFormat:@"%lld", score];
-        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.0 color:PBLEDColor() maxWidth:116];
+        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.0 color:PBLEDColor() maxWidth:110];
         NSString *balls = [NSString stringWithFormat:@"BALL %ld/%ld", (long)MAX(1, ball), (long)ballCount];
         if (multiplier > 1) balls = [NSString stringWithFormat:@"X%ld %@", (long)multiplier, balls];
         [self showLED:balls on:self->_ballSprite columns:balls.length right:YES pitch:1.9 color:PBLEDColor() maxWidth:104];

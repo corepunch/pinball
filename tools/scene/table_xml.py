@@ -22,14 +22,13 @@ SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
 WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
 NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection', 'comesUpAt'}  # Lists of numbers.
-POINTS = {'points', 'mouth', 'columns', 'path'}                # Lists of points.
+POINTS = {'points', 'mouth', 'columns'}                        # Lists of points.
 ROTATIONS = {'restAngle', 'activeAngle', 'rotation'}           # Degrees, which may use named angles.
 CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slingshots': 'slingshot',
               'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',
               'saucers': 'saucer', 'gates': 'gate', 'kickbacks': 'kickback', 'magnets': 'magnet',
               'captiveBalls': 'captiveBall', 'flashers': 'flasher', 'ramps': 'ramp', 'lamps': 'lamp',
-              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper',
-              'covers': 'cover', 'stencils': 'stencil', 'script': 'on'}
+              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper', 'script': 'on'}
 
 
 def number(text):

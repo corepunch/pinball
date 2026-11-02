@@ -522,18 +522,11 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         channelArrow.name = @"channel_arrow";
         _guideGlowMaterial = [amber copy];
         _guideGlowMaterial.diffuse.intensity = 1.25;
-        // The laser-cut covers: one flat matte colour, lit by the room, so cut edges read as a board.
-        SCNMaterial *cover = [SCNMaterial material];
-        cover.name = @"cover";
-        cover.lightingModelName = SCNLightingModelBlinn;
-        cover.diffuse.contents = [self color:_skin.coverColor];
-        cover.specular.contents = [self color:simd_make_float3(.12f, .12f, .12f)];
-        cover.shininess = 0.2;
         _modelMaterials = @{
             @"metal": [self metal], @"accent": [self accentMetal], @"rubber": [self rubber],
             @"dark": dark, @"channel_liner": liner, @"plate_frame": plateFrame, @"channel_floor": floor, @"channel_entry": entry, @"channel_aluminum": aluminum,
             @"channel_shell": channelShell, @"channel_arrow": channelArrow,
-            @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial, @"cover": cover,
+            @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial,
             @"glow_amber": amber, @"jewel": jewel, @"skirt_lamp": skirtLamp, @"black_rubber": [self blackRubber], @"amber_lens": amberLens, @"sling_lens": slingLens, @"sling_lens_0": _slingLenses[0], @"sling_lens_1": _slingLenses[1], @"target_lens": targetLens, @"ramp_floor": rampFloor, @"enamel": enamel,
             @"cap_art": [self printedMaterial:@"bumper_cap"],
             @"lens": lens,
@@ -541,7 +534,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             @"target_art": [self printedMaterial:@"drop_target"],
         };
         for (NSString *role in @[ @"metal", @"accent", @"rubber", @"dark", @"channel_liner", @"channel_floor", @"channel_entry", @"channel_aluminum", @"channel_shell",
-                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art", @"cover" ]) {
+                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art" ]) {
             [self receiveGlow:_modelMaterials[role]];
         }
         if ([_skin hasImageForSlot:@"ramp_chase_off"]) {
@@ -650,7 +643,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 - (void)buildCameraAndLights {
     _camera = [SCNCamera camera];
     _camera.projectionDirection = SCNCameraProjectionDirectionVertical;
-    _camera.usesOrthographicProjection = YES;
+    _camera.usesOrthographicProjection = NO;
+    _camera.fieldOfView = PBTableCameraFOV;
     _camera.zNear = 0.1;
     _camera.zFar = 20.0;
     _camera.wantsHDR = YES;
@@ -670,7 +664,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
     _cameraNode = [SCNNode node];
     _cameraNode.camera = _camera;
-    _cameraNode.eulerAngles = SCNVector3Make(-(float)M_PI_2 + PBTableCameraTilt * (float)M_PI / 180.0f, 0, 0);
+    _cameraNode.eulerAngles = SCNVector3Make(-(float)M_PI_2, 0, 0);
     [_root addChildNode:_cameraNode];
     [self fitCameraToAspect:(CGFloat)_size.y / _size.x];
 
@@ -764,16 +758,13 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)fitCameraToAspect:(CGFloat)heightOverWidth {
-    CGFloat tilt = PBTableCameraTilt * M_PI / 180.0;
-    CGFloat span = (CGFloat)_size.y * cos(tilt);
+    // Straight down from above the middle of the visible board: the whole table, its padding and the
+    // band past its far end, however the screen is shaped. The floor maps to the screen unscaled.
     simd_float2 padding = _table.padding;
-    // A phone sees the table's width plus its padding, with the bottom padding under the flippers.
-    // A much squarer screen sees the whole table instead, framed by the cabinet.
-    CGFloat visibleHeight = heightOverWidth >= 1.9 ? ((CGFloat)_size.x + 2 * padding.x) * heightOverWidth : span + 2 * padding.y * cos(tilt);
-    _camera.orthographicScale = visibleHeight * 0.5;
-    CGFloat aim = -(visibleHeight - span) * 0.5 / cos(tilt) + padding.y;
-    const CGFloat distance = 6.0;
-    _baseCameraPosition = SCNVector3Make(0, distance * cos(tilt), aim + distance * sin(tilt));
+    CGFloat visibleHeight = MAX((CGFloat)_size.y + padding.y + PBTableCameraBand, ((CGFloat)_size.x + 2 * padding.x) * heightOverWidth);
+    CGFloat distance = visibleHeight / (2.0 * tan(PBTableCameraFOV * 0.5 * M_PI / 180.0));
+    CGFloat centreY = visibleHeight * 0.5 - padding.y;
+    _baseCameraPosition = SCNVector3Make(0, (float)distance, -(float)(centreY - _size.y * 0.5));
     _cameraNode.position = _baseCameraPosition;
 }
 
@@ -809,27 +800,32 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)buildCabinet {
-    // The phone's own edge is the table's edge. This frame stands just outside the view, and
-    // only shows on a screen of different proportions, in place of stretched playfield art.
-    // Its far side stands well back: the tilted camera sees past the board's far end on a phone.
-    const float margin = 0.6f;
-    const float far = _size.y + 0.75f;
-    // Past the padding, which the table's cover fills.
-    const float inset = _table.padding.x + 0.1f;
-    simd_float2 outline[] = {
-        { -margin, -margin }, { -inset, -margin }, { -inset, far }, { _size.x + inset, far }, { _size.x + inset, -margin },
-        { _size.x + margin, -margin }, { _size.x + margin, far + margin }, { -margin, far + margin },
-    };
-    const float height = 0.11f;
-    SCNGeometry *frame = [PBGeometry prismWithPoints:outline count:8 height:height chamfer:0.0f];
-    SCNMaterial *rail = [self tileMaterial:@"side_rail" metalness:0.0 roughness:0.8];
-    rail.lightingModelName = SCNLightingModelLambert;
-    rail.diffuse.intensity = 0.62;
-    rail.shaderModifiers = @{ SCNShaderModifierEntryPointGeometry:
-        @"float4 pbWorld = scn_node.modelTransform * _geometry.position;\n"
-        @"_geometry.texcoords[0] = pbWorld.xz * 3.0;\n",
-        SCNShaderModifierEntryPointFragment: kPBHDRGuard };
-    frame.firstMaterial = rail;
+    // The board's rim and everything past it, as far as the phone can see: a block in the skin's
+    // shell colour with the table's own outline cut out of it, so an arched outer wall shows as an
+    // arch. The outer wall itself is never drawn; this is what the ball runs along.
+    PBWallDef *outer = nil;
+    for (PBWallDef *wall in _table.walls) if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
+    const float margin = 1.0f;
+    const float height = 0.075f;
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathAddRect(path, NULL, CGRectMake(-margin, -margin, _size.x + 2 * margin, _size.y + 2 * margin));
+    if (outer && outer.points.count > 1) {
+        const simd_float2 *p = outer.points.points;
+        CGPathMoveToPoint(path, NULL, p[0].x, p[0].y);
+        for (NSInteger i = 1; i < outer.points.count; i++) CGPathAddLineToPoint(path, NULL, p[i].x, p[i].y);
+        CGPathCloseSubpath(path);
+    } else {
+        CGPathAddRect(path, NULL, CGRectMake(0, 0, _size.x, _size.y));
+    }
+    SCNGeometry *frame = [PBGeometry prismWithPath:path height:height chamfer:0.0f evenOdd:YES];
+    CGPathRelease(path);
+    SCNMaterial *board = [SCNMaterial material];
+    board.lightingModelName = SCNLightingModelBlinn;
+    board.diffuse.contents = [self color:_skin.shellColor];
+    board.specular.contents = [self color:simd_make_float3(.12f, .12f, .12f)];
+    board.shininess = 0.2;
+    [self receiveGlow:board];
+    frame.firstMaterial = board;
     SCNNode *node = [self prismNodeWithGeometry:frame height:height baseHeight:0.0f];
     node.castsShadow = NO;  // It would throw a band of shadow across the playfield.
     [_root addChildNode:node];
@@ -843,8 +839,6 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterial *plasticMaterial = [self tileMaterial:@"wall_top" metalness:0.0 roughness:0.4];
     // Parts every table has are shared models; a table's own may be none at all.
     [self addCommonModel:@"walls"];
-    [self addCommonModel:@"cover"];
-    [self addTableModel:@"cover"];
     [self addCommonModel:@"plastics"];
     [self addTableModel:@"walls"];
     // The plastics model carries raised housings as well as the free-floating plastics.

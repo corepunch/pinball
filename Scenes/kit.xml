@@ -64,7 +64,7 @@
 
  <prefab id="slide">
   <polygon points="{outline}" role="cabinet_shell" z="{height}"/>
-  <polygon points="{outline}" role="accent" sharp="80"><sweep section="-.0042,0 -.0042,{height+.002} -.0014,{height+.0036} .0014,{height+.0036} .0042,{height+.002} .0042,0"/></polygon>
+  <polygon points="{outline}" role="cabinet_shell" sharp="80"><sweep section="-.0042,0 -.0042,{height-.002} -.0022,{height} .0022,{height} .0042,{height-.002} .0042,0"/></polygon>
  </prefab>
 
  <!-- The captive ball's low pod, with a recessed tray. -->

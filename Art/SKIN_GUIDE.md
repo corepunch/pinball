@@ -48,6 +48,14 @@ Omit the last argument to render all skins. These are actual game scene renders,
 Run `-PBSkin orbital` or `-PBSkin abyss` to choose a set directly in the iPhone app, or
 tap with three fingers to cycle. Orbital is Aurora's default; saved skin preferences persist.
 
+## Classic and Neon
+
+These have the same structure, painted by code instead of ImageGen. `python3 tools/skin_tool.py demo` writes
+their JSON, `GameData/Skins/{classic,neon}{,-playfield}.jpg`, and nothing else: edit `PREMIUM_SKINS` and the two
+`paint_*_playfield` functions there, not the output. Each hardware atlas is Orbital's master with its reds and
+navy moved to another hue, so gold and cream stay. A playfield holds scenery only, dim, with no shapes of parts:
+the board draws those on top. `shell` in the palette colours the walls and the outsides of the ramps.
+
 ## Painting a legacy single-atlas skin with ChatGPT
 
 One skin is one image. Attach `Art/Templates/aurora/layout_for_imagegen.png`, paste the prompt

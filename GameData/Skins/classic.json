@@ -1,58 +1,265 @@
 {
   "id": "classic",
+  "name": "Classic",
+  "atlasLayout": {
+    "canvas": [
+      1254,
+      1254
+    ],
+    "bleed": 5,
+    "slots": {
+      "bumper_cap": {
+        "rect": [
+          4,
+          1,
+          300,
+          300
+        ],
+        "bleed": 0
+      },
+      "bumper_cap_lit": {
+        "rect": [
+          318,
+          1,
+          300,
+          300
+        ],
+        "bleed": 0
+      },
+      "slingshot": {
+        "rect": [
+          627,
+          0,
+          314,
+          303
+        ]
+      },
+      "plastic": {
+        "rect": [
+          941,
+          0,
+          313,
+          303
+        ]
+      },
+      "wall_top": {
+        "rect": [
+          0,
+          303,
+          313,
+          305
+        ]
+      },
+      "side_rail": {
+        "rect": [
+          313,
+          303,
+          314,
+          305
+        ]
+      },
+      "flipper": {
+        "rect": [
+          627,
+          303,
+          314,
+          305
+        ]
+      },
+      "ramp": {
+        "rect": [
+          941,
+          303,
+          313,
+          305
+        ]
+      },
+      "drop_target": {
+        "rect": [
+          0,
+          608,
+          313,
+          287
+        ]
+      },
+      "standup": {
+        "rect": [
+          313,
+          608,
+          314,
+          287
+        ]
+      },
+      "spinner": {
+        "rect": [
+          627,
+          608,
+          314,
+          287
+        ]
+      },
+      "gate": {
+        "rect": [
+          941,
+          608,
+          313,
+          287
+        ]
+      },
+      "environment": {
+        "rect": [
+          0,
+          895,
+          313,
+          359
+        ]
+      },
+      "inserts": {
+        "rect": [
+          314,
+          896,
+          312,
+          320
+        ],
+        "cellBleed": 3
+      },
+      "dmd_bezel": {
+        "rect": [
+          627,
+          895,
+          314,
+          359
+        ]
+      },
+      "detail": {
+        "rect": [
+          941,
+          895,
+          313,
+          359
+        ]
+      },
+      "playfield": {
+        "rect": [
+          0,
+          0,
+          851,
+          1848
+        ],
+        "file": "classic-playfield.jpg",
+        "canvas": [
+          851,
+          1848
+        ],
+        "bleed": 0
+      }
+    }
+  },
   "lamps": {
     "cyan": [
-      0.55,
-      0.85,
-      1.0
-    ],
-    "white": [
-      1.0,
-      0.9,
-      0.72
+      0.48,
+      0.74,
+      0.78
     ],
     "amber": [
-      1.0,
-      0.68,
-      0.2
+      1,
+      0.65,
+      0.16
     ],
     "magenta": [
-      1.0,
-      0.3,
-      0.3
+      0.96,
+      0.36,
+      0.22
     ],
     "green": [
       0.55,
-      1.0,
+      0.85,
       0.4
     ],
     "red": [
-      1.0,
+      1,
       0.2,
       0.12
+    ],
+    "bumper": [
+      1,
+      0.62,
+      0.14
+    ],
+    "white": [
+      1,
+      0.92,
+      0.72
     ]
   },
-  "rubber": [
-    0.97,
-    0.96,
-    0.92
-  ],
-  "metal": [
-    0.86,
-    0.84,
-    0.8
-  ],
-  "ambient": 1.15,
-  "key": [
-    1.0,
+  "accent": [
+    1,
     0.9,
-    0.76
+    0.71
   ],
-  "keyIntensity": 800,
+  "ambient": 0.82,
+  "key": [
+    1,
+    0.94,
+    0.82
+  ],
+  "keyIntensity": 1050,
+  "plasticOpacity": 0.96,
+  "metal": [
+    1,
+    0.975,
+    0.9
+  ],
+  "rubber": [
+    0.94,
+    0.89,
+    0.75
+  ],
+  "modelKit": "premium",
+  "shell": [
+    0.06,
+    0.13,
+    0.32
+  ],
+  "flipperRubber": [
+    0.62,
+    0.17,
+    0.03
+  ],
   "dmd": [
-    1.0,
+    1,
     0.55,
-    0.12
+    0.13
   ],
-  "plasticOpacity": 0.85
+  "slingLens": [
+    1,
+    0.3,
+    0.05
+  ],
+  "capBase": [
+    0.92,
+    0.84,
+    0.66
+  ],
+  "capStar": [
+    0.68,
+    0.2,
+    0.04
+  ],
+  "materials": {
+    "metalness": 0.88,
+    "roughness": 0.24,
+    "playfieldReflectivity": 0.15,
+    "bloom": 0.34,
+    "rampOpacity": 1.0,
+    "matcap": "studio",
+    "rampMatcap": "studio",
+    "rampBlur": 2.5,
+    "rampGloss": 0.1,
+    "rampGlass": [
+      0.1,
+      0.055,
+      0.03
+    ]
+  }
 }

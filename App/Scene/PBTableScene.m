@@ -438,12 +438,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             clamped.diffuse.wrapS = SCNWrapModeClamp;
             clamped.diffuse.wrapT = SCNWrapModeClamp;
         }
-        BOOL underwater = [_skin.identifier isEqualToString:@"abyss"];
-        simd_float3 wallColor = underwater ? simd_make_float3(.05f, .36f, .38f) : simd_make_float3(.62f, .07f, .05f);
-        simd_float3 shellColor = wallColor;
+        simd_float3 wallColor = _skin.shellColor;
         SCNMaterial *shell = [SCNMaterial material];
         shell.lightingModelName = SCNLightingModelBlinn;
-        shell.diffuse.contents = [self color:shellColor];
+        shell.diffuse.contents = [self color:wallColor];
         shell.specular.contents = [self color:simd_make_float3(.13f, .15f, .18f)];
         shell.shininess = 28;
         // Upright inward faces need their own light-responsive finish: grazing-angle MatCaps

@@ -220,6 +220,12 @@ def stencil_holes(cover):
     return [h for _, h in holes]
 
 
+def cover_top_area(cover, centred):
+    """What a cover's top should measure: its outline less its holes."""
+    outline = closed_outline([centred(*p) for p in expand_points(cover['points'])])
+    return abs(mesher.signed_area(outline)) - sum(abs(mesher.signed_area([centred(*p) for p in h])) for h in stencil_holes(cover))
+
+
 def cover_part(table, centred, skip=()):
     """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
     data = mesher.MeshData()

@@ -70,6 +70,15 @@ for path in table_xml.table_paths():
     for rollover in compiled['rollovers']:
         assert rollover['id'] in lamps, f"{path.stem}/{rollover['id']}: a rollover belongs to a lamp"
         assert rollover['x'] == lamps[rollover['id']]['x'] and abs(lamps[rollover['id']]['y'] - rollover['y'] - compile_scenes.BAR_BELOW_LAMP) < 1e-6, f"{path.stem}/{rollover['id']}: bar out of place"
+    # Every cover's top is its outline less its stencils: a hole the clipper filled in would show here.
+    size = compiled['size']
+    centred = lambda x, y: (x - size[0] * .5, y - size[1] * .5)
+    for cover in compiled.get('covers', []):
+        if 'along' in cover:
+            continue
+        part = compile_scenes.cover_part({'walls': compiled['walls'], 'covers': [cover]}, centred)
+        top = sum(abs(mesher.signed_area([part.vertices[i][:2] for i in face])) for face in part.faces if all(abs(part.vertices[i][2] - cover['height']) < 1e-9 for i in face))
+        assert abs(top - compile_scenes.cover_top_area(cover, centred)) < 1e-6, f"{path.stem}/{cover['id']}: the cover's holes are not all cut"
     # An arrow under a part is generated there, centred on the part and clear of it, so it cannot drift.
     for kind in ('spinners', 'saucers', 'kickbacks', 'standups', 'bumpers'):
         for part in compiled.get(kind, []):

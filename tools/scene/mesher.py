@@ -169,35 +169,91 @@ def outline_along(points, radius, arc=8):
     return right + cap(pts[-1], pts[-1] - normals[-1] * radius, dirs[-1]) + left[::-1] + cap(pts[0], pts[0] + normals[0] * radius, -dirs[0])
 
 
+def _cross(o, a, b):
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
+def _crosses(a, b, c, d):
+    """Whether segments a-b and c-d cross properly, away from their ends."""
+    d1, d2 = _cross(c, d, a), _cross(c, d, b)
+    d3, d4 = _cross(a, b, c), _cross(a, b, d)
+    return ((d1 > 1e-12) != (d2 > 1e-12)) and ((d3 > 1e-12) != (d4 > 1e-12)) and min(abs(d1), abs(d2), abs(d3), abs(d4)) > 1e-12
+
+
+def _inside(point, polygon):
+    x, y = point
+    hit = False
+    for (x0, y0), (x1, y1) in zip(polygon, polygon[1:] + polygon[:1]):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            hit = not hit
+    return hit
+
+
 def bridged(outline, holes):
-    """One ring for a polygon with holes: each hole is spliced into the outline along a bridge
-    from its rightmost point to a point of the outline it can see, as ear clipping needs."""
-    ring = list(ccw(outline))
-    for hole in sorted((list(ccw(h))[::-1] for h in holes), key=lambda h: -max(p[0] for p in h)):
-        start = max(range(len(hole)), key=lambda i: hole[i][0])
+    """One ring for a polygon with holes: each hole is spliced into the ring along a bridge to the
+    nearest ring point it can reach without crossing any edge, as ear clipping needs."""
+    outline = list(ccw(outline))
+    ring = list(outline)
+    pending = [list(ccw(h))[::-1] for h in holes]
+    pending.sort(key=lambda h: min(p[0] for p in h))
+    while pending:
+        hole = pending.pop(0)
+        start = min(range(len(hole)), key=lambda i: hole[i][0])
         hole = hole[start:] + hole[:start]
-        hx, hy = hole[0]
-        # The nearest ring edge straight to the right of the hole's point, then that edge's end nearer the point.
-        best, best_x = None, None
-        for i in range(len(ring)):
-            (x0, y0), (x1, y1) = ring[i], ring[(i + 1) % len(ring)]
-            if (y0 <= hy < y1) or (y1 <= hy < y0):
-                x = x0 + (hy - y0) * (x1 - x0) / (y1 - y0)
-                if x >= hx and (best_x is None or x < best_x):
-                    best, best_x = i, x
-        if best is None:
-            raise ValueError('a stencil lies outside the cover')
-        i, j = best, (best + 1) % len(ring)
-        join = i if math.dist(ring[i], (hx, hy)) <= math.dist(ring[j], (hx, hy)) else j
-        ring = ring[:join + 1] + hole + [hole[0], ring[join]] + ring[join + 1:]
+        h = hole[0]
+        edges = list(zip(ring, ring[1:] + ring[:1]))
+        for other in pending:
+            edges += list(zip(other, other[1:] + other[:1]))
+        edges += list(zip(hole, hole[1:] + hole[:1]))
+        for join in sorted(range(len(ring)), key=lambda i: math.dist(ring[i], h)):
+            v = ring[join]
+            if any(_crosses(h, v, a, b) for a, b in edges):
+                continue
+            middle = ((h[0] + v[0]) * .5, (h[1] + v[1]) * .5)
+            if not _inside(middle, outline) or any(_inside(middle, other) for other in pending) or _inside(middle, hole):
+                continue
+            ring = ring[:join + 1] + hole + [hole[0], ring[join]] + ring[join + 1:]
+            break
+        else:
+            raise ValueError('a stencil lies outside the cover, or cannot be reached')
     return ring
+
+
+def clipped(ring):
+    """Ear clipping of a counter-clockwise ring that may repeat points along bridges: triangles as index triples."""
+    left = list(range(len(ring)))
+    out = []
+    def ear(i):
+        a, b, c = ring[left[i - 1]], ring[left[i]], ring[left[(i + 1) % len(left)]]
+        if _cross(a, b, c) <= 1e-14:
+            return False
+        for k in left:
+            p = ring[k]
+            if p in (a, b, c):
+                continue
+            if _cross(a, b, p) >= -1e-14 and _cross(b, c, p) >= -1e-14 and _cross(c, a, p) >= -1e-14:
+                return False
+        return True
+    while len(left) > 3:
+        for i in range(len(left)):
+            if ear(i):
+                out.append((left[i - 1], left[i], left[(i + 1) % len(left)]))
+                del left[i]
+                break
+        else:
+            # Only flat corners are left: drop the flattest, which changes nothing of the area.
+            flattest = min(range(len(left)), key=lambda i: abs(_cross(ring[left[i - 1]], ring[left[i]], ring[left[(i + 1) % len(left)]])))
+            del left[flattest]
+    if len(left) == 3:
+        out.append(tuple(left))
+    return out
 
 
 def slab(data, outline, holes, base, height, role, sharp=50):
     """A flat plate with the holes cut out of it: the top face, and sides down from every edge."""
     ring = bridged(outline, holes)
     z = base + height
-    data.add([(p[0], p[1], z) for p in ring], [tuple(range(len(ring)))], role, None, sharp)
+    data.add([(p[0], p[1], z) for p in ring], clipped(ring), role, None, sharp)
     for loop, inward in [(ccw(outline), False)] + [(ccw(h), True) for h in holes]:
         loop = loop[::-1] if inward else loop
         sweep(data, loop, [(0, base), (0, z)], role, closed=True, sharp=sharp)

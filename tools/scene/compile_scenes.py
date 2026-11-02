@@ -165,6 +165,17 @@ def walls_part(table, centred, skip=()):
     return data
 
 
+def closed_outline(points):
+    """An outline without repeated corners, as arcs that meet their neighbours or close a circle leave."""
+    out = []
+    for p in points:
+        if not out or math.dist(out[-1], p) > 1e-7:
+            out.append(p)
+    if len(out) > 1 and math.dist(out[0], out[-1]) < 1e-7:
+        out.pop()
+    return out
+
+
 def cover_part(table, centred, skip=()):
     """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
     data = mesher.MeshData()
@@ -177,8 +188,8 @@ def cover_part(table, centred, skip=()):
             wall = walls[cover['along']]
             outline = mesher.outline_along([centred(*p) for p in expand_points(wall['points'])], wall['radius'])
         else:
-            outline = [centred(*p) for p in expand_points(cover['points'])]
-        holes = [[centred(*p) for p in expand_points(s['points'])] for s in cover.get('stencils', [])]
+            outline = closed_outline([centred(*p) for p in expand_points(cover['points'])])
+        holes = [closed_outline([centred(*p) for p in expand_points(s['points'])]) for s in cover.get('stencils', [])]
         thickness = cover.get('thickness', cover['height'])
         mesher.slab(data, outline, holes, cover['height'] - thickness, thickness, 'cover')
     return data

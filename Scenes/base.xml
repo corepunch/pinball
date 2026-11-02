@@ -41,14 +41,15 @@
  </lamps>
  <!-- Laser-cut covers: a plate over its outline, with its stencils cut out of it. The cabinet
       cover is the board's rim, the floors under the flippers and everything past the board; the
-      tunnel roofs the shooter lane; the rails are the inlane guides, shaped along their walls. -->
+      tunnel roofs the shooter lane, at ball height, and follows it round the arch; the rails are
+      the inlane guides, shaped along their walls. -->
  <covers>
   <cover id="cabinet" height="0.03" points="-0.3,-0.3 1.3,-0.3 1.3,3.2 -0.3,3.2">
    <stencils>
-    <stencil id="board" points="-0.006,0.16908 0.348,0.004 0.348,0.0 0.574,0.0 0.574,0.004 dir(slope,0.37679) 0.9155,0.0 1.006,0.0 1.006,0.55 0.9155,0.55 0.9155,1.55 1.006,1.55 1.006,1.786 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
+    <stencil id="board" points="-0.006,0.16908 0.348,0.004 0.348,0.0 0.574,0.0 0.574,0.004 dir(slope,0.37679) 0.9155,0.0 1.006,0.0 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
    </stencils>
   </cover>
-  <cover id="tunnel" height="0.075" thickness="0.006" points="0.9155,0.55 1.006,0.55 1.006,1.55 0.9155,1.55" />
+  <cover id="tunnel" height="0.075" thickness="0.012" points="0.9155,0.55 1.006,0.55 arc(0.5,1.786,0.506,0,65,12) arc(0.5,1.786,0.4155,65,0,12)" />
   <cover id="railL" height="0.03" along="inlaneL" />
   <cover id="railR" height="0.03" along="inlaneR" />
  </covers>

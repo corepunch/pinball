@@ -117,6 +117,26 @@
     XCTAssertGreaterThan(w.balls[0].velocity.x,1);
     XCTAssertEqual(w.activeBallCount,1);
 }
+- (void)testCrossingRampsAtDifferentHeightsDoNotShareRailsOrBallContacts {
+    NSMutableDictionary *j=[self empty:@"aurora"];
+    j[@"ramps"]=@[
+        @{ @"id":@"upper",@"width":@.15,@"mouth":@[ @[ @.3,@.9 ],@[ @.3,@1.1 ] ],
+           @"points":@[ @[ @.3,@1,@.2 ],@[ @.7,@1,@.2 ] ],@"authoring":@{ @"path_sampled":@YES } },
+        @{ @"id":@"lower",@"width":@.15,@"mouth":@[ @[ @.4,@.8 ],@[ @.6,@.8 ] ],
+           @"points":@[ @[ @.5,@.8,@.05 ],@[ @.5,@1.2,@.05 ] ],@"authoring":@{ @"path_sampled":@YES } }
+    ];
+    PBPhysicsWorld *w=[self world:j];NSInteger a=[w spawnBallAtPlunger],b=[w spawnBallAtPlunger];
+    [w placeBall:a at:simd_make_float2(.2999,1) velocity:simd_make_float2(1,0)];
+    [w placeBall:b at:simd_make_float2(.5,.7999) velocity:simd_make_float2(0,1)];
+    [self run:w ticks:250];
+    XCTAssertEqual(w.balls[a].ramp,0);
+    XCTAssertEqual(w.balls[b].ramp,1);
+    XCTAssertGreaterThan(w.balls[a].position.x,.54);
+    XCTAssertGreaterThan(w.balls[b].position.y,1.04);
+    XCTAssertGreaterThan(w.balls[a].velocity.x,.8);
+    XCTAssertGreaterThan(w.balls[b].velocity.y,.8);
+}
+
 - (void)testDropResetAndInactiveActuators {
     NSMutableDictionary *j=[self empty:@"aurora"];
     j[@"dropTargets"]=@[ @{ @"id":@"d",@"a":@[ @.4,@1 ],@"b":@[ @.6,@1 ] } ];

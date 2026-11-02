@@ -68,6 +68,7 @@ typedef struct {
     uint32_t layers;
     int16_t element;
     PBColliderKind kind;
+    int16_t ramp;         // Side rails belong to one elevated path; -1 for global colliders.
     BOOL enabled;
     simd_float2 passDirection;
 } PBCollider;
@@ -233,7 +234,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     ^(simd_float2 a, simd_float2 b, float radius, float bounce, uint32_t layers, PBColliderKind kind, NSInteger element) {
         PBCollider *c = &self->_colliders[n++];
         c->a = a; c->b = b; c->radius = radius; c->bounce = bounce; c->layers = layers;
-        c->kind = kind; c->element = (int16_t)element; c->enabled = YES;
+        c->kind = kind; c->element = (int16_t)element; c->ramp = -1; c->enabled = YES;
     };
 
     for (PBWallDef *wall in t.walls) {
@@ -272,6 +273,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     // Side rails for each ramp, offset from its centreline; only balls on the ramp feel them.
     for (PBRampDef *ramp in t.ramps) {
         NSInteger count = ramp.pointCount;
+        NSInteger rampIndex = (NSInteger)[t.ramps indexOfObjectIdenticalTo:ramp];
         simd_float2 previousL = 0, previousR = 0;
         for (NSInteger i = 0; i < count; i++) {
             simd_float3 p = [ramp pointAtIndex:i];
@@ -283,7 +285,9 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
             simd_float2 right = p.xy - normal * ramp.width * 0.5f;
             if (i > 0) {
                 add(previousL, left, 0.004f, 0.3f, PBLayerRamp, PBColliderStatic, -1);
+                _colliders[n - 1].ramp = (int16_t)rampIndex;
                 add(previousR, right, 0.004f, 0.3f, PBLayerRamp, PBColliderStatic, -1);
+                _colliders[n - 1].ramp = (int16_t)rampIndex;
             }
             previousL = left; previousR = right;
         }
@@ -813,7 +817,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     NSInteger cell = cy * _gridWidth + cx;
     for (NSInteger i = _cellStart[cell]; i < _cellStart[cell + 1]; i++) {
         PBCollider *c = &_colliders[_cellItems[i]];
-        if (!c->enabled || !(c->layers & ball->layers)) continue;
+        if (!c->enabled || !(c->layers & ball->layers) || (c->ramp >= 0 && c->ramp != ball->ramp)) continue;
         [self resolveBall:index against:c colliderIndex:_cellItems[i]];
     }
     [self collidePlunger:index];

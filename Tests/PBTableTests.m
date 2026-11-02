@@ -16,9 +16,8 @@
 @implementation PBStatsObserver
 - (instancetype)init { if ((self = [super init])) _hits = [NSCountedSet set]; return self; }
 - (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
-    static NSString *const names[] = { @"bumper", @"sling", @"drop", @"standup", @"rollover", @"spinner", @"saucer", @"saucerEject",
-        @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck" };
-    [self.hits addObject:names[event->kind]];
+    [self.hits addObject:PBEventName(event->kind)];
+    [self.hits addObject:[NSString stringWithFormat:@"%@:%@", PBEventName(event->kind), PBEventElementIdentifier(*event, game.table)]];
     if (event->kind == PBEventRampComplete) [self.hits addObject:game.table.ramps[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventRollover) [self.hits addObject:game.table.rollovers[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventStandup) [self.hits addObject:game.table.standups[(NSUInteger)event->element].identifier];
@@ -361,3 +360,4 @@
 }
 
 @end
+

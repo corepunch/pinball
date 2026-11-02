@@ -1,0 +1,27 @@
+name: Pinball validation
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python report and schema tests
+        run: python3 -m unittest discover -s tools -p 'test_analysis.py' -v
+      - name: Generate project and run production core tests
+        run: |
+          python3 tools/make_xcodeproj.py
+          xcodebuild -project Pinball.xcodeproj -scheme PinballCoreTests -destination 'platform=macOS' -derivedDataPath Build/Tests CODE_SIGNING_ALLOWED=NO test
+      - name: Native analyzer integration and benchmark
+        run: python3 tools/test_analysis_native.py
+      - name: Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinball-analysis
+          path: Build/Analysis/reports

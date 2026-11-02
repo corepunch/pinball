@@ -1,0 +1,3 @@
+{
+  "scenarios": [{"id": "exploration", "mode": "autoplay", "seconds": 300, "seeds": [17, 41, 97, 233], "rescue": true}]
+}

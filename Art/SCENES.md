@@ -9,7 +9,7 @@ make scenes    # Needs Python and Xcode's scntool.
 | Source | Becomes |
 | --- | --- |
 | `Scenes/tables/*.xml` | One table each: `GameData/Tables/*.json`, plus its own walls and plastics |
-| `Scenes/base.xml` | What every table must have: flippers, slingshots, lanes, floors, plunger, lower lamps, scores. One shared model each |
+| `Scenes/base.xml` | What every table must have: flippers, slingshots, inlanes and outlanes, floors, plunger, the left spinner, lower lamps, scores. One shared model each |
 | `Scenes/ramps.xml` | Ramp kits, with the walls that go with them. A table takes one for each side with `kits="longL longR"` |
 | `Scenes/kit.xml` | Every reusable part |
 
@@ -69,8 +69,9 @@ Judge a layout as the player sees it: through the 30 degree camera, on a phone, 
 - **Check shots with `make shots`.** It fires real flipper shots on this Mac in seconds, and fails if no flipper reaches a ramp, hole or orbit. Use `--fan` through `tools/playtest/run_shots.py` to see each shot's heading, so parts can go on real shot lines.
 - **A wall under 0.01 radius is solid metal,** as the shooter lane's is: too thin for a coloured top (`THIN_WALL`).
 - **The ball can always get under the flippers.** Below them the board stays open, and a low floor each side (`apronL`, `apronR`) slopes to the drain between them, so a ball falling behind rolls under and out. Their slope matches the flippers' at rest: any shallower and the ball wedges under a flipper's tip. Don't block this space.
-- **The top lanes and the lower lamps sit on x = 0.461.** This is left of the screen's centre (0.5), because the shooter lane takes up the right side.
+- **The lower lamps sit on x = 0.461.** This is left of the screen's centre (0.5), because the shooter lane takes up the right side.
 - **Fit lamps to their lanes.** A lane is about 0.0625 wide, so its lamp has `size="0.017"` and sits above the wall ends rather than beside them.
+- **Arrows belong to a part.** Give a spinner, scoop, target, bumper, post or kickback `arrow="<colour>"` and the compiler puts an arrow lamp under it, centred on it and pointing at it, a fixed gap below its footprint; `arrowBind` lights it from the rules as a lamp's `bind` does. Never place an arrow by hand next to a part: it drifts when the part moves.
 - **Rollover bars belong to a lamp.** Give the lamp `bar="<rollover id>"` and the rollover only its `id` and `r`. The compiler puts the bar and its switch directly below the lamp, always the same distance away (`BAR_BELOW_LAMP`), so moving the lamp moves both. Never position a bar by hand.
 - **Change a ramp's shape smoothly.** The compiler rejects sudden changes in a ramp's curve, so blend a move over many points.
 - **A rollover is a wheel in a flat frame** (`<wheel>` in the kit: radius, width, height, on an axle along x). **Stand-up targets lie flat,** like the lamps. Targets stay dark until hit, as an unlit lamp does.

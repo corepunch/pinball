@@ -50,7 +50,7 @@ ALIGNED_TOPS = {'lower row': {'inlaneL', 'plasticSlingL', 'plasticSlingR', 'inla
 AXIS = .461
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
-MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampKickback', 'lampSpecial'),
+MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
             ('lampInlaneL', 'lampInlaneR'), ('lampBonus2', 'lampBonus5'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
 # Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
 MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
@@ -208,7 +208,7 @@ def parts_of(table):
             parts[-1].line([back, (lamp['x'] + along[0] * .8, lamp['y'] + along[1] * .8)], size * .2)
         else:
             add(lamp['id']).disc(lamp['x'], lamp['y'], lamp['size'] * 1.1)
-        parts[-1].owns = lamp.get('bar')
+        parts[-1].owns = lamp.get('bar') or lamp.get('arrowFor')
     for flasher in table['flashers']:
         add(flasher['id']).disc(flasher['x'], flasher['y'], .034 * 1.05, .11, .15)
     offset = (table['size'][0] * .5, table['size'][1] * .5)

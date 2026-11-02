@@ -123,9 +123,9 @@
     },
     "common-walls": {
       "objects": 1,
-      "triangles": 836,
+      "triangles": 516,
       "radius": 1.2343,
-      "bytes": 64037
+      "bytes": 40015
     },
     "common-plastics": {
       "objects": 1,

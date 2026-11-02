@@ -70,6 +70,16 @@ for path in table_xml.table_paths():
     for rollover in compiled['rollovers']:
         assert rollover['id'] in lamps, f"{path.stem}/{rollover['id']}: a rollover belongs to a lamp"
         assert rollover['x'] == lamps[rollover['id']]['x'] and abs(lamps[rollover['id']]['y'] - rollover['y'] - compile_scenes.BAR_BELOW_LAMP) < 1e-6, f"{path.stem}/{rollover['id']}: bar out of place"
+    # An arrow under a part is generated there, centred on the part and clear of it, so it cannot drift.
+    for kind in ('spinners', 'saucers', 'kickbacks', 'standups', 'bumpers'):
+        for part in compiled.get(kind, []):
+            if 'arrow' in part:
+                lamp = next(l for l in compiled['lamps'] if l.get('arrowFor') == part['id'])
+                x, bottom = compile_scenes.footprint(kind, part, compiled)
+                assert lamp['x'] == round(x, 6) and lamp['y'] + lamp['size'] * .8 < bottom, f"{path.stem}/{part['id']}: arrow out of place"
+arrowed = {'id': 't', 'physics': {'ballRadius': .03}, 'lamps': [], 'spinners': [{'id': 'spin', 'a': [0, 1], 'b': [.1, 1], 'arrow': 'cyan', 'arrowBind': 'orbitHot'}]}
+compile_scenes.place_arrows(arrowed)
+assert arrowed['lamps'][0]['id'] == 'lampSpin' and arrowed['lamps'][0]['x'] == .05 and arrowed['lamps'][0]['y'] < 1 - .008 - compile_scenes.ARROW_GAP and arrowed['lamps'][0]['bind'] == 'orbitHot', 'arrow="colour" makes an arrow lamp under the part'
 loose = {'id': 't', 'lamps': [], 'rollovers': [{'id': 'r', 'r': .03}]}
 try:
     compile_scenes.place_bars(loose)

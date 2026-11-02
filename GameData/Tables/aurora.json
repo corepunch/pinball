@@ -76,38 +76,6 @@
    ]
   },
   {
-   "id": "laneSep1",
-   "style": "rubber",
-   "height": 0.03,
-   "radius": 0.0105,
-   "points": [
-    [
-     0.3985,
-     2.026
-    ],
-    [
-     0.3985,
-     2.117
-    ]
-   ]
-  },
-  {
-   "id": "laneSep2",
-   "style": "rubber",
-   "height": 0.03,
-   "radius": 0.0105,
-   "points": [
-    [
-     0.5235,
-     2.026
-    ],
-    [
-     0.5235,
-     2.117
-    ]
-   ]
-  },
-  {
    "id": "slingBackL",
    "style": "none",
    "height": 0.022,
@@ -294,34 +262,6 @@
  ],
  "rollovers": [
   {
-   "id": "laneA",
-   "r": 0.03,
-   "x": 0.336,
-   "y": 2.035,
-   "plate": true
-  },
-  {
-   "id": "laneB",
-   "r": 0.03,
-   "x": 0.461,
-   "y": 2.035,
-   "plate": true
-  },
-  {
-   "id": "laneC",
-   "r": 0.03,
-   "x": 0.586,
-   "y": 2.035,
-   "plate": true
-  },
-  {
-   "id": "orbitR",
-   "r": 0.03,
-   "x": 0.8675,
-   "y": 0.805,
-   "plate": true
-  },
-  {
    "id": "inlaneLeft",
    "r": 0.025,
    "x": 0.155,
@@ -360,7 +300,9 @@
    "b": [
     0.1025,
     0.985
-   ]
+   ],
+   "arrow": "cyan",
+   "arrowBind": "orbitHot"
   }
  ],
  "gates": [
@@ -378,64 +320,13 @@
     0.0,
     1.0
    ]
-  },
-  {
-   "id": "orbitGateR",
-   "a": [
-    0.916,
-    0.7204
-   ],
-   "passDirection": [
-    0.0,
-    1.0
-   ],
-   "b": [
-    0.818518,
-    0.60002
-   ]
-  }
- ],
- "kickbacks": [
-  {
-   "id": "kickbackL",
-   "x": 0.0423,
-   "y": 0.25,
-   "r": 0.04,
-   "speed": 4.2
   }
  ],
  "lamps": [
   {
-   "id": "lampLaneA",
-   "x": 0.336,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneA"
-  },
-  {
-   "id": "lampLaneB",
-   "x": 0.461,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneB"
-  },
-  {
-   "id": "lampLaneC",
-   "x": 0.586,
-   "y": 2.11,
-   "size": 0.02478,
-   "color": "cyan",
-   "icon": 0,
-   "bar": "laneC"
-  },
-  {
    "id": "lampShootAgain",
    "x": 0.461,
-   "y": 0.285,
+   "y": 0.325,
    "size": 0.0354,
    "color": "white",
    "icon": 1,
@@ -444,7 +335,7 @@
   {
    "id": "lampBonus2",
    "x": 0.3485,
-   "y": 0.335,
+   "y": 0.375,
    "size": 0.03068,
    "color": "amber",
    "icon": 2,
@@ -453,7 +344,7 @@
   {
    "id": "lampBonus3",
    "x": 0.461,
-   "y": 0.39,
+   "y": 0.43,
    "size": 0.03068,
    "color": "amber",
    "icon": 3,
@@ -462,7 +353,7 @@
   {
    "id": "lampBonus5",
    "x": 0.5735,
-   "y": 0.335,
+   "y": 0.375,
    "size": 0.03068,
    "color": "amber",
    "icon": 4,
@@ -471,7 +362,7 @@
   {
    "id": "lampJackpot",
    "x": 0.461,
-   "y": 0.5,
+   "y": 0.54,
    "size": 0.032,
    "color": "magenta",
    "icon": 5,
@@ -480,36 +371,12 @@
    "angle": 90
   },
   {
-   "id": "lampOrbitL",
-   "x": 0.0375,
-   "y": 0.88,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "bind": "orbitHot",
-   "shape": "arrow",
-   "angle": 90
-  },
-  {
-   "id": "lampOrbitR",
-   "x": 0.8675,
-   "y": 0.88,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "bind": "orbitHot",
-   "shape": "arrow",
-   "angle": 90,
-   "bar": "orbitR"
-  },
-  {
-   "id": "lampKickback",
+   "id": "lampOutlaneL",
    "x": 0.0423,
    "y": 0.546,
    "size": 0.017,
    "color": "green",
    "icon": 12,
-   "bind": "kickback",
    "bar": "outlaneLeft"
   },
   {
@@ -521,15 +388,6 @@
    "icon": 13,
    "bind": "special",
    "bar": "outlaneRight"
-  },
-  {
-   "id": "lampSkill",
-   "x": 0.961,
-   "y": 0.5,
-   "size": 0.017,
-   "color": "white",
-   "icon": 7,
-   "bind": "skillShot"
   },
   {
    "id": "lampInlaneL",
@@ -548,6 +406,18 @@
    "color": "amber",
    "icon": 0,
    "bar": "inlaneRight"
+  },
+  {
+   "id": "lampSpinnerL",
+   "x": 0.05425,
+   "y": 0.9312,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "spinnerL",
+   "bind": "orbitHot"
   }
  ],
  "flashers": [
@@ -610,7 +480,6 @@
   "skillShotSeconds": 6,
   "tiltWarnings": 2,
   "rampsForExtraBall": 12,
-  "skillShotTarget": "laneB",
   "scores": {
    "bumper": 1000,
    "sling": 110,
@@ -632,26 +501,6 @@
    "rampCombo": 15000
   },
   "groups": [
-   {
-    "id": "lanes",
-    "members": [
-     "laneA",
-     "laneB",
-     "laneC"
-    ],
-    "lamps": [
-     "lampLaneA",
-     "lampLaneB",
-     "lampLaneC"
-    ],
-    "rotateWithFlippers": true,
-    "completeScore": 10000,
-    "actions": [
-     "bonusX",
-     "resetGroup"
-    ],
-    "message": "BONUS UP"
-   },
    {
     "id": "inlanes",
     "members": [
@@ -675,6 +524,7 @@
  "dropTargets": [],
  "standups": [],
  "saucers": [],
+ "kickbacks": [],
  "magnets": [],
  "captiveBalls": [],
  "ramps": [],

@@ -7,8 +7,6 @@
  <walls>
   <wall id="outer" style="none" height="0.12" radius="0.006" points="1.0,-0.01 arc(0.85,2.136,0.15,0,90,16) arc(0.15,2.136,0.15,90,180,16) 0.0,-0.01" />
   <wall id="shooterInner" style="wall" height="0.03" radius="0.0065" points="0.922,-0.01 0.922,1.618" />
-  <wall id="laneSep1" style="rubber" height="0.03" radius="0.0105" points="0.3985,2.026 0.3985,2.117" />
-  <wall id="laneSep2" style="rubber" height="0.03" radius="0.0105" points="0.5235,2.026 0.5235,2.117" />
   <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1955,0.52 0.1955,0.2986 dir(-slope,0.12689)" />
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7265,0.52 0.7265,0.2986 dir(180+slope,0.12689)" />
   <wall id="inlaneL" style="rail" height="0.03" radius="0.021" points="0.0995,0.463 0.0995,0.2243 dir(-slope,0.14013)" />
@@ -25,39 +23,25 @@
   <slingshot id="slingR" a="0.6115 0.245" b="0.7265 0.52" />
  </slingshots>
  <rollovers>
-  <rollover id="laneA" r="0.03" />
-  <rollover id="laneB" r="0.03" />
-  <rollover id="laneC" r="0.03" />
-  <rollover id="orbitR" r="0.03" />
   <rollover id="inlaneLeft" r="0.025" />
   <rollover id="inlaneRight" r="0.025" />
   <rollover id="outlaneLeft" r="0.025" />
   <rollover id="outlaneRight" r="0.025" />
  </rollovers>
  <spinners>
-  <spinner id="spinnerL" a="0.006 0.985" b="0.1025 0.985" />
+  <spinner id="spinnerL" a="0.006 0.985" b="0.1025 0.985" arrow="cyan" arrowBind="orbitHot" />
  </spinners>
  <gates>
   <gate id="shooterGate" a="0.922 1.618" b="1.0 1.681" passDirection="0.0 1.0" />
-  <gate id="orbitGateR" a="0.916 0.7204" rotation="180+guide" length="0.1549" passDirection="0.0 1.0" />
  </gates>
- <kickbacks>
-  <kickback id="kickbackL" x="0.0423" y="0.25" r="0.04" speed="4.2" />
- </kickbacks>
  <lamps>
-  <lamp id="lampLaneA" x="0.336" y="2.11" size="0.02478" color="cyan" icon="0" bar="laneA" />
-  <lamp id="lampLaneB" x="0.461" y="2.11" size="0.02478" color="cyan" icon="0" bar="laneB" />
-  <lamp id="lampLaneC" x="0.586" y="2.11" size="0.02478" color="cyan" icon="0" bar="laneC" />
-  <lamp id="lampShootAgain" x="0.461" y="0.285" size="0.0354" color="white" icon="1" bind="shootAgain" />
-  <lamp id="lampBonus2" x="0.3485" y="0.335" size="0.03068" color="amber" icon="2" bind="bonusX2" />
-  <lamp id="lampBonus3" x="0.461" y="0.39" size="0.03068" color="amber" icon="3" bind="bonusX3" />
-  <lamp id="lampBonus5" x="0.5735" y="0.335" size="0.03068" color="amber" icon="4" bind="bonusX5" />
-  <lamp id="lampJackpot" x="0.461" y="0.5" size="0.032" color="magenta" icon="5" bind="jackpot" shape="arrow" angle="90" />
-  <lamp id="lampOrbitL" x="0.0375" y="0.88" size="0.026" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" />
-  <lamp id="lampOrbitR" x="0.8675" y="0.88" size="0.026" color="cyan" icon="7" bind="orbitHot" shape="arrow" angle="90" bar="orbitR" />
-  <lamp id="lampKickback" x="0.0423" y="0.546" size="0.017" color="green" icon="12" bind="kickback" bar="outlaneLeft" />
+  <lamp id="lampShootAgain" x="0.461" y="0.325" size="0.0354" color="white" icon="1" bind="shootAgain" />
+  <lamp id="lampBonus2" x="0.3485" y="0.375" size="0.03068" color="amber" icon="2" bind="bonusX2" />
+  <lamp id="lampBonus3" x="0.461" y="0.43" size="0.03068" color="amber" icon="3" bind="bonusX3" />
+  <lamp id="lampBonus5" x="0.5735" y="0.375" size="0.03068" color="amber" icon="4" bind="bonusX5" />
+  <lamp id="lampJackpot" x="0.461" y="0.54" size="0.032" color="magenta" icon="5" bind="jackpot" shape="arrow" angle="90" />
+  <lamp id="lampOutlaneL" x="0.0423" y="0.546" size="0.017" color="green" icon="12" bar="outlaneLeft" />
   <lamp id="lampSpecial" x="0.8797" y="0.546" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
-  <lamp id="lampSkill" x="0.961" y="0.5" size="0.017" color="white" icon="7" bind="skillShot" />
   <lamp id="lampInlaneL" x="0.155" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
   <lamp id="lampInlaneR" x="0.767" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>
@@ -69,10 +53,9 @@
   <plastic id="plasticSlingL" height="0" points="0.1885,0.535 0.1885,0.2942 dir(-slope,0.14013)" />
   <plastic id="plasticSlingR" height="0" points="0.7335,0.535 0.7335,0.2942 dir(180+slope,0.14013)" />
  </plastics>
- <rules balls="3" ballSaveSeconds="12" locksForMultiball="1" multiballBalls="3" skillShotSeconds="6" tiltWarnings="2" rampsForExtraBall="12" skillShotTarget="laneB">
+ <rules balls="3" ballSaveSeconds="12" locksForMultiball="1" multiballBalls="3" skillShotSeconds="6" tiltWarnings="2" rampsForExtraBall="12">
   <scores bumper="1000" sling="110" drop="750" standup="500" rollover="300" spinner="100" saucer="2500" ramp="5000" orbit="3000" kickback="1000" captive="7500" jackpot="100000" skillShot="25000" special="50000" inlane="250" outlane="1000" bonusUnit="1000" rampCombo="15000" />
   <groups>
-   <group id="lanes" members="laneA laneB laneC" lamps="lampLaneA lampLaneB lampLaneC" rotateWithFlippers="true" completeScore="10000" actions="bonusX resetGroup" message="BONUS UP" />
    <group id="inlanes" members="inlaneLeft inlaneRight" lamps="lampInlaneL lampInlaneR" completeScore="2500" actions="addBonus resetGroup" message="BONUS +" />
   </groups>
  </rules>

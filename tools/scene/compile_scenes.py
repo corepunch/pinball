@@ -31,6 +31,9 @@ ROLES = {
 }
 THIN_WALL = .01  # A wall of less radius has no room for a coloured top: it is solid metal.
 BAR_BELOW_LAMP = .075  # From a lamp's centre to the centre of the rollover bar it owns.
+ARROW_GAP = .025       # Clear board between a part's footprint and the point of the arrow under it.
+ARROW_SIZE = .026
+ARROW_ICON = 7
 
 
 # ------------------------------------------------------------------------------- Table
@@ -78,10 +81,45 @@ def place_bars(table):
         rollover.setdefault('plate', False)
 
 
+def footprint(kind, part, table):
+    """A part's centre and the lowest point of what is drawn for it, as check_spacing sizes the kit."""
+    if kind in ('spinners', 'standups', 'dropTargets', 'gates'):
+        a, b = part['a'], part['b']
+        return (a[0] + b[0]) * .5, min(a[1], b[1]) - .008
+    x, y = part['x'], part['y']
+    if kind == 'kickbacks':
+        return x, y - .035 - .018
+    if kind == 'rollovers':
+        return x, y - .03
+    if kind == 'captiveBalls':
+        return x, y - table['physics']['ballRadius']
+    return x, y - part['r'] * (1.15 if kind == 'bumpers' else 1.12 if kind == 'saucers' else 1)
+
+
+def place_arrows(table):
+    """A part's `arrow` names a colour: an arrow lamp goes under the part, centred on it and pointing
+    at it, so it is always aligned. `arrowBind` lights it from the rules, as a lamp's `bind` does."""
+    for kind in ('spinners', 'standups', 'dropTargets', 'gates', 'kickbacks', 'rollovers', 'captiveBalls', 'bumpers', 'saucers', 'posts', 'stoppers', 'magnets'):
+        for part in table.get(kind, []):
+            if 'arrow' not in part:
+                continue
+            if kind == 'rollovers' and 'x' not in part:
+                raise ValueError(f"{table['id']}/{part['id']}: a rollover on a bar cannot carry an arrow")
+            x, bottom = footprint(kind, part, table)
+            lamp = {'id': 'lamp' + part['id'][0].upper() + part['id'][1:], 'x': round(x, 6), 'y': round(bottom - ARROW_GAP - ARROW_SIZE * .8, 6),
+                    'size': ARROW_SIZE, 'color': part['arrow'], 'icon': ARROW_ICON, 'shape': 'arrow', 'angle': 90, 'arrowFor': part['id']}
+            if 'arrowBind' in part:
+                lamp['bind'] = part['arrowBind']
+            if 'layers' in part:
+                lamp['layers'] = part['layers']
+            table['lamps'].append(lamp)
+
+
 def table_json(scene):
-    """The scene's layout plus what it generates: rollover bars, and the ramps' funnel walls and entrance lamps."""
+    """The scene's layout plus what it generates: rollover bars, arrows under parts, and the ramps' funnel walls and entrance lamps."""
     table = json.loads(json.dumps(scene))
     place_bars(table)
+    place_arrows(table)
     for ramp in table['ramps']:
         ramp.setdefault('model', f"{table['id']}-{ramp['id']}")
         # A ramp may be a few control points: the game gets the same smooth line as the mesh.

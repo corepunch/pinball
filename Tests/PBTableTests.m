@@ -501,7 +501,7 @@
 
 // Arming it takes both left targets and then a left outlane ball, too rare to count on in autoplay.
 - (void)testArmedKickbackSavesALeftOutlaneBall {
-    PBTableDefinition *table = [self loadTable:@"aurora"];
+    PBTableDefinition *table = [self loadTable:@"features"];
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
     [world setKickback:0 armed:YES];
     NSInteger index = [world spawnBallAtPlunger];
@@ -559,7 +559,9 @@
     NSLog(@"STATS %@ best=%lld %@", table.identifier, bestScore, [lines componentsJoinedByString:@" "]);
 
     for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@: %@ never happened", table.identifier, key);
-    XCTAssertGreaterThan(bestScore, 50000);
+    // A bare board scores only from its slingshots, lanes and spinner.
+    BOOL bare = !(table.bumpers.count || table.ramps.count || table.dropTargets.count || table.standups.count || table.saucers.count);
+    XCTAssertGreaterThan(bestScore, bare ? 5000 : 50000);
     NSUInteger drains = [stats.hits countForObject:@"drain"];
     NSUInteger stuck = [stats.hits countForObject:@"stuck"];
     XCTAssertLessThan(stuck, MAX(drains, 1u), @"ball search should be rare; a high count means a trap in the layout");

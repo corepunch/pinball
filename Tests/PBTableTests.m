@@ -16,9 +16,8 @@
 @implementation PBStatsObserver
 - (instancetype)init { if ((self = [super init])) _hits = [NSCountedSet set]; return self; }
 - (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
-    static NSString *const names[] = { @"bumper", @"sling", @"drop", @"standup", @"rollover", @"spinner", @"saucer", @"saucerEject",
-        @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck", @"coil" };
-    [self.hits addObject:names[event->kind]];
+    [self.hits addObject:PBEventName(event->kind)];
+    [self.hits addObject:[NSString stringWithFormat:@"%@:%@", PBEventName(event->kind), PBEventElementIdentifier(*event, game.table)]];
     if (event->kind == PBEventRampComplete) [self.hits addObject:game.table.ramps[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventRollover) [self.hits addObject:game.table.rollovers[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventStandup) [self.hits addObject:game.table.standups[(NSUInteger)event->element].identifier];
@@ -560,6 +559,10 @@
     for (PBRampDef *ramp in table.ramps) [mustHappen addObject:ramp.identifier];
     for (PBSpotDef *rollover in table.rollovers) [mustHappen addObject:rollover.identifier];
     for (PBEdgeDef *standup in table.standups) [mustHappen addObject:standup.identifier];
+    // Every device of these kinds, by id, not just one of its kind.
+    NSDictionary *byKind = @{ @"bumper": table.bumpers, @"sling": table.slingshots, @"drop": table.dropTargets, @"spinner": table.spinners,
+                              @"saucer": table.saucers, @"magnet": table.magnets, @"gate": table.gates };
+    for (NSString *kind in byKind) for (PBElementDef *element in byKind[kind]) [mustHappen addObject:[NSString stringWithFormat:@"%@:%@", kind, element.identifier]];
 
     // Autopilot play is chaotic: any layout change reshuffles a run, so a rare feature may come late.
     // 25 simulated minutes for the stats, then up to 75 in all for whatever hasn't happened yet.
@@ -590,3 +593,4 @@
 }
 
 @end
+

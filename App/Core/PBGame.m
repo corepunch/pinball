@@ -19,13 +19,17 @@
 }
 
 - (instancetype)initWithTable:(PBTableDefinition *)table highScore:(int64_t)highScore {
+    return [self initWithTable:table highScore:highScore seed:0x2545F491u];
+}
+
+- (instancetype)initWithTable:(PBTableDefinition *)table highScore:(int64_t)highScore seed:(uint32_t)seed {
     if ((self = [super init])) {
         _table = table;
-        _world = [[PBPhysicsWorld alloc] initWithTable:table];
+        _world = [[PBPhysicsWorld alloc] initWithTable:table seed:seed ^ (0x2545F491u ^ 0x9E3779B9u)];
         _rules = [[PBRuleEngine alloc] initWithWorld:_world highScore:highScore];
         _rules.delegate = self;
         _observers = [NSHashTable weakObjectsHashTable];
-        _autoSeed = 0x2545F491u;
+        _autoSeed = seed ?: 0x2545F491u;
     }
     return self;
 }
@@ -147,3 +151,4 @@
 }
 
 @end
+

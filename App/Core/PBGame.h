@@ -32,6 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) simd_float2 lastNudge;
 
 - (instancetype)initWithTable:(PBTableDefinition *)table highScore:(int64_t)highScore;
+- (instancetype)initWithTable:(PBTableDefinition *)table highScore:(int64_t)highScore seed:(uint32_t)seed;
 - (void)addObserver:(id<PBGameObserver>)observer;
 - (void)removeObserver:(id<PBGameObserver>)observer;
 - (void)update:(double)elapsed;
@@ -46,3 +47,4 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 NS_ASSUME_NONNULL_END
+

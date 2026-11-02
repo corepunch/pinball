@@ -28,6 +28,8 @@ help:
 	@echo "shots          - Fire flipper shots at level 1 and list what each reaches (no Xcode)"
 	@echo "test           - Run the headless tests on this Mac"
 	@echo "previews       - Render Art/Previews from the real scene"
+	@echo "analysis       - Timing sweeps and heatmaps (TABLE=aurora)"
+	@echo "analysis-test  - Reporter and production-physics integration tests"
 
 scenes:
 	python3 tools/scene/compile_scenes.py
@@ -99,3 +101,14 @@ test:
 
 previews:
 	tools/render_preview.sh "$(CURDIR)/Art/Previews"
+
+
+# Analysis uses the same production Core; compilation is cached across edits.
+.PHONY: analysis analysis-test
+TABLE ?= aurora
+analysis:
+	python3 tools/analyze_table.py GameData/Tables/$(TABLE).json --suite GameData/Analysis/authoring.json --workers 4 --out Build/Analysis/$(TABLE)
+
+analysis-test:
+	python3 -m unittest discover -s tools -p 'test_analysis.py' -v
+	python3 tools/test_analysis_native.py

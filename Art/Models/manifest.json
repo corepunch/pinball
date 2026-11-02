@@ -45,9 +45,9 @@
     },
     "rollover-plate": {
       "objects": 1,
-      "triangles": 54,
+      "triangles": 484,
       "radius": 1.0425,
-      "bytes": 7684
+      "bytes": 34020
     },
     "flasher-cage": {
       "objects": 1,
@@ -119,13 +119,13 @@
       "objects": 1,
       "triangles": 836,
       "radius": 1.2343,
-      "bytes": 63845
+      "bytes": 63959
     },
     "common-plastics": {
       "objects": 1,
-      "triangles": 1394,
-      "radius": 1.2806,
-      "bytes": 105145
+      "triangles": 1416,
+      "radius": 1.2927,
+      "bytes": 106372
     },
     "abyssal-walls": {
       "objects": 1,

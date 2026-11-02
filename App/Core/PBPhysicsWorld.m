@@ -5,6 +5,7 @@
 #import "PBPhysicsWorld.h"
 
 static const double kStepDuration = 1.0 / 960.0;
+static const float kPlungerCoils = 12.0f;  // Over the 0.9 s pull, slower than haptics can follow.
 static const double kMaxCatchUp = 0.05;
 static const float kMaxBallSpeed = 7.0f;
 static const float kRollingDrag = 0.045f;
@@ -573,7 +574,11 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 
 - (void)stepWithDuration:(float)dt {
     if (_plungerHeld) {
-        _plungerPull = MIN(1.0f, _plungerPull + dt / 0.9f);
+        float pull = MIN(1.0f, _plungerPull + dt / 0.9f);
+        if (floorf(pull * kPlungerCoils) > floorf(_plungerPull * kPlungerCoils)) {
+            [self emit:PBEventPlungerCoil element:0 ball:-1 magnitude:pull at:_plungerSpot];
+        }
+        _plungerPull = pull;
         _plungerY = _plungerSpot.y - _plungerPull * _plungerTravel;
     }
     for (NSInteger i = 0; i < _flipperCount; i++) [self stepFlipper:&_flippers[i] dt:dt];

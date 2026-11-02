@@ -60,13 +60,16 @@ Judge a layout as the player sees it: through the 30 degree camera, on a phone, 
 
 - **Leave 5 points of clear board between parts** (0.0127 of the table's width). `make spacing` measures this; closer than that reads as touching.
 - **Keep the two sides the same.** Where an element is on one side, put its match on the other, mirrored around x = 0.4775: slingshots, walls, lanes, lamps, bars and floors. Differ only where the shooter lane or a table's own feature leaves no choice. A new part on one side needs a reason not to have a twin.
+- **Fill the leftover width; don't move the centre.** The shooter lane leaves the left side wider than the right, so the left floor (`apronL`) rises up the board's edge and runs off screen, leaving both outlanes the same width. `make spacing` compares the outlanes and each part with its twin (`MIRRORED`, `MIRRORED_LANES`).
+- **A part that meets the screen's edge runs past it,** so its trim is off screen rather than drawn along the edge.
+- **Parallel lines share a named angle.** `<angles>` in `Scenes/base.xml` holds them: `slope` for the flippers, inlanes, slingshot bases and floors, and `guide` for the orbit guides and the left floor's top. Write such a line as a point then `dir(rotation,length)`, as in `0.123,0.2243 dir(-slope,0.14013)`, its mirror image as `dir(180+slope,...)`, a gate as `a`, `rotation`, `length`, and a flipper as `restAngle="-slope"`. Rotations are degrees anticlockwise from +x. Changing the number turns every line that uses it, though you may need to adjust lengths where lines must meet. `make spacing` fails when a line drifts off its angle (`MATCHED_ANGLES`).
 - **A wall under 0.01 radius is solid metal,** as the shooter lane's is: too thin for a coloured top (`THIN_WALL`).
 - **The ball can always get under the flippers.** Below them the board stays open, and a low floor each side (`apronL`, `apronR`) slopes to the drain between them, so a ball falling behind rolls under and out. Their slope matches the flippers' at rest: any shallower and the ball wedges under a flipper's tip. Don't block this space.
 - **Centre on one axis.** The bumpers, the top lanes and the column of lamps all sit on x = 0.4775, and the ramps' exits mirror around it (0.26 and 0.695). This is left of the screen's centre (0.5), because the shooter lane takes up the right side.
 - **Fit lamps to their lanes.** A lane is about 0.0625 wide, so its lamp has `size="0.017"` and sits above the wall ends rather than beside them.
 - **Rollover bars belong to a lamp.** Give the lamp `bar="<rollover id>"` and the rollover only its `id` and `r`. The compiler puts the bar and its switch directly below the lamp, always the same distance away (`BAR_BELOW_LAMP`), so moving the lamp moves both. Never position a bar by hand.
 - **Change a ramp's shape smoothly.** The compiler rejects sudden changes in a ramp's curve, so blend a move over many points.
-- **Rollover bars and stand-up targets lie flat,** like the lamps. Targets stay dark until hit, as an unlit lamp does.
+- **A rollover is a wheel in a flat frame** (`<wheel>` in the kit: radius, width, height, on an axle along x). **Stand-up targets lie flat,** like the lamps. Targets stay dark until hit, as an unlit lamp does.
 - **Moving a part can trap the ball or block a shot.** Spacing alone doesn't show this, so always run `make test` afterwards. Moving the drop bank towards the captive pod opened a trap that only the tests caught.
 
 ### Popups

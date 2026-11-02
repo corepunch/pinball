@@ -5,7 +5,8 @@
 
 Measures what the player sees, not the table's floor plan: everything is projected through the
 game's 30 degree camera, so a raised ramp is checked where it appears. Gaps are in points on a
-393 point wide phone. Run by `make test`; exits 1 if a pair is too close, or a row is off centre or not level.
+393 point wide phone. Run by `make test`; exits 1 if a pair is too close, a row is off centre or not
+level, or the two sides of the board no longer mirror each other.
 """
 import argparse
 import math
@@ -34,6 +35,8 @@ ASSEMBLIES = (
     # The floors under the flippers meet the board's sides.
     {'outer', 'apronL'},
     {'shooterInner', 'apronR'},
+    # The left guide hangs off the left floor, as the right one does off the shooter lane.
+    {'apronL', 'orbitGateL'},
     {'flipperL', 'inlaneL', 'plasticSlingL'},
     {'flipperR', 'inlaneR', 'plasticSlingR'},
     {'rampL', 'lampRampL'},
@@ -45,6 +48,21 @@ ASSEMBLIES = (
 ALIGNED_TOPS = {'lower row': {'inlaneL', 'plasticSlingL', 'plasticSlingR', 'inlaneR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
 # Rows that should sit midway between whatever is either side of them.
 CENTRED_ROWS = {'top lanes': {'laneA', 'laneB', 'laneC', 'lampLaneA', 'lampLaneB', 'lampLaneC', 'laneSep1', 'laneSep2'}}
+# The board's axis, left of the screen's centre as the shooter lane takes up the right.
+AXIS = .4775
+MAX_UNMIRRORED = 2  # Points of difference between the two sides.
+# Each part's twin on the other side of the axis.
+MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampKickback', 'lampSpecial'),
+            ('lampInlaneL', 'lampInlaneR'), ('lampBonus2', 'lampBonus5'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
+# Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
+MIRRORED_LANES = {'outlanes': ((('apronL', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
+# Lines meant to be parallel, mirrored or not: a part's name and which of its segments.
+MAX_ANGLE_OFF = .25  # Degrees.
+MATCHED_ANGLES = {
+    'slope': (('flipperL', 0), ('flipperR', 0), ('inlaneL', 1), ('inlaneR', 1), ('slingBackL', 1), ('slingBackR', 1),
+              ('plasticSlingL', 1), ('plasticSlingR', 1), ('apronL', 0), ('apronR', 0)),
+    'guide': (('orbitGateL', 0), ('orbitGateR', 0), ('apronL', 2)),
+}
 
 
 def project(x, y, z=0.0):
@@ -229,7 +247,61 @@ def problems(table, parts=None):
         tops = {p.name: p.bounds()[3] for p in parts if p.name in names}
         if tops and (max(tops.values()) - min(tops.values())) * POINTS > MAX_MISALIGNED:
             found.append((None, row, 'tops not level, in pt below the highest: ' + ', '.join(f'{name} {(max(tops.values()) - top) * POINTS:.1f}' for name, top in tops.items())))
+    found += unmirrored(table, parts)
     return sorted(found, key=lambda f: (f[0] is None, f[0] if f[0] is not None else 0))
+
+
+def lane_width(table, left, right, y):
+    """Clear floor between two walls at a height, on the table rather than through the camera."""
+    walls = {wall['id']: wall for wall in table['walls']}
+
+    def crossings(wall):
+        points = compile_scenes.expand_points(wall['points'])
+        if wall.get('closed'):
+            points = points + points[:1]
+        return [a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) for a, b in zip(points, points[1:]) if a[1] != b[1] and min(a[1], b[1]) <= y <= max(a[1], b[1])]
+    return min(crossings(walls[right])) - walls[right]['radius'] - max(crossings(walls[left])) - walls[left]['radius']
+
+
+def line_angle(table, name, segment):
+    """A line's angle from level, from 0 to 90, so that a line and its mirror image read the same."""
+    for flipper in table['flippers']:
+        if flipper['id'] == name:
+            turn = flipper['restAngle']
+            return min(turn % 180, 180 - turn % 180)
+    edges = {e['id']: [e['a'], e['b']] for e in table['gates']}
+    edges.update({part['id']: compile_scenes.expand_points(part['points']) for part in table['walls'] + table['plastics'] if 'points' in part})
+    if name not in edges:
+        return None
+    a, b = edges[name][segment], edges[name][segment + 1]
+    turn = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 180
+    return min(turn, 180 - turn)
+
+
+def unmatched_angles(table):
+    found = []
+    for name, lines in MATCHED_ANGLES.items():
+        angles = {f'{part}[{segment}]': line_angle(table, part, segment) for part, segment in lines}
+        angles = {line: angle for line, angle in angles.items() if angle is not None}
+        if angles and max(angles.values()) - min(angles.values()) > MAX_ANGLE_OFF:
+            found.append((None, f'{name} angles', ', '.join(f'{line} {angle:.1f}' for line, angle in angles.items())))
+    return found
+
+
+def unmirrored(table, parts):
+    found = unmatched_angles(table)
+    named = {p.name: p for p in parts}
+    for a, b in MIRRORED:
+        if a in named and b in named:
+            left, right = named[a].bounds(), named[b].bounds()
+            off = max(abs(left[0] + right[2] - 2 * AXIS), abs(left[2] + right[0] - 2 * AXIS), abs(left[1] - right[1]), abs(left[3] - right[3]))
+            if off * POINTS > MAX_UNMIRRORED:
+                found.append((None, f'{a} / {b}', f'not mirrored around x = {AXIS}: {off * POINTS:.1f} pt out'))
+    for name, ((left, right), y) in MIRRORED_LANES.items():
+        widths = [lane_width(table, *walls, y) for walls in (left, right)]
+        if abs(widths[0] - widths[1]) * POINTS > MAX_UNMIRRORED:
+            found.append((None, name, f'{widths[0] * POINTS:.0f} pt wide on the left, {widths[1] * POINTS:.0f} pt on the right'))
+    return found
 
 
 def margins(parts, names, x0, y0, x1, y1):

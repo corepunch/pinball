@@ -228,10 +228,13 @@ static void PBDrawTintedIcon(CGContextRef c, CGImageRef icon, simd_float3 color,
     const size_t size = 128;
     CGContextRef c = PBCreateContext(size, size);
     CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-    CGFloat stops[16] = { 1, 1, 1, 1, color.x, color.y, color.z, 1, color.x * 0.72, color.y * 0.72, color.z * 0.72, 1, color.x * 0.18, color.y * 0.18, color.z * 0.2, 1 };
-    CGFloat locations[4] = { 0, 0.2, 0.62, 1 };
+    // A lit bulb: a white-hot middle, and colour right out to the edge with no dark rim.
+    simd_float3 hot = simd_mix(color, simd_make_float3(1.0f, 1.0f, 1.0f), 0.55f);
+    CGFloat stops[16] = { 1, 1, 1, 1, hot.x, hot.y, hot.z, 1, color.x, color.y, color.z, 1, color.x * 0.7, color.y * 0.7, color.z * 0.7, 1 };
+    CGFloat locations[4] = { 0, 0.28, 0.62, 1 };
     CGGradientRef gradient = CGGradientCreateWithColorComponents(space, stops, locations, 4);
-    CGContextDrawRadialGradient(c, gradient, CGPointMake(size * 0.42, size * 0.6), 0, CGPointMake(size * 0.5, size * 0.5), size * 0.56, kCGGradientDrawsAfterEndLocation);
+    CGPoint centre = CGPointMake(size * 0.5, size * 0.5);
+    CGContextDrawRadialGradient(c, gradient, centre, 0, centre, size * 0.5, kCGGradientDrawsAfterEndLocation);
     CGGradientRelease(gradient);
     CGColorSpaceRelease(space);
     CGImageRef image = CGBitmapContextCreateImage(c);

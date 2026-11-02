@@ -34,6 +34,7 @@ typedef NS_ENUM(NSInteger, PBEventKind) {
     PBEventPlungerRelease,
     PBEventGate,
     PBEventBallStuck,
+    PBEventPlungerCoil,  // One turn of the spring as it is drawn; magnitude is the pull so far.
 };
 
 typedef struct {

@@ -23,6 +23,16 @@ def lathe(data, profile, role, segments=48, xy=(0, 0), planar=None, sharp=38):
     data.add(vertices, faces, role, uvs, sharp)
 
 
+def wheel(data, radius, width, z, role, xy=(0, 0), segments=32):
+    """A wheel on an axle along x, centred at height z, with a crowned tread that catches the light."""
+    half = width * .5
+    profile = [(.001, -half), (radius * .8, -half), (radius * .95, -half * .8), (radius, -half * .35), (radius, half * .35), (radius * .95, half * .8), (radius * .8, half), (.001, half)]
+    turned = MeshData()
+    lathe(turned, profile, role, segments, sharp=70)
+    # A quarter turn about y lays the upright axis along x.
+    data.add([(xy[0] + v[2], xy[1] + v[1], z - v[0]) for v in turned.vertices], turned.faces, role, None, 70)
+
+
 def ring(data, major, minor, z, role, xy=(0, 0), segments=48, sides=8):
     profile = [(major + minor * math.cos(a), z + minor * math.sin(a)) for a in (-math.pi + i * math.tau / sides for i in range(sides + 1))]
     lathe(data, profile, role, segments, xy, sharp=80)

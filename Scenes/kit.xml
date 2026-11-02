@@ -96,13 +96,13 @@
   <lathe role="target_lens" segments="32" sharp="80" planar="2" points=".85,.22 .6,.28 .3,.31 .001,.32"/>
  </prefab>
 
- <!-- A rollover switch's plate: three rounded rectangles lying flat, matte, for the ball to roll over. -->
+ <!-- A rollover switch: a wheel standing in a dark slot in a flat frame, half sunk, for the ball to roll over. -->
  <prefab id="rollover-plate">
   <let name="L" value="1"/>
   <let name="W" value=".46"/>
   <rounded-rect size="{2*W} {2*L}" radius="{W*.42}" role="plate_frame" z="{L*.02}"/>
   <rounded-rect size="{1.2*W} {1.68*L}" radius="{W*.3}" role="dark" z="{L*.03}"/>
-  <rounded-rect size="{.4*W} {1.24*L}" radius="{W*.18}" role="plate_frame" z="{L*.04}"/>
+  <wheel radius="{L*.74}" width="{W*.8}" z="{-L*.3}" role="metal"/>
  </prefab>
 
  <prefab id="flasher-cage">

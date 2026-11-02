@@ -1,4 +1,6 @@
 <table size="1.0 2.286" id="base" name="BASE" defaultSkin="orbital">
+ <!-- Lines meant to be parallel share these, in degrees. -->
+ <angles slope="25" guide="51" />
  <physics gravity="2.2" rampGravity="4.2" ballRadius="0.03" drainY="0.005" plungerSpeed="4.4" />
  <plunger x="0.961" y="0.1" width="0.05" travel="0.07" />
  <apron y="0.025" />
@@ -7,16 +9,16 @@
   <wall id="shooterInner" style="wall" height="0.03" radius="0.0065" points="0.922,-0.01 0.922,1.618" />
   <wall id="laneSep1" style="rubber" height="0.03" radius="0.0105" points="0.415,2.026 0.415,2.117" />
   <wall id="laneSep2" style="rubber" height="0.03" radius="0.0105" points="0.54,2.026 0.54,2.117" />
-  <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.212,0.52 0.212,0.29 0.327,0.245" />
-  <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.743,0.52 0.743,0.29 0.628,0.245" />
-  <wall id="inlaneL" style="rail" height="0.03" radius="0.021" points="0.123,0.463 0.123,0.2175 0.25,0.1657" />
-  <wall id="inlaneR" style="rail" height="0.03" radius="0.021" points="0.832,0.463 0.832,0.2175 0.705,0.1657" />
-  <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0,0.176 0.3645,0.004 0.3645,-0.03 0,-0.03" />
-  <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.922,0.1604 0.922,-0.03 0.5905,-0.03 0.5905,0.004" />
+  <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.212,0.52 0.212,0.2986 dir(-slope,0.12689)" />
+  <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.743,0.52 0.743,0.2986 dir(180+slope,0.12689)" />
+  <wall id="inlaneL" style="rail" height="0.03" radius="0.021" points="0.123,0.463 0.123,0.2243 dir(-slope,0.14013)" />
+  <wall id="inlaneR" style="rail" height="0.03" radius="0.021" points="0.832,0.463 0.832,0.2243 dir(180+slope,0.14013)" />
+  <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.3645,0.004 dir(180-slope,0.36412) dir(90,0.5471) dir(180-guide,0.1025) -0.03,-0.03 0.3645,-0.03" />
+  <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.5905,0.004 dir(slope,0.36577) 0.922,-0.03 0.5905,-0.03" />
  </walls>
  <flippers>
-  <flipper id="flipperL" side="left" pivot="0.293 0.145" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="-25.0" activeAngle="28.0" />
-  <flipper id="flipperR" side="right" pivot="0.662 0.145" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="205.0" activeAngle="152.0" />
+  <flipper id="flipperL" side="left" pivot="0.293 0.145" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="-slope" activeAngle="28.0" />
+  <flipper id="flipperR" side="right" pivot="0.662 0.145" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="180+slope" activeAngle="152.0" />
  </flippers>
  <slingshots>
   <slingshot id="slingL" a="0.212 0.52" b="0.327 0.245" />
@@ -37,7 +39,7 @@
  </spinners>
  <gates>
   <gate id="shooterGate" a="0.922 1.618" b="1.0 1.681" passDirection="0.0 1.0" />
-  <gate id="orbitGateR" a="0.916 0.705" b="0.835 0.605" passDirection="0.0 1.0" />
+  <gate id="orbitGateR" a="0.916 0.705" rotation="180+guide" length="0.1287" passDirection="0.0 1.0" />
  </gates>
  <kickbacks>
   <kickback id="kickbackL" x="0.071" y="0.25" r="0.04" speed="4.2" />
@@ -64,8 +66,8 @@
   <flasher id="flashTR" x="0.905" y="2.175" color="cyan" />
  </flashers>
  <plastics>
-  <plastic id="plasticSlingL" height="0" points="0.212,0.535 0.205,0.285 0.332,0.235" />
-  <plastic id="plasticSlingR" height="0" points="0.743,0.535 0.75,0.285 0.623,0.235" />
+  <plastic id="plasticSlingL" height="0" points="0.205,0.535 0.205,0.2942 dir(-slope,0.14013)" />
+  <plastic id="plasticSlingR" height="0" points="0.75,0.535 0.75,0.2942 dir(180+slope,0.14013)" />
  </plastics>
  <rules balls="3" ballSaveSeconds="12" locksForMultiball="1" multiballBalls="3" skillShotSeconds="6" tiltWarnings="2" rampsForExtraBall="12" skillShotTarget="laneB">
   <scores bumper="1000" sling="110" drop="750" standup="500" rollover="300" spinner="100" saucer="2500" ramp="5000" orbit="3000" kickback="1000" captive="7500" jackpot="100000" skillShot="25000" special="50000" inlane="250" outlane="1000" bonusUnit="1000" rampCombo="15000" />

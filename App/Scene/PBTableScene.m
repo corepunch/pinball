@@ -78,6 +78,20 @@ static NSString *PBFloorSurfaceModifier(simd_float2 size) {
             @"%@_surface.emission.rgb += pbGlowLit;\n", kPBGlowDeclaration, size.x, size.y, PBGlowBody(0.14f)];
 }
 
+/// The tops of the solid walls and floors show the board's art beneath them, lifted by the skin's
+/// wall colour so they stand out from it. Their sides stay plain, to read as an edge.
+static NSString *PBShellSurfaceModifier(simd_float2 size) {
+    return [NSString stringWithFormat:
+            @"#pragma arguments\n"
+            @"texture2d<float> pbPlayfield;\n"
+            @"#pragma body\n"
+            @"constexpr sampler pbSampler(coord::normalized, address::mirrored_repeat, filter::linear, mip_filter::linear, max_anisotropy(8));\n"
+            @"float3 pbP = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;\n"
+            @"float3 pbN = (scn_frame.inverseViewTransform * float4(_surface.normal, 0.0)).xyz;\n"
+            @"float3 pbArt = pbPlayfield.sample(pbSampler, float2(pbP.x / %f + 0.5, pbP.z / %f + 0.5)).rgb;\n"
+            @"_surface.diffuse.rgb = mix(_surface.diffuse.rgb, pbArt * 2.8 + _surface.diffuse.rgb * 0.8, smoothstep(0.5, 0.9, pbN.y));\n", size.x, size.y];
+}
+
 /// A MatCap: the look of polished metal is read from a captured sphere by the surface's facing
 /// alone. The normal turns with the room as the phone tilts, so the highlights slide across the parts.
 static NSString *const kPBMatcapModifier =
@@ -133,10 +147,16 @@ static NSString *PBBallReflectionModifier(simd_float2 size) {
 @end
 @implementation PBLampView @end
 
+/// HDR levels for a bumper: the bulb always burns past the bloom threshold; the star idles under it.
+static const float kPBBulbGlow = 2.4f;
+static const float kPBStarIdleGlow = 0.35f;
+static const float kPBStarFlashEnd = 0.12f;
+
 @interface PBBumperView : NSObject
 @property (nonatomic, strong) SCNNode *cap;
 @property (nonatomic, strong) SCNMaterial *idle;
 @property (nonatomic, strong) SCNMaterial *lit;
+@property (nonatomic, strong) SCNMaterial *bulb;
 @property (nonatomic) BOOL illuminated;
 @property (nonatomic) float capScale;
 @property (nonatomic, copy) NSArray<SCNGeometry *> *paintedGeometry;
@@ -444,6 +464,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         shell.diffuse.contents = [self color:wallColor];
         shell.specular.contents = [self color:simd_make_float3(.13f, .15f, .18f)];
         shell.shininess = 28;
+        shell.shaderModifiers = @{ SCNShaderModifierEntryPointSurface: PBShellSurfaceModifier(_size) };
+        SCNMaterialProperty *shellArt = [SCNMaterialProperty materialPropertyWithContents:(__bridge id)_playfieldImage];
+        shellArt.mipFilter = SCNFilterModeLinear;
+        [shell setValue:shellArt forKey:@"pbPlayfield"];
         // Upright inward faces need their own light-responsive finish: grazing-angle MatCaps
         // made them almost black against the dark arrow deck from the actual game camera.
         SCNMaterial *liner = [SCNMaterial material];
@@ -982,17 +1006,26 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         SCNNode *modelCap = [_models nodeNamed:@"bumper-cap"];
         if (modelBase && modelCap) {
             PBBumperView *view = [PBBumperView new];
-            CGImageRef capImage = [PBPlayfieldPainter newBumperCapWithBase:_skin.capBaseColor star:_skin.capStarColor];
+            // Only the triangles give off light: the cream between them stays paint. They rest a
+            // deep red, and a hit turns them orange: any paler and they wash into the cream.
+            CGImageRef capImage = [PBPlayfieldPainter newBumperCapWithBase:_skin.capBaseColor star:_skin.capStarColor * 0.7f];
+            simd_float3 none = simd_make_float3(0.0f, 0.0f, 0.0f);
+            CGImageRef starImage = [PBPlayfieldPainter newBumperCapWithBase:none star:_skin.capStarColor];
+            CGImageRef hotImage = [PBPlayfieldPainter newBumperCapWithBase:none star:simd_mix(_skin.capStarColor, simd_make_float3(1.0f, 0.55f, 0.2f), 0.35f)];
             view.idle = [self printedMaterial:@"bumper_cap"];
             view.idle.diffuse.contents = (__bridge id)capImage;
-            view.idle.emission.contents = (__bridge id)capImage;
-            view.idle.emission.intensity = 0.3;
+            view.idle.diffuse.intensity = 1.35;
+            view.idle.emission.contents = (__bridge id)starImage;
+            view.idle.emission.intensity = kPBStarIdleGlow;
             view.lit = [view.idle copy];
-            view.lit.emission.contents = (__bridge id)capImage;
-            view.lit.emission.intensity = 1.6;
+            view.lit.emission.contents = (__bridge id)hotImage;
             CGImageRelease(capImage);
+            CGImageRelease(starImage);
+            CGImageRelease(hotImage);
             [self skinModel:modelBase overrides:@{}];
-            [self skinModel:modelCap overrides:@{ @"cap_art": view.idle }];
+            // One each, as a hit flares only the bumper that was hit.
+            view.bulb = [_modelMaterials[@"jewel"] copy];
+            [self skinModel:modelCap overrides:@{ @"cap_art": view.idle, @"jewel": view.bulb }];
             modelBase.scale = modelCap.scale = SCNVector3Make(r, r, r);
             modelBase.position = modelCap.position = [self at:bumper.position height:0];
             modelCap.name = [@"bumper." stringByAppendingString:bumper.identifier];
@@ -1574,7 +1607,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         float flash = expf(-[world bumperFlash:(NSInteger)i] * 9.0f);
         _bumperLights[i].intensity = 6.0f + flash * 150.0f;
         PBBumperView *bumper = _bumpers[i];
-        BOOL illuminated = flash > 0.12f;
+        BOOL illuminated = flash > kPBStarFlashEnd;
+        // Starts from the idle glow as the flash ends, so the swap back doesn't pop.
+        bumper.lit.emission.intensity = bumper.bulb ? kPBStarIdleGlow + (flash - kPBStarFlashEnd) * 2.5f : bumper.lit.emission.intensity;
+        bumper.bulb.diffuse.intensity = kPBBulbGlow + flash * 2.5f;
         if (illuminated != bumper.illuminated) {
             // Use the two authored atlas states directly; never recolour the cap artwork.
             for (SCNGeometry *geometry in bumper.paintedGeometry) geometry.firstMaterial = illuminated ? bumper.lit : bumper.idle;

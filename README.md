@@ -68,7 +68,7 @@ the player explicitly resumes. Results remain visible until choosing replay or t
 previews bypass the interface. See [Art/UI_GUIDE.md](Art/UI_GUIDE.md) for artwork, layout, and verification.
 
 Haptics follow ball bounces, with stronger pulses for active elements and launch feedback scaled to
-the plunger pull. Tiny resting contacts stay quiet. Haptics can be disabled in Settings.
+the plunger pull. Drawing the plunger ticks like a spring winding, tightening up to a firm stop at full pull. Tiny resting contacts stay quiet. Haptics can be disabled in Settings.
 
 ## Game Center
 

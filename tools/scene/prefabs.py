@@ -146,6 +146,8 @@ class Builder:
             self.run(self.prefabs[a.get('prefab')], data, {**names, **inner}, xy)
         elif tag == 'lathe':
             mesher.lathe(data, pairs(a.get('points')), role, int(a.number('segments', 48)), xy, a.number('planar'), sharp if sharp is not None else 38)
+        elif tag == 'wheel':
+            mesher.wheel(data, a.number('radius'), a.number('width'), a.number('z'), role, xy, int(a.number('segments', 32)))
         elif tag == 'torus':
             mesher.ring(data, a.number('major'), a.number('minor'), a.number('z'), role, xy, int(a.number('segments', 48)), int(a.number('sides', 8)))
         elif tag == 'polyline':

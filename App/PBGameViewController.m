@@ -23,7 +23,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
     CMMotionManager *_motion;
     CMAttitude *_lightingReference;
     NSTimeInterval _lastNudge, _lastImpactHaptic;
-    UIImpactFeedbackGenerator *_flipperHaptic, *_impactHaptic;
+    UIImpactFeedbackGenerator *_flipperHaptic, *_impactHaptic, *_springHaptic;
 }
 
 - (void)loadView {
@@ -42,8 +42,10 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
     _flipperHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleRigid];
     _impactHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
+    _springHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleSoft];
     [_flipperHaptic prepare];
     [_impactHaptic prepare];
+    [_springHaptic prepare];
 
     UITapGestureRecognizer *nextSkin = [[UITapGestureRecognizer alloc] initWithTarget:_controller action:@selector(selectNextSkin)];
     nextSkin.numberOfTouchesRequired = 3;
@@ -215,6 +217,10 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
             // Plunger magnitude is already the applied pull, normalized to 0...1.
             intensity = 0.15 + 0.85 * MIN(1.0f, event->magnitude);
             break;
+        case PBEventPlungerCoil:
+            // Tightens as it is drawn, and ends on a firm stop at full pull.
+            intensity = event->magnitude >= 1.0f ? 1.0 : 0.25 + 0.5 * event->magnitude;
+            break;
         case PBEventDrain:
             intensity = 0.65;
             break;
@@ -227,6 +233,9 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
         if (kind == PBEventFlipperUp) {
             [self->_flipperHaptic impactOccurredWithIntensity:intensity];
             [self->_flipperHaptic prepare];
+        } else if (kind == PBEventPlungerCoil) {
+            [self->_springHaptic impactOccurredWithIntensity:intensity];
+            [self->_springHaptic prepare];
         } else {
             NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
             if (now - self->_lastImpactHaptic < kHapticMinInterval) return;

@@ -12,7 +12,7 @@
    <wall id="rampBackL" style="none" height="0.024" radius="0.005" layers="playfield" points="0.18,1.4 0.26,1.44" />
   </walls>
   <gates>
-   <gate id="orbitGateL" a="0.0 0.758" b="0.1 0.65" passDirection="0.0 1.0" />
+   <gate id="orbitGateL" a="0.039 0.705" rotation="-guide" length="0.1287" passDirection="0.0 1.0" />
   </gates>
  </kit>
  <kit id="longR">
@@ -41,7 +41,7 @@
    <wall id="rampGuardL" style="none" radius="0.006" height="0.05" layers="playfield" points="0.174,0.8217 0.1746,0.8405 0.1751,0.8591 0.1755,0.8775 0.1757,0.8959 0.1756,0.9141 0.1753,0.9323 0.1746,0.9507 0.1735,0.9693 0.172,0.9881 0.1703,1.0071 0.1682,1.0263 0.1658,1.0458 0.1631,1.0655 0.1603,1.0854 0.1572,1.1055 0.154,1.1258 0.1507,1.1462" />
   </walls>
   <gates>
-   <gate id="orbitGateL" a="0.0 0.758" b="0.12 0.62" passDirection="0.0 1.0" />
+   <gate id="orbitGateL" a="0.039 0.705" rotation="-guide" length="0.1287" passDirection="0.0 1.0" />
   </gates>
  </kit>
  <kit id="shortR">

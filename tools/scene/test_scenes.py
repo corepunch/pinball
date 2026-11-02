@@ -78,6 +78,17 @@ except ValueError:
     pass
 near = [check_spacing.Part(name, 'part').disc(x, 1, .03) for name, x in (('a', 0), ('b', .065), ('c', .2))]
 assert check_spacing.gap(near[0], near[1]) * check_spacing.POINTS < check_spacing.MIN_GAP <= check_spacing.gap(near[0], near[2]) * check_spacing.POINTS, 'spacing measures clear board'
+# A line can be a point, a rotation and a length, with rotations shared by name.
+named = {'angles': {'slope': 30}, 'walls': [{'id': 'w', 'points': [[1, 1], {'dir': ['180-slope', 2]}]}], 'gates': [{'id': 'g', 'a': [0, 0], 'rotation': '-slope', 'length': 2}], 'flippers': [{'id': 'f', 'restAngle': '180+slope'}]}
+table_xml.finished(named)
+assert named['walls'][0]['points'][1] == [round(1 - math.sqrt(3), 6), 2.0] and named['gates'][0]['b'] == [round(math.sqrt(3), 6), -1.0] and named['flippers'][0]['restAngle'] == 210, 'named rotations and dir() resolve'
+assert 'dir' not in json.dumps(table_xml.read(ROOT / 'Scenes/base.xml')['walls']), 'the game reads plain points'
+crooked = compile_scenes.table_json(table_xml.read(table_xml.table_paths()[0]))
+next(w for w in crooked['walls'] if w['id'] == 'inlaneL')['points'][2][1] += .02
+assert any(f[1] == 'slope angles' for f in check_spacing.unmatched_angles(crooked)), 'the checker sees a line off its angle'
+# The checker sees one side of the board growing wider than the other.
+lanes = {'walls': [dict(id='l', points=[[0, 0], [0, 1]], radius=.01), dict(id='m', points=[[.1, 0], [.1, 1]], radius=.01), dict(id='r', points=[[.3, 0], [.3, 1]], radius=.01)]}
+assert abs(check_spacing.lane_width(lanes, 'l', 'm', .5) - .08) < 1e-9 and abs(check_spacing.lane_width(lanes, 'm', 'r', .5) - .18) < 1e-9, 'lanes are measured between wall faces'
 raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
 assert check_spacing.gap(near[0], raised) > .03, 'spacing is measured through the camera: height moves a part up the screen'
 print('SCENES PASSED')

@@ -17,7 +17,7 @@
 - (instancetype)init { if ((self = [super init])) _hits = [NSCountedSet set]; return self; }
 - (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
     static NSString *const names[] = { @"bumper", @"sling", @"drop", @"standup", @"rollover", @"spinner", @"saucer", @"saucerEject",
-        @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck" };
+        @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck", @"coil" };
     [self.hits addObject:names[event->kind]];
     if (event->kind == PBEventRampComplete) [self.hits addObject:game.table.ramps[(NSUInteger)event->element].identifier];
     if (event->kind == PBEventRollover) [self.hits addObject:game.table.rollovers[(NSUInteger)event->element].identifier];
@@ -504,18 +504,6 @@
     PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
     [game addObserver:stats];
     game.autopilot = YES;
-    int64_t bestScore = 0;
-    for (int i = 0; i < 60 * 60 * 25; i++) {  // 25 simulated minutes.
-        [game update:1.0 / 60.0];
-        bestScore = MAX(bestScore, game.rules.score);
-    }
-
-    NSMutableArray *lines = [NSMutableArray array];
-    for (NSString *key in [stats.hits.allObjects sortedArrayUsingSelector:@selector(compare:)]) {
-        [lines addObject:[NSString stringWithFormat:@"%@=%lu", key, (unsigned long)[stats.hits countForObject:key]]];
-    }
-    NSLog(@"STATS %@ best=%lld %@", table.identifier, bestScore, [lines componentsJoinedByString:@" "]);
-
     NSMutableArray *mustHappen = [@[ @"bumper", @"sling", @"fanfare:gameOver" ] mutableCopy];
     if (table.dropTargets.count) [mustHappen addObject:@"drop"];
     if (table.spinners.count) [mustHappen addObject:@"spinner"];
@@ -526,6 +514,26 @@
     for (PBRampDef *ramp in table.ramps) [mustHappen addObject:ramp.identifier];
     for (PBSpotDef *rollover in table.rollovers) [mustHappen addObject:rollover.identifier];
     for (PBEdgeDef *standup in table.standups) [mustHappen addObject:standup.identifier];
+
+    // Autopilot play is chaotic: any layout change reshuffles a run, so a rare feature may come late.
+    // 25 simulated minutes for the stats, then up to 75 in all for whatever hasn't happened yet.
+    int64_t bestScore = 0;
+    BOOL (^allHappened)(void) = ^BOOL {
+        for (NSString *key in mustHappen) if (![stats.hits countForObject:key]) return NO;
+        return YES;
+    };
+    for (int i = 0; i < 60 * 60 * 75; i++) {
+        if (i >= 60 * 60 * 25 && i % 60 == 0 && allHappened()) break;
+        [game update:1.0 / 60.0];
+        bestScore = MAX(bestScore, game.rules.score);
+    }
+
+    NSMutableArray *lines = [NSMutableArray array];
+    for (NSString *key in [stats.hits.allObjects sortedArrayUsingSelector:@selector(compare:)]) {
+        [lines addObject:[NSString stringWithFormat:@"%@=%lu", key, (unsigned long)[stats.hits countForObject:key]]];
+    }
+    NSLog(@"STATS %@ best=%lld %@", table.identifier, bestScore, [lines componentsJoinedByString:@" "]);
+
     for (NSString *key in mustHappen) XCTAssertGreaterThan([stats.hits countForObject:key], 0u, @"%@: %@ never happened", table.identifier, key);
     XCTAssertGreaterThan(bestScore, 50000);
     NSUInteger drains = [stats.hits countForObject:@"drain"];

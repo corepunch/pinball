@@ -3,17 +3,27 @@
 Attributes hold values, and lists are written out: `a="0.1 0.2"`, `points="0.1,0.2 0.3,0.4"`,
 with `arc(cx,cy,r,from,to,steps)` in a point list. Lists of things are a container of elements.
 
+A line's next point can be a rotation and a length from the point before it: `dir(rotation,length)`,
+in degrees anticlockwise from +x. An edge such as a gate takes `a`, `rotation` and `length` in place
+of `b`. A rotation may use the names in `<angles>`, as in `dir(180+slope,.14)` or `restAngle="-slope"`,
+so that lines meant to be parallel share one number. They all become plain numbers when read.
+
 A table in Scenes/tables starts from Scenes/base.xml, the parts every table must have, and takes
 `kits="<kit> <kit>"` from Scenes/ramps.xml. It adds to those, and replaces any element by its id.
 """
+import ast
+import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import prefabs
 
 SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
 WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
 NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection'}  # Lists of numbers.
 POINTS = {'points', 'mouth', 'columns'}                        # Lists of points.
+ROTATIONS = {'restAngle', 'activeAngle', 'rotation'}           # Degrees, which may use named angles.
 CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slingshots': 'slingshot',
               'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',
               'saucers': 'saucer', 'gates': 'gate', 'kickbacks': 'kickback', 'magnets': 'magnet',
@@ -46,6 +56,9 @@ def points_value(text):
     for word in text.split():
         if word.startswith('arc('):
             out.append({'arc': [number(c) for c in word[4:-1].split(',')]})
+        elif word.startswith('dir('):
+            rotation, length = word[4:-1].split(',')
+            out.append({'dir': [rotation, number(length)]})
         else:
             out.append([number(c) for c in word.split(',')])
     return out
@@ -123,10 +136,50 @@ def merged(under, over):
     return out
 
 
+def degrees(value, angles):
+    return prefabs.evaluate(ast.parse(value, mode='eval'), angles) if isinstance(value, str) else value
+
+
+def stepped(start, rotation, length):
+    """The point a rotation and a length from `start`."""
+    turn = math.radians(rotation)
+    return [round(start[0] + length * math.cos(turn), 6), round(start[1] + length * math.sin(turn), 6)]
+
+
+def resolve(item, angles):
+    """Turns rotations and `dir` steps into the plain numbers the game reads."""
+    for key, value in item.items():
+        if key in ROTATIONS:
+            item[key] = degrees(value, angles)
+        elif key == 'points':
+            out = []
+            for entry in value:
+                if isinstance(entry, dict) and 'dir' in entry:
+                    if not out or isinstance(out[-1], dict):
+                        raise ValueError(f"{item.get('id')}: dir() needs a plain point before it")
+                    out.append(stepped(out[-1], degrees(entry['dir'][0], angles), entry['dir'][1]))
+                else:
+                    out.append(entry)
+            item[key] = out
+        elif isinstance(value, dict) and 'arc' not in value:
+            resolve(value, angles)
+        elif isinstance(value, list):
+            for child in value:
+                if isinstance(child, dict) and 'arc' not in child:
+                    resolve(child, angles)
+    if 'rotation' in item and 'a' in item:
+        item['b'] = stepped(item['a'], item.pop('rotation'), item.pop('length'))
+
+
+def finished(table):
+    resolve(table, table.pop('angles', {}))
+    return table
+
+
 def read(path):
     table = from_element(ET.parse(path).getroot())
     if 'base' not in table:
-        return table
+        return finished(table)
     out = from_element(ET.parse(SCENES / f"{table.pop('base')}.xml").getroot())
     kits = {kit.get('id'): from_element(kit) for kit in ET.parse(SCENES / 'ramps.xml').getroot()}
     for name in table.pop('kits', '').split():
@@ -137,7 +190,7 @@ def read(path):
     for key in CONTAINERS:
         if key != 'groups':
             out.setdefault(key, [])
-    return out
+    return finished(out)
 
 
 def table_paths():

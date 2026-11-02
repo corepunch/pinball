@@ -12,7 +12,7 @@ to procedural geometry. The game therefore only loads compiled `.scn` files.
 
 Kit parts, built to unit radius (or unit half length) and scaled by the table:
 
-- `bumper-base`, `bumper-cap`: a mushroom. A flared foot, a narrow black waist, and a wide cap that overhangs them and throws a shadow, painted at runtime from the skin's `capBase` and `capStar`, with a raised hub holding the jewel in its bore. No lit slots, bolts or thin bands: they break up into pixels at phone size.
+- `bumper-base`, `bumper-cap`: a mushroom. A flared foot, a narrow black waist, and a wide cap that overhangs them and throws a shadow, painted at runtime from the skin's `capBase` and `capStar`, with a raised hub holding the jewel in its bore. The jewel is a light bulb, always lit and past the bloom threshold; the star's triangles glow a deep red at rest and flare orange on a hit, while the cream stays paint. No lit slots, bolts or thin bands: they break up into pixels at phone size.
 - `insert-bezel`, `insert-arrow`: round and triangular bezels with clear lenses over the painted insert. Round bezels have broad raised chamfers, widened inward within the existing footprint.
 - `post`, `target`, `flasher-cage`. A target is scaled to its edge's length with a fixed depth matching its collider; stand-ups are about 0.1 long so they read at phone size. Spinners are built in `buildSpinnersAndGates`: two posts, a thick axle and a framed plate spanning their lane.
 - `arrow-lens`, `arrow-stack`, `bullet-cyan`, `bullet-amber`, `stud`, `mech-bracket`, `mech-piston`: decor, placed from the table's `decor` list. They are low relief, so a ball can pass over them without looking wrong. Physics ignores them; the layout test does not.
@@ -30,7 +30,7 @@ Blender is Z-up; the exporter converts to SceneKit's Y-up. Kit parts stay live i
 - Round parts (bumpers, round targets, buttons, studs, lamps, pivots) are a profile line with **Screw** and **Edge Split**. Edit the line's points to reshape the part, and the Screw steps to change its smoothness. Painted caps add the **Pinball Planar UV** nodes.
 - Flat parts (target blocks) are an outline with **Bevel** for corners, **Solidify** for height and **Bevel** for the chamfer.
 - Frames (triangular lamp bezels) are a closed line with the **Pinball Trim** nodes for width and height.
-- Grey rollover bars are the **Pinball Rollover Bar** modifier, pure Geometry Nodes, which adds a bar to whatever object carries it. They are matte and out of the floor's reflection: a flat plate under a MatCap and a mirror image looks blotchy.
+- Rollover switches are a metal wheel half sunk in a dark slot, in a flat matte frame (`rollover-plate` in `Scenes/kit.xml`). The frame stays out of the floor's reflection: a flat plate under a MatCap and a mirror image looks blotchy.
 
 Walls and ramps use the Pinball Wall and Pinball Ramp modifiers in the level file. Flipper bodies, slingshot bodies, faceted lenses and housings are still scripted meshes. Objects are not joined: joining applies modifiers. Export groups triangles by material
 role, and `PBTableScene` binds `metal`, `accent`, `rubber`, `enamel`, `dark`, `ramp_floor`, `lens`, `glow`,
@@ -74,6 +74,8 @@ the phone tilts. The material uses Blinn lighting, so local bumper, slingshot an
 Nothing thinner than about 0.004 table widths: it is finer than a pixel on a phone, and aliases. Only ramp brackets, slingshots and flippers carry bolts.
 
 ## Glow
+
+The tops of solid walls and floors (`cabinet_shell`) show the board's art beneath them, lifted by the skin's `shell` colour so they stand out; their sides stay plain. The blend is in `PBShellSurfaceModifier`.
 
 Glowing parts light what is around them and put a rim on it: bumper jewels, slingshot lenses, lit lamps, ramp arrows and flashers, each with a colour, range and strength that follow its state in `updateGlowWithWorld:`. The 16 brightest go to the shader as one block each frame, as SceneKit lights are too costly for every lamp and have no rim. A material takes part through `receiveGlow:`. The playfield reads them in its surface modifier, because a fragment modifier on `SCNFloor` loses its planar reflection. Constant-lit parts such as jewels and lamp sprites, and painted bumper caps, stay out, so they keep their colour.
 

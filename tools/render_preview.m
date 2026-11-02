@@ -227,13 +227,13 @@ int main(int argc, const char *argv[]) {
                 PBExport(renderer, 2.016, path);
                 if (premium) {
                     PBExportChannelWalls(scene, renderer, table, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-channels.png"]]);
-                    SCNNode *cap = [scene.scene.rootNode childNodeWithName:@"bumper.bumperA" recursively:YES];
+                    SCNNode *cap = [scene.scene.rootNode childNodeWithName:[@"bumper." stringByAppendingString:table.bumpers[0].identifier] recursively:YES];
                     __block SCNGeometry *painted = cap.geometry;
                     [cap enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
                         if ([node.geometry.name isEqualToString:@"cap_art"]) painted = node.geometry;
                     }];
                     SCNMaterial *idle = painted.firstMaterial;
-                    SCNNode *otherCap = [scene.scene.rootNode childNodeWithName:@"bumper.bumperB" recursively:YES];
+                    SCNNode *otherCap = [scene.scene.rootNode childNodeWithName:[@"bumper." stringByAppendingString:table.bumpers[1].identifier] recursively:YES];
                     __block SCNGeometry *otherPainted = otherCap.geometry;
                     [otherCap enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
                         if ([node.geometry.name isEqualToString:@"cap_art"]) otherPainted = node.geometry;
@@ -242,7 +242,7 @@ int main(int argc, const char *argv[]) {
                     PBRequire(idle != nil, @"missing bumper node");
                     if (skin.modelKit) {
                         PBRequire(cap.childNodes.count >= 3, @"Blender bumper kit failed to load");
-                        PBRequire([scene.scene.rootNode childNodeWithName:[NSString stringWithFormat:@"%@-%@", table.identifier, table.ramps.firstObject.identifier] recursively:YES] != nil, @"Blender ramp failed to load");
+                        PBRequire([scene.scene.rootNode childNodeWithName:table.ramps.firstObject.model ?: [NSString stringWithFormat:@"%@-%@", table.identifier, table.ramps.firstObject.identifier] recursively:YES] != nil, @"Blender ramp failed to load");
                     }
                     [game setLeftPressed:YES];
                     [game update:1.0 / 60.0];

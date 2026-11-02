@@ -135,6 +135,40 @@ def plate(data, outline, base, height, role, corner=0, chamfer=0, sharp=40, uv=N
     flat(data, inset_polygon(outline, chamfer) if chamfer else outline, base + height, role, sharp, uv)
 
 
+def outline_along(points, radius, arc=8):
+    """The outline of a line drawn `radius` thick with round ends: a cover shaped like a wall."""
+    pts = [Vector(p) for p in points]
+    dirs = [(pts[i + 1] - pts[i]).normalized() for i in range(len(pts) - 1)]
+    normals = [Vector((-d.y, d.x)) for d in dirs]
+
+    def turn(centre, start, end):
+        a0, a1 = math.atan2(start.y - centre.y, start.x - centre.x), math.atan2(end.y - centre.y, end.x - centre.x)
+        sweep = (a1 - a0 + math.pi) % (2 * math.pi) - math.pi
+        return [(centre.x + radius * math.cos(a0 + sweep * k / arc), centre.y + radius * math.sin(a0 + sweep * k / arc)) for k in range(arc + 1)]
+
+    def side(sign):
+        out = [tuple(pts[0] + normals[0] * (radius * sign))]
+        for i in range(1, len(pts) - 1):
+            a, b = pts[i] + normals[i - 1] * (radius * sign), pts[i] + normals[i] * (radius * sign)
+            cross = dirs[i - 1].x * dirs[i].y - dirs[i - 1].y * dirs[i].x
+            if cross * sign < 0:
+                out.extend(turn(pts[i], a, b))  # This side is on the outside of the bend.
+            else:
+                d0, d1 = dirs[i - 1], dirs[i]
+                denominator = d0.x * d1.y - d0.y * d1.x
+                t = ((b.x - a.x) * d1.y - (b.y - a.y) * d1.x) / denominator if abs(denominator) > 1e-9 else 0
+                out.append(tuple(a + d0 * t))
+        out.append(tuple(pts[-1] + normals[-1] * (radius * sign)))
+        return out
+
+    def cap(centre, start, direction):
+        a0 = math.atan2(start.y - centre.y, start.x - centre.x)
+        return [(centre.x + radius * math.cos(a0 + math.pi * k / arc), centre.y + radius * math.sin(a0 + math.pi * k / arc)) for k in range(1, arc)]
+
+    right, left = side(-1), side(1)
+    return right + cap(pts[-1], pts[-1] - normals[-1] * radius, dirs[-1]) + left[::-1] + cap(pts[0], pts[0] + normals[0] * radius, -dirs[0])
+
+
 def bridged(outline, holes):
     """One ring for a polygon with holes: each hole is spliced into the outline along a bridge
     from its rightmost point to a point of the outline it can see, as ear clipping needs."""

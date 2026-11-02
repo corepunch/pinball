@@ -111,7 +111,7 @@
   },
   {
    "id": "inlaneL",
-   "style": "rail",
+   "style": "none",
    "height": 0.03,
    "radius": 0.021,
    "points": [
@@ -131,7 +131,7 @@
   },
   {
    "id": "inlaneR",
-   "style": "rail",
+   "style": "none",
    "height": 0.03,
    "radius": 0.021,
    "points": [
@@ -153,6 +153,7 @@
    "id": "apronL",
    "style": "plastic",
    "part": "slide",
+   "drawn": false,
    "height": 0.018,
    "radius": 0.005,
    "closed": true,
@@ -179,6 +180,7 @@
    "id": "apronR",
    "style": "plastic",
    "part": "slide",
+   "drawn": false,
    "height": 0.018,
    "radius": 0.005,
    "closed": true,
@@ -368,11 +370,51 @@
      "points": [
       [
        -0.006,
+       0.16908
+      ],
+      [
+       0.348,
+       0.004
+      ],
+      [
+       0.348,
+       0.0
+      ],
+      [
+       0.574,
+       0.0
+      ],
+      [
+       0.574,
+       0.004
+      ],
+      [
+       0.915488,
+       0.163238
+      ],
+      [
+       0.9155,
        0.0
       ],
       [
        1.006,
        0.0
+      ],
+      [
+       1.006,
+       0.55
+      ],
+      [
+       0.9155,
+       0.55
+      ],
+      [
+       0.9155,
+       1.55
+      ],
+      [
+       1.006,
+       1.55
       ],
       [
        1.006,
@@ -418,6 +460,16 @@
      1.55
     ]
    ]
+  },
+  {
+   "id": "railL",
+   "height": 0.03,
+   "along": "inlaneL"
+  },
+  {
+   "id": "railR",
+   "height": 0.03,
+   "along": "inlaneR"
   }
  ],
  "plastics": [

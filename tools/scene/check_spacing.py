@@ -33,8 +33,8 @@ ASSEMBLIES = (
     # The floors under the flippers meet the board's sides.
     {'outer', 'apronL'},
     {'shooterInner', 'apronR'},
-    {'flipperL', 'inlaneL', 'plasticSlingL'},
-    {'flipperR', 'inlaneR', 'plasticSlingR'},
+    {'flipperL', 'railL', 'plasticSlingL'},
+    {'flipperR', 'railR', 'plasticSlingR'},
     {'rampL', 'lampRampL'},
     {'rampR', 'lampRampR'},
     # The older tables' left ramps run close along the board's edge since the centre moved. Their layouts get redone.
@@ -45,12 +45,12 @@ ASSEMBLIES = (
     {'outer', 'flashTL', 'flashTR'},
 )
 # Parts that top out on one line across the screen, as a real machine's lower playfield does.
-ALIGNED_TOPS = {'lower row': {'inlaneL', 'plasticSlingL', 'plasticSlingR', 'inlaneR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
+ALIGNED_TOPS = {'lower row': {'railL', 'plasticSlingL', 'plasticSlingR', 'railR', 'inlaneLeft', 'inlaneRight', 'outlaneLeft', 'outlaneRight'}}
 # The board's axis: the middle of the play area, between the left wall and the shooter lane.
 AXIS = .461
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
-MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
+MIRRORED = (('flipperL', 'flipperR'), ('railL', 'railR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
             ('lampInlaneL', 'lampInlaneR'), ('outlaneLeft', 'outlaneRight'), ('inlaneLeft', 'inlaneRight'))
 # Lanes a ball falls through, as the walls either side of each, and a height they are measured at.
 MIRRORED_LANES = {'outlanes': ((('outer', 'inlaneL'), ('inlaneR', 'shooterInner')), .35)}
@@ -163,6 +163,11 @@ def parts_of(table):
             add(wall['id']).line(points + points[:1], .0042, 0, wall['height'])
         elif wall['id'] == 'outer':
             add(wall['id'], 'wall').line(points, wall['radius'])
+    walls = {w['id']: w for w in table['walls']}
+    for cover in table.get('covers', []):
+        if 'along' in cover:
+            wall = walls[cover['along']]
+            add(cover['id'], 'wall').line(compile_scenes.expand_points(wall['points']), wall['radius'], 0, cover['height'])
     for plastic in table['plastics']:
         # Rounded as the slingshot prefab rounds it: its corners reach less far than its outline's.
         points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)

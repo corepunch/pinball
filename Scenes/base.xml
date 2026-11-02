@@ -10,10 +10,11 @@
   <wall id="shooterInner" style="wall" height="0.03" radius="0.0065" points="0.922,-0.01 0.922,1.618" />
   <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1955,0.52 0.1955,0.2986 dir(-slope,0.12689)" />
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7265,0.52 0.7265,0.2986 dir(180+slope,0.12689)" />
-  <wall id="inlaneL" style="rail" height="0.03" radius="0.021" points="0.0995,0.463 0.0995,0.2243 dir(-slope,0.14013)" />
-  <wall id="inlaneR" style="rail" height="0.03" radius="0.021" points="0.8225,0.463 0.8225,0.2243 dir(180+slope,0.14013)" />
-  <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.348,0.004 dir(180-slope,0.41708) -0.03,-0.03 0.348,-0.03" />
-  <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.574,0.004 dir(slope,0.38398) 0.922,-0.03 0.574,-0.03" />
+  <!-- The inlane guides and the floors under the flippers stop the ball but are not drawn: the covers below show in their place. -->
+  <wall id="inlaneL" style="none" height="0.03" radius="0.021" points="0.0995,0.463 0.0995,0.2243 dir(-slope,0.14013)" />
+  <wall id="inlaneR" style="none" height="0.03" radius="0.021" points="0.8225,0.463 0.8225,0.2243 dir(180+slope,0.14013)" />
+  <wall id="apronL" style="plastic" part="slide" drawn="false" height="0.018" radius="0.005" closed="true" points="0.348,0.004 dir(180-slope,0.41708) -0.03,-0.03 0.348,-0.03" />
+  <wall id="apronR" style="plastic" part="slide" drawn="false" height="0.018" radius="0.005" closed="true" points="0.574,0.004 dir(slope,0.38398) 0.922,-0.03 0.574,-0.03" />
  </walls>
  <flippers>
   <flipper id="flipperL" side="left" pivot="0.2765 0.145" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="-slope" activeAngle="28.0" />
@@ -39,14 +40,17 @@
   <lamp id="lampInlaneR" x="0.767" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>
  <!-- Laser-cut covers: a plate over its outline, with its stencils cut out of it. The cabinet
-      cover is the board's rim and everything past it; the tunnel roofs the shooter lane. -->
+      cover is the board's rim, the floors under the flippers and everything past the board; the
+      tunnel roofs the shooter lane; the rails are the inlane guides, shaped along their walls. -->
  <covers>
   <cover id="cabinet" height="0.03" points="-0.3,-0.3 1.3,-0.3 1.3,3.2 -0.3,3.2">
    <stencils>
-    <stencil id="board" points="-0.006,0.0 1.006,0.0 1.006,1.786 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
+    <stencil id="board" points="-0.006,0.16908 0.348,0.004 0.348,0.0 0.574,0.0 0.574,0.004 dir(slope,0.37679) 0.9155,0.0 1.006,0.0 1.006,0.55 0.9155,0.55 0.9155,1.55 1.006,1.55 1.006,1.786 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
    </stencils>
   </cover>
   <cover id="tunnel" height="0.075" thickness="0.006" points="0.9155,0.55 1.006,0.55 1.006,1.55 0.9155,1.55" />
+  <cover id="railL" height="0.03" along="inlaneL" />
+  <cover id="railR" height="0.03" along="inlaneR" />
  </covers>
  <plastics>
   <plastic id="plasticSlingL" height="0" points="0.1885,0.535 0.1885,0.2942 dir(-slope,0.14013)" />

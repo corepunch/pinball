@@ -82,6 +82,12 @@ plate = mesher.MeshData()
 mesher.slab(plate, [(0, 0), (4, 0), (4, 4), (0, 4)], [[(1, 1), (2, 1), (2, 2), (1, 2)], [(3, 3), (3.5, 3), (3.5, 3.5), (3, 3.5)]], 0, .1, 'cover')
 top = sum(abs(mesher.signed_area([plate.vertices[i][:2] for i in t])) for face in plate.faces if all(abs(plate.vertices[i][2] - .1) < 1e-9 for i in face) for t in mesher.triangulate(plate.vertices, face))
 assert abs(top - (16 - 1 - .25)) < 1e-9, 'stencils cut holes in the cover'
+# A cover along a wall is that wall's shape: a straight bar's outline is a stadium.
+bar = mesher.outline_along([(0, 0), (2, 0)], .5, 16)
+assert abs(abs(mesher.signed_area(bar)) - (2 + math.pi * .25)) < .01 and mesher.signed_area(bar) > 0, 'outline_along is a round-ended, counter-clockwise bar'
+bent = mesher.outline_along([(0, 0), (1, 0), (1, 1)], .1, 16)
+# Two bars less the square they share at the inside of the bend, plus a quarter disc outside it and the two end caps.
+assert abs(mesher.signed_area(bent) - (2 * .2 - .01 + math.pi * .01 / 4 + math.pi * .01)) < .002, 'a bend is mitred inside and rounded outside'
 try:
     mesher.slab(mesher.MeshData(), [(0, 0), (1, 0), (1, 1), (0, 1)], [[(2, 2), (3, 2), (3, 3)]], 0, .1, 'cover')
     raise AssertionError('a stencil outside the cover must fail')

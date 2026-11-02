@@ -168,10 +168,16 @@ def walls_part(table, centred, skip=()):
 def cover_part(table, centred, skip=()):
     """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
     data = mesher.MeshData()
+    walls = {w['id']: w for w in table['walls']}
     for cover in table.get('covers', []):
         if cover['id'] in skip:
             continue
-        outline = [centred(*p) for p in expand_points(cover['points'])]
+        if 'along' in cover:
+            # A cover shaped like a wall: an undrawn wall does the stopping, and the cover is what shows.
+            wall = walls[cover['along']]
+            outline = mesher.outline_along([centred(*p) for p in expand_points(wall['points'])], wall['radius'])
+        else:
+            outline = [centred(*p) for p in expand_points(cover['points'])]
         holes = [[centred(*p) for p in expand_points(s['points'])] for s in cover.get('stencils', [])]
         thickness = cover.get('thickness', cover['height'])
         mesher.slab(data, outline, holes, cover['height'] - thickness, thickness, 'cover')
@@ -187,7 +193,7 @@ def plastics_part(table, centred, builder, skip=()):
     data = mesher.MeshData()
     # Each bouncer gets its own lens, in the order of the table's slingshots, to light when it is hit.
     shapes = [(p['id'], expand_points(p['points']), 'slingshot', f'sling_lens_{i}') for i, p in enumerate(table['plastics'])]
-    shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic']
+    shapes += [(w['id'], expand_points(w['points']), w.get('part', 'docking-pod' if w['id'] == 'captiveHousing' else 'housing'), None) for w in table['walls'] if w['style'] == 'plastic' and w.get('drawn', True)]
     for name, path, prefab, lens in shapes:
         if name in skip:
             continue

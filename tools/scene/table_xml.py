@@ -22,7 +22,7 @@ SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
 WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
 NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection', 'comesUpAt'}  # Lists of numbers.
-POINTS = {'points', 'mouth', 'columns'}                        # Lists of points.
+POINTS = {'points', 'mouth', 'columns', 'path'}                # Lists of points.
 ROTATIONS = {'restAngle', 'activeAngle', 'rotation'}           # Degrees, which may use named angles.
 CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slingshots': 'slingshot',
               'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',

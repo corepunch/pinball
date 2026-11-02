@@ -176,6 +176,50 @@ def closed_outline(points):
     return out
 
 
+def arrayed(shape, array):
+    """A stencil's `array`: the shape repeated `count` times along `path`, evenly by length, each
+    turned to follow the path, with the shape's y axis along it."""
+    path = closed_outline(expand_points(array['path']))
+    if len(path) < 2:
+        raise ValueError('an array needs a path of at least two points')
+    lengths = [0.0]
+    for a, b in zip(path, path[1:]):
+        lengths.append(lengths[-1] + math.dist(a, b))
+    count = int(array['count'])
+    out = []
+    for i in range(count):
+        s = lengths[-1] * (i + .5) / count
+        k = max(1, next((k for k in range(1, len(lengths)) if lengths[k] >= s), len(lengths) - 1))
+        a, b = path[k - 1], path[k]
+        t = (s - lengths[k - 1]) / max(lengths[k] - lengths[k - 1], 1e-9)
+        at = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+        turn = math.atan2(b[1] - a[1], b[0] - a[0]) - math.pi / 2
+        out.append([(at[0] + p[0] * math.cos(turn) - p[1] * math.sin(turn), at[1] + p[0] * math.sin(turn) + p[1] * math.cos(turn)) for p in shape])
+    return out
+
+
+def inside(point, polygon):
+    x, y = point
+    hit = False
+    for (x0, y0), (x1, y1) in zip(polygon, polygon[1:] + polygon[:1]):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            hit = not hit
+    return hit
+
+
+def stencil_holes(cover):
+    """Every hole a cover's stencils cut, arrays spread out, checked against one another."""
+    holes = []
+    for stencil in cover.get('stencils', []):
+        shape = closed_outline(expand_points(stencil['points']))
+        holes += [(stencil['id'], h) for h in (arrayed(shape, stencil['array']) if 'array' in stencil else [shape])]
+    for i, (name, hole) in enumerate(holes):
+        for other, their in holes[i + 1:]:
+            if any(inside(p, their) for p in hole) or any(inside(p, hole) for p in their):
+                raise ValueError(f"{cover['id']}: stencils {name} and {other} overlap; merge them into one outline")
+    return [h for _, h in holes]
+
+
 def cover_part(table, centred, skip=()):
     """Each laser-cut cover: a plate over its outline with its stencils cut out, at its height."""
     data = mesher.MeshData()
@@ -189,7 +233,7 @@ def cover_part(table, centred, skip=()):
             outline = mesher.outline_along([centred(*p) for p in expand_points(wall['points'])], wall['radius'])
         else:
             outline = closed_outline([centred(*p) for p in expand_points(cover['points'])])
-        holes = [closed_outline([centred(*p) for p in expand_points(s['points'])]) for s in cover.get('stencils', [])]
+        holes = [[centred(*p) for p in hole] for hole in stencil_holes(cover)]
         thickness = cover.get('thickness', cover['height'])
         mesher.slab(data, outline, holes, cover['height'] - thickness, thickness, 'cover')
     return data

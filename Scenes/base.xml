@@ -39,17 +39,25 @@
   <lamp id="lampInlaneL" x="0.155" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
   <lamp id="lampInlaneR" x="0.767" y="0.546" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>
- <!-- Laser-cut covers: a plate over its outline, with its stencils cut out of it. The cabinet
-      cover is the board's rim, the floors under the flippers and everything past the board; the
-      tunnel roofs the shooter lane, at ball height, and follows it round the arch; the rails are
-      the inlane guides, shaped along their walls. -->
+ <!-- Laser-cut covers, all one level: the ball rolls on the floor beneath them. The cabinet cover
+      is the board's rim, the floors under the flippers and everything past the board, solid down
+      to the floor; the tunnel is a roof flush with it over the shooter lane and round the arch,
+      with windows along the ball's path; the rails are the inlane guides, shaped along their walls,
+      lower so they sit level with the slingshots on screen. -->
  <covers>
-  <cover id="cabinet" height="0.03" points="-0.3,-0.3 1.3,-0.3 1.3,3.2 -0.3,3.2">
+  <cover id="cabinet" height="0.075" points="-0.3,-0.3 1.3,-0.3 1.3,3.2 -0.3,3.2">
    <stencils>
-    <stencil id="board" points="-0.006,0.16908 0.348,0.004 0.348,0.0 0.574,0.0 0.574,0.004 dir(slope,0.37679) 0.9155,0.0 1.006,0.0 arc(0.5,1.786,0.506,0,180,32) -0.006,1.786" />
+    <stencil id="board" points="0.006,0.16348 0.348,0.004 0.348,0.0 0.574,0.0 0.574,0.004 dir(slope,0.37679) 0.9155,0.0 0.994,0.0 arc(0.5,1.786,0.494,0,180,32) 0.006,1.786" />
    </stencils>
   </cover>
-  <cover id="tunnel" height="0.075" thickness="0.012" points="0.9155,0.55 1.006,0.55 arc(0.5,1.786,0.506,0,65,12) arc(0.5,1.786,0.4155,65,0,12)" />
+  <cover id="tunnel" height="0.075" thickness="0.012" points="0.9155,0.55 0.994,0.55 arc(0.5,1.786,0.494,0,65,12) arc(0.5,1.786,0.4155,65,0,12)">
+   <stencils>
+    <!-- One slot, 0.04 wide and 0.08 long, repeated along the ball's path through the tunnel. -->
+    <stencil id="windows" points="arc(0,-0.02,0.02,180,360,6) arc(0,0.02,0.02,0,180,6)">
+     <array path="0.955,0.66 0.955,1.786 arc(0.5,1.786,0.455,0,56,12)" count="9" />
+    </stencil>
+   </stencils>
+  </cover>
   <cover id="railL" height="0.03" along="inlaneL" />
   <cover id="railR" height="0.03" along="inlaneR" />
  </covers>

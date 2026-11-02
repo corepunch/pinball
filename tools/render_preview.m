@@ -227,6 +227,14 @@ int main(int argc, const char *argv[]) {
                 PBExport(renderer, 2.016, path);
                 if (premium) {
                     PBExportChannelWalls(scene, renderer, table, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-channels.png"]]);
+                    PBCheckTiltLighting(scene, renderer, output, name);
+                    if (argc > 4 && strcmp(argv[4], "--tilt-animation") == 0) {
+                        PBExportTiltAnimation(scene, renderer, table,
+                            [output stringByAppendingPathComponent:[name stringByAppendingString:@"-tilt.gif"]]);
+                    }
+                }
+                // The hit, idle and chase checks need two bumpers to compare; a bare board has none.
+                if (premium && table.bumpers.count >= 2) {
                     SCNNode *cap = [scene.scene.rootNode childNodeWithName:[@"bumper." stringByAppendingString:table.bumpers[0].identifier] recursively:YES];
                     __block SCNGeometry *painted = cap.geometry;
                     [cap enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
@@ -266,13 +274,8 @@ int main(int argc, const char *argv[]) {
                         [scene syncWithGame:game elapsed:1.0 / 60.0];
                     }
                     PBRequire(painted.firstMaterial == idle, @"bumper failed to return to idle artwork");
-                    PBCheckTiltLighting(scene, renderer, output, name);
                     PBCheckLocalLighting(scene, renderer, output, name);
                     PBExportRampChase(scene, renderer, game, [output stringByAppendingPathComponent:[name stringByAppendingString:@"-chase.gif"]]);
-                    if (argc > 4 && strcmp(argv[4], "--tilt-animation") == 0) {
-                        PBExportTiltAnimation(scene, renderer, table,
-                            [output stringByAppendingPathComponent:[name stringByAppendingString:@"-tilt.gif"]]);
-                    }
                 }
             }
         }

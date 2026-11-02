@@ -135,9 +135,9 @@
     },
     "common-cover": {
       "objects": 1,
-      "triangles": 381,
+      "triangles": 738,
       "radius": 2.2071,
-      "bytes": 31949
+      "bytes": 59311
     }
   }
 }

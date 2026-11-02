@@ -82,6 +82,15 @@ plate = mesher.MeshData()
 mesher.slab(plate, [(0, 0), (4, 0), (4, 4), (0, 4)], [[(1, 1), (2, 1), (2, 2), (1, 2)], [(3, 3), (3.5, 3), (3.5, 3.5), (3, 3.5)]], 0, .1, 'cover')
 top = sum(abs(mesher.signed_area([plate.vertices[i][:2] for i in t])) for face in plate.faces if all(abs(plate.vertices[i][2] - .1) < 1e-9 for i in face) for t in mesher.triangulate(plate.vertices, face))
 assert abs(top - (16 - 1 - .25)) < 1e-9, 'stencils cut holes in the cover'
+# An array repeats one hole along a path, turned to follow it; holes that overlap are refused.
+slots = compile_scenes.arrayed([(-1, -.5), (1, -.5), (1, .5), (-1, .5)], {'path': [[0, 0], [0, 10], [10, 10]], 'count': 4})
+assert len(slots) == 4 and abs(slots[0][0][0] - -1) < 1e-9 and abs(slots[0][0][1] - 2) < 1e-9, 'the first copy sits 2.5 up the path, unturned'
+assert abs(slots[3][0][0] - 7) < 1e-9 and abs(slots[3][0][1] - 11) < 1e-9, 'a copy on the second leg is turned a quarter turn, its y axis along the path'
+try:
+    compile_scenes.stencil_holes({'id': 'c', 'stencils': [{'id': 'a', 'points': [[0, 0], [2, 0], [2, 2], [0, 2]]}, {'id': 'b', 'points': [[1, 1], [3, 1], [3, 3], [1, 3]]}]})
+    raise AssertionError('overlapping stencils must fail')
+except ValueError:
+    pass
 # A cover along a wall is that wall's shape: a straight bar's outline is a stadium.
 bar = mesher.outline_along([(0, 0), (2, 0)], .5, 16)
 assert abs(abs(mesher.signed_area(bar)) - (2 + math.pi * .25)) < .01 and mesher.signed_area(bar) > 0, 'outline_along is a round-ended, counter-clockwise bar'

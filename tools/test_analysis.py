@@ -68,6 +68,8 @@ class AnalysisTests(unittest.TestCase):
         self.assertIn('observed 1', report['failures'][0])
         raw['trials'][0]['status'] = 'stuck'
         self.assertEqual(len(summarize(raw, specs)['failures']), 2)
+        raw['layoutIssues'] = [{'first': 'bumper', 'second': 'ramp'}]
+        self.assertEqual(len(summarize(raw, specs)['failures']), 3)
 
     def test_maps_keep_layers_separate_and_paths_do_not_connect_balls(self):
         raw = self.raw()

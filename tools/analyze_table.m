@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #import <dispatch/dispatch.h>
 #import "PBGame.h"
+#import "PBLayoutValidator.h"
 #import <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +61,10 @@ static NSDictionary *Trial(PBTableDefinition *table, NSDictionary *spec, NSInteg
         [events addObject:@{ @"event":kind, @"element":identifier, @"ball":@(e->ball), @"tick":@(e->tick),
             @"position":@[ @(e->position.x), @(e->position.y) ], @"magnitude":@(e->magnitude) }];
         if (e->kind == PBEventBallStuck) stuck = YES;
-        if (e->kind == PBEventDrain && (autoplay || e->ball == ball)) drained = YES;
+        if (e->kind == PBEventDrain && (autoplay || e->ball == ball)) {
+            drained = YES;
+            if (!isfinite(e->position.x) || !isfinite(e->position.y) || e->position.x<0 || e->position.x>table.size.x || e->position.y>table.size.y) invalid=YES;
+        }
         if (next < (NSInteger)expected.count) {
             NSDictionary *goal = expected[next];
             if ([kind isEqual:goal[@"event"]] && (!goal[@"element"] || [identifier isEqual:goal[@"element"]]) &&
@@ -145,6 +149,10 @@ static NSDictionary *Run(NSDictionary *request) {
     NSInteger width=[request[@"grid"] integerValue];
     if (width<8 || width>256 || table.size.x<=0 || table.size.y<=0 || table.size.y/table.size.x>8 || !specs.count || specs.count>4096)
         return @{ @"error":@"Invalid grid, table bounds or trial count" };
+    NSMutableArray *layout=[NSMutableArray array];
+    for (PBLayoutIssue *issue in [PBLayoutValidator issuesForTable:table])
+        [layout addObject:@{ @"kind":@(issue.kind), @"first":issue.first ?: @"", @"second":issue.second ?: @"",
+            @"amount":@(issue.amount), @"position":@[ @(issue.location.x), @(issue.location.y) ] }];
     NSMutableArray *results=[NSMutableArray array];
     for (NSUInteger i=0;i<specs.count;i++) [results addObject:NSNull.null];
     NSInteger workers=MAX(1, MIN(16, [request[@"workers"] integerValue]));
@@ -157,7 +165,7 @@ static NSDictionary *Run(NSDictionary *request) {
     });
     return @{ @"version":@1, @"table":table.identifier, @"size":@[ @(table.size.x), @(table.size.y) ],
         @"grid":@(width), @"height":@(ceil(table.size.y/table.size.x*width)), @"workers":@(workers),
-        @"wallSeconds":@(Now()-start), @"inventory":Inventory(table), @"trials":results,
+        @"wallSeconds":@(Now()-start), @"layoutIssues":layout, @"inventory":Inventory(table), @"trials":results,
         @"sampling":@"occupancy fixture:960Hz, autoplay:60Hz approximate; trace fixture:120Hz, autoplay:60Hz" };
 }
 

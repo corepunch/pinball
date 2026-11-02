@@ -157,7 +157,7 @@ def summarize(raw, trials):
                         'timings': [{'at': specs[r['id']].get('timing'), 'seed': r['seed'], 'status': r['status']} for r in runs]}
     inventory = [dict(item, hits=hits[item['event'], item['element']]) for item in raw['inventory']]
     steps = sum(t['steps'] for t in raw['trials'])
-    failures = []
+    failures = [f'layout: {len(raw["layoutIssues"])} issues'] if raw.get("layoutIssues") else []
     for name, runs in grouped.items():
         counts = Counter(r['status'] for r in runs)
         if counts['invalid']:
@@ -168,7 +168,7 @@ def summarize(raw, trials):
             violated = actual[key] > target if key == 'stuckAtMost' else actual[key] < target
             if violated:
                 failures.append(f'{name}: {key} requires {target}, observed {actual[key]}')
-    return {'version': 1, 'passed': not failures, 'failures': failures, 'table': raw['table'], 'scenarios': groups, 'inventory': inventory,
+    return {'version': 1, 'passed': not failures, 'failures': failures, 'layoutIssues': raw.get('layoutIssues', []), 'table': raw['table'], 'scenarios': groups, 'inventory': inventory,
             'wallSeconds': raw['wallSeconds'], 'steps': steps,
             'stepsPerSecond': steps/max(raw['wallSeconds'], 1e-9), 'workers': raw['workers'],
             'sampling': raw['sampling'],
@@ -250,6 +250,7 @@ def write_report(raw, request, output, compare=None):
     page = '<!doctype html><meta charset="utf-8"><title>Pinball analysis</title><style>body{background:#09121f;color:#eee;font:16px system-ui;margin:32px}section{display:flex;flex-wrap:wrap}figure{width:280px;margin:12px}svg{width:100%;max-height:600px}td,th{padding:8px;text-align:left}table{border-collapse:collapse}tr{border-bottom:1px solid #456}pre{white-space:pre-wrap}</style>'
     page += f'<h1>{html.escape(raw["table"])} — physics analysis</h1><p>{report["steps"]:,} steps in {raw["wallSeconds"]:.3f}s; {raw["workers"]} workers. {html.escape(raw["sampling"])}</p>'
     page += '<p>'+html.escape(report['warning'])+'</p><table><tr><th>Scenario</th><th>Trials</th><th>Outcomes</th><th>Descending feeds</th></tr>'+rows+'</table><section>'+''.join(pictures)+'</section><h2>Trajectories (first 64 trials)</h2>'+paths
+    page += '<h2>Layout issues</h2><pre>'+html.escape(json.dumps(report['layoutIssues'], indent=2))+'</pre>'
     page += '<h2>Element coverage</h2><pre>'+html.escape(json.dumps(report['inventory'], indent=2))+'</pre>'
     (output/'index.html').write_text(page)
     return report

@@ -54,9 +54,9 @@ static PBShotOutcome *PBFire(PBTableDefinition *table, PBFlipperDef *flipper, fl
             outcome.leaving = b->position;
         }
         // An orbit counts once the ball has run up the side and come over the top.
-        if (b->ramp < 0 && b->velocity.y > 0.0f && b->position.x < 0.09f && b->position.y > 1.45f) leftOrbit = YES;
-        if (b->ramp < 0 && b->velocity.y > 0.0f && b->position.x > 0.84f && b->position.x < 0.92f && b->position.y > 1.45f) rightOrbit = YES;
-        if (b->position.y > 2.1f && !reached) {
+        if (b->ramp < 0 && b->velocity.y > 0.0f && b->position.x < 0.09f && b->position.y > table.size.y - 0.836f) leftOrbit = YES;
+        if (b->ramp < 0 && b->velocity.y > 0.0f && b->position.x > 0.84f && b->position.x < 0.92f && b->position.y > table.size.y - 0.836f) rightOrbit = YES;
+        if (b->position.y > table.size.y - 0.186f && !reached) {
             if (leftOrbit) reached = @"orbit left";
             else if (rightOrbit) reached = @"orbit right";
         }

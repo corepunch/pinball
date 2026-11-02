@@ -431,7 +431,7 @@
         top = MAX(top, world.balls[index].position.y);
         leftmost = MIN(leftmost, world.balls[index].position.x);
     }
-    XCTAssertGreaterThan(top, 1.9f, @"ball should climb to the arch");
+    XCTAssertGreaterThan(top, table.size.y - 0.1f, @"ball should climb to the arch");
     XCTAssertLessThan(leftmost, 0.8f, @"ball should clear the one-way gate into the playfield");
 }
 

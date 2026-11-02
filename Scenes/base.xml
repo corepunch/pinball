@@ -1,4 +1,4 @@
-<table size="1.0 2.286" padding="0.04 0.04" id="base" name="BASE" defaultSkin="orbital">
+<table size="1.0 1.9" padding="0.02 0.04" id="base" name="BASE" defaultSkin="orbital">
  <!-- Lines meant to be parallel share these, in degrees. -->
  <angles slope="25" guide="51" />
  <physics gravity="2.2" rampGravity="4.2" ballRadius="0.03" drainY="0.005" plungerSpeed="4.4" />
@@ -6,8 +6,8 @@
  <apron y="0.025" />
  <walls>
   <!-- A roman arch: the ball runs up the shooter lane and round the top. -->
-  <wall id="outer" style="none" height="0.12" radius="0.006" points="1.0,-0.01 arc(0.5,1.786,0.5,0,180,32) 0.0,-0.01" />
-  <wall id="shooterInner" style="wall" height="0.03" radius="0.008" points="0.922,-0.01 0.922,1.618" />
+  <wall id="outer" style="none" height="0.12" radius="0.006" points="1.0,-0.01 arc(0.5,1.4,0.5,0,180,32) 0.0,-0.01" />
+  <wall id="shooterInner" style="wall" height="0.03" radius="0.008" points="0.922,-0.01 0.922,1.232" />
   <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1955,0.585 0.1955,0.3636 dir(-slope,0.12689)" />
   <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7265,0.585 0.7265,0.3636 dir(180+slope,0.12689)" />
   <!-- Steel inlane guides, drawn as outlines: a narrow upright with a round top, a wide elbow, and a wide diagonal down
@@ -34,11 +34,11 @@
   <rollover id="outlaneRight" r="0.025" />
  </rollovers>
  <gates>
-  <gate id="shooterGate" a="0.922 1.618" b="1.0 1.681" passDirection="0.0 1.0" />
+  <gate id="shooterGate" a="0.922 1.232" b="1.0 1.295" passDirection="0.0 1.0" />
  </gates>
  <lamps>
-  <lamp id="lampOutlaneL" x="0.0405" y="0.508" size="0.017" color="green" icon="12" bar="outlaneLeft" />
-  <lamp id="lampSpecial" x="0.8815" y="0.508" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
+  <lamp id="lampOutlaneL" x="0.0398" y="0.508" size="0.017" color="green" icon="12" bar="outlaneLeft" />
+  <lamp id="lampSpecial" x="0.8822" y="0.508" size="0.017" color="red" icon="13" bind="special" bar="outlaneRight" />
   <lamp id="lampInlaneL" x="0.1435" y="0.508" size="0.017" color="amber" icon="0" bar="inlaneLeft" />
   <lamp id="lampInlaneR" x="0.7785" y="0.508" size="0.017" color="amber" icon="0" bar="inlaneRight" />
  </lamps>

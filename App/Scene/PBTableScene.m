@@ -806,7 +806,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     PBWallDef *outer = nil;
     for (PBWallDef *wall in _table.walls) if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
     const float margin = 1.0f;
-    const float height = 0.075f;
+    const float height = 0.02f;  // Low: a taller wall shows its inner face, dark on one side and lit on the other, so the board looks off centre.
     CGMutablePathRef path = CGPathCreateMutable();
     CGPathAddRect(path, NULL, CGRectMake(-margin, -margin, _size.x + 2 * margin, _size.y + 2 * margin));
     if (outer && outer.points.count > 1) {

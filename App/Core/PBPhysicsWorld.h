@@ -34,6 +34,9 @@ typedef NS_ENUM(NSInteger, PBEventKind) {
     PBEventPlungerRelease,
     PBEventGate,
     PBEventBallStuck,
+    PBEventFlipperContact,
+    PBEventRampRollback,
+    PBEventMagnetRelease,
 };
 
 typedef struct {
@@ -42,7 +45,11 @@ typedef struct {
     int16_t ball;
     float magnitude;     // Impact speed; plunger release uses applied pull (0...1).
     simd_float2 position;
+    uint64_t tick;       // Fixed physics tick, including events emitted outside stepping.
 } PBEvent;
+
+FOUNDATION_EXPORT NSString *PBEventName(PBEventKind kind);
+FOUNDATION_EXPORT NSString *PBEventElementIdentifier(PBEvent event, PBTableDefinition *table);
 
 typedef NS_ENUM(uint8_t, PBBallState) {
     PBBallInactive,
@@ -67,6 +74,7 @@ typedef struct {
     PBLayerMask layers;
     PBBallState state;
     BOOL captive;
+    float saucerCooldown;
 } PBBall;
 
 @interface PBPhysicsWorld : NSObject
@@ -76,6 +84,12 @@ typedef struct {
 @property (nonatomic, readonly) float plungerPull;  // 0...1, for drawing.
 
 - (instancetype)initWithTable:(PBTableDefinition *)table;
+- (instancetype)initWithTable:(PBTableDefinition *)table seed:(uint32_t)seed;
+@property (nonatomic, readonly) uint64_t tick;
+/// Disable rescue in strict design trials; PBEventBallStuck still reports the defect.
+@property (nonatomic) BOOL automaticBallSearch;
+/// One exact production physics step, for headless fixtures; drain events after each step.
+- (void)advanceOneTick;
 
 /// Advances by real elapsed time, running as many fixed steps as fit. Long hitches are clamped.
 - (void)advanceBy:(double)elapsed;
@@ -119,3 +133,4 @@ typedef struct {
 @end
 
 NS_ASSUME_NONNULL_END
+

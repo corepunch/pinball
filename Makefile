@@ -24,6 +24,8 @@ help:
 	@echo "simulator-run  - Build, install and launch in the Simulator (SIMULATOR='iPhone 17')"
 	@echo "test           - Run the headless tests on this Mac"
 	@echo "previews       - Render Art/Previews from the real scene"
+	@echo "analysis       - Timing sweeps and heatmaps (TABLE=aurora)"
+	@echo "analysis-test  - Reporter and production-physics integration tests"
 
 iphone:
 	@team="$(TEAM)"; \

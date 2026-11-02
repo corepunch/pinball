@@ -158,7 +158,7 @@ static NSDictionary *Run(NSDictionary *request) {
     return @{ @"version":@1, @"table":table.identifier, @"size":@[ @(table.size.x), @(table.size.y) ],
         @"grid":@(width), @"height":@(ceil(table.size.y/table.size.x*width)), @"workers":@(workers),
         @"wallSeconds":@(Now()-start), @"inventory":Inventory(table), @"trials":results,
-        @"sampling":@"fixture:960Hz; autoplay:60Hz approximate occupancy; trace:120Hz" };
+        @"sampling":@"occupancy fixture:960Hz, autoplay:60Hz approximate; trace fixture:120Hz, autoplay:60Hz" };
 }
 
 int main(void) { @autoreleasepool {

@@ -2,6 +2,7 @@
 import json
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 from analyze_table import ROOT, build, expand_suite, write_report
@@ -21,13 +22,16 @@ def main():
             assert 'error' not in raw, raw
             return raw
         first = run(request)
+        warm_started = time.monotonic()
         second = run(dict(request, workers=4))
         for left, right in zip(first['trials'], second['trials']):
             for field in ('events', 'cells', 'trace', 'status', 'steps', 'sequenceMatched', 'returned'):
                 assert left[field] == right[field], (field, left['id'])
         assert all(r['status'] != 'invalid' for r in first['trials'])
         write_report(second, request, ROOT/'Build/Analysis/reports/authoring')
-        print(f'Authoring: {len(trials)} trials, {second["wallSeconds"]:.3f}s native wall time (4 workers)')
+        warm_seconds = time.monotonic()-warm_started
+        print(f'Authoring: {len(trials)} trials, {second["wallSeconds"]:.3f}s native, {warm_seconds:.3f}s with transfer and report (4 workers)')
+        assert warm_seconds < 5, f'Warm authoring feedback exceeded 5s budget: {warm_seconds:.3f}s' 
         # A closed fixture target must not pass. A real bumper at its fixture must.
         fixture = dict(table)
         for key in ('walls', 'posts', 'flippers', 'bumpers', 'slingshots', 'dropTargets', 'standups', 'rollovers', 'spinners', 'saucers', 'gates', 'kickbacks', 'magnets', 'captiveBalls', 'ramps'):
@@ -51,6 +55,7 @@ def main():
             assert all(r['status'] != 'invalid' for r in raw['trials'])
             write_report(raw, req, ROOT/f'Build/Analysis/reports/{name}')
             print(name, 'coverage wall seconds', raw['wallSeconds'])
+            print(name, 'coverage', [(x['event'], x['element'], x['hits']) for x in __import__('analyze_table').summarize(raw, specs)['inventory']])
         process.stdin.close()
         assert process.wait() == 0
 

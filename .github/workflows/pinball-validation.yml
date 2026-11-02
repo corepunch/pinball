@@ -18,6 +18,7 @@ jobs:
           python3 tools/make_xcodeproj.py
           xcodebuild -project Pinball.xcodeproj -scheme PinballCoreTests -destination 'platform=macOS' -derivedDataPath Build/Tests CODE_SIGNING_ALLOWED=NO test
       - name: Native analyzer integration and benchmark
+        if: always()
         run: python3 tools/test_analysis_native.py
       - name: Reports
         if: always()

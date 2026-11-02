@@ -93,6 +93,7 @@
     __block int scoreBall=-1;
     for (int i=0;i<300;i++) { [w advanceOneTick]; [w drainEvents:^(const PBEvent *e){ if(e->kind==PBEventSpinner)scoreBall=e->ball; }]; }
     XCTAssertEqual(scoreBall,b);
+    [w removeBall:b]; b=[w spawnBallAtPlunger];
     [w placeBall:b at:simd_make_float2(.51,1) velocity:simd_make_float2(-6,0)];
     XCTAssertTrue([[self run:w ticks:200] containsObject:@"spinner:vertical"]);
 }

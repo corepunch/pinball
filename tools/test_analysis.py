@@ -60,6 +60,15 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(result['scenarios']['shot']['outcomes'], {'success': 1, 'timeout': 1})
         self.assertGreater(wilson(0, 10)[1], 0)
 
+    def test_requirements_fail_for_missing_success_and_traps(self):
+        raw = self.raw()
+        specs = [{'id': 'shot:0', 'scenario': 'shot', 'require': {'successesAtLeast': 2, 'stuckAtMost': 0}}]
+        report = summarize(raw, specs)
+        self.assertFalse(report['passed'])
+        self.assertIn('observed 1', report['failures'][0])
+        raw['trials'][0]['status'] = 'stuck'
+        self.assertEqual(len(summarize(raw, specs)['failures']), 2)
+
     def test_maps_keep_layers_separate_and_paths_do_not_connect_balls(self):
         raw = self.raw()
         ground, ramp = svg_map(raw, 0), svg_map(raw, 1)

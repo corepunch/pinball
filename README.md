@@ -147,7 +147,7 @@ Run with `-PBLevel <n>` to show that level's table behind the menus. `-PBTable <
 
 ## Adding a table
 
-1. Copy a file in `GameData/Tables` and move things around. No code or project changes are needed.
+1. Plan the shots and returns using [the level-design workflow](docs/level-design-workflow.ru.md). Copy a table or author it in Blender; reserve shot corridors before placing devices. No code or project changes are needed.
 2. Rebuild the meshes ([Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md)), which covers every table. A test fails if any are missing.
 3. Run `PinballCoreTests`, which covers every table automatically. An autopilot plays 25 simulated minutes
    and fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
@@ -173,9 +173,14 @@ Wall surfaces facing up the table need a slope, or a ball can come to rest on th
 than a ball's width (0.05). The outer wall is invisible and follows the screen, with corners matching the phone's. `decor` lists static kit models, and a lamp's `"shape": "arrow"` with `"angle"`
 makes a triangular insert pointing at its shot. Rollover roles come from id prefixes: `orbit*`, `outlane*`, `inlane*`.
 
+## Level analysis
+
+`make analysis TABLE=aurora` runs timing sweeps on production physics and writes an HTML report, layered heatmaps, trajectories, per-device coverage and replay inputs to `Build/Analysis/aurora`. See [analysis tools](docs/analysis-tools.ru.md) for new scenarios, orbit checkpoints, persistent mode and A/B comparison. `make analysis-test` checks the reporter and the native integration. The authoring fixtures are exploratory probes, not a claim that every prescribed ramp shot is already well designed.
+
 ## Skins
 
 See [Art/SKIN_GUIDE.md](Art/SKIN_GUIDE.md).
 
 `python3 tools/make_xcodeproj.py` regenerates the project if targets change. Source folders are
 synchronized, so new files need no project edit.
+

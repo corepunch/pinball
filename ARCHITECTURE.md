@@ -79,9 +79,15 @@ no `.scn` import. `make models` retains the optional legacy mesh generation and 
 The legacy kit's geometry regressions remain available, but its materials and lighting are not
 shipping sprite requirements. New source files are picked up by synchronized Xcode groups.
 
-The campaign ships First Light (`aurora`): three bumpers, bonus lanes, three drop targets, two
-stand-ups, a spinner and a timed catch-and-release scoop. There is no ramp, lock or multiball.
-Measured route contracts live in `GameData/Analysis/aurora.json`; fixtures cover advanced mechanics.
+The campaign ships First Light (`aurora`), Crosswind (`meridian`) and Undertow (`tide`), each with
+its own upper-field layout and collection/scoring goal. Shared physics and the lower kit stay fixed.
+There is no ramp, lock or multiball. Measured route contracts live in `GameData/Analysis/<table>.json`;
+see [the campaign workflow](docs/campaign.md). Fixtures cover advanced mechanics.
+
+`make sprites TABLE=<id>` exports the shipping code-generated shapes as a transparent, rectangular
+PNG atlas plus pivot/placement metadata. The native export trims alpha, shares byte-identical images
+and packs without rotating or splitting long rails. Runtime continues to generate schematic textures
+from geometry; exported PNGs are authoring deliverables. See [the sprite guide](Art/SPRITES.md).
 
 The native UI preview exercises the shipping sprite nodes, projection, pointer routing and live
 updates. Software captures composite their source texture pixels and transforms, allowing evidence

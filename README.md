@@ -124,13 +124,15 @@ SpriteKit provides rendering; it does not run the ball physics.
 ## Levels
 
 `GameData/Levels.json` is the level list: each entry pairs a table and skin with a goal and two star scores.
-There is one level, First Light (`aurora`): three upper-right bumpers, three bonus
-lanes, a right spinner, two stand-up targets, a left three-drop bank and a catch-and-release
-scoop, above the unchanged shared lower kit. Clear the bank for a bonus; the scoop briefly
-holds the ball and returns it toward the right flipper without a lock or multiball.
-The level stays on one plane; ramps are deferred.
-[The shot plan](docs/aurora.md) describes routes, returns and verification. `Tests/Fixtures/features.json`
-keeps advanced mechanisms (deck, ramps, magnets) exercised independently of the shipped level.
+Three compact, single-plane layouts use the larger schematic sprites:
+
+- **First Light** (`aurora`): upper-right pops, left drop bank/scoop and a right spinner; score 36,000.
+- **Crosswind** (`meridian`): upper-left pops and a staggered right bank; hit six drops.
+- **Undertow** (`tide`): central pops, two side spinners and a right scoop; collect 13 spinner events.
+
+All share the lower kit and physics. See [campaign shot plans and authoring workflow](docs/campaign.md)
+and [First Light's detailed plan](docs/aurora.md). `Tests/Fixtures/features.json` exercises advanced
+mechanisms (deck, ramps, magnets) independently of the shipped campaign.
 The goal (`score`, or a count of `ramps`, `bumpers`, `drops`, `saucers`, `spinners`, `multiballs` or `jackpots`)
 earns the first star and unlocks the next level; the two scores earn the others. Progress is saved by level id,
 so levels can be reordered or added. `testEveryGoalIsReachableAndThreeStarsAreNotAutomatic` plays autopilot games
@@ -158,8 +160,10 @@ xcodebuild -project Pinball.xcodeproj -scheme PinballCoreTests \
   -destination 'platform=macOS' -derivedDataPath Build test
 ```
 
-The standalone artwork renderer reads `GameData/` directly and needs no app build. See
-[Art/SKIN_GUIDE.md](Art/SKIN_GUIDE.md) for its commands.
+Export the live schematic shapes with `make sprites TABLE=aurora` (also `meridian` or `tide`).
+It writes a tightly packed rectangular transparent PNG and pivot/placement JSON; see
+[the sprite guide](Art/SPRITES.md). The retained SceneKit skin renderer is described separately in
+[Art/SKIN_GUIDE.md](Art/SKIN_GUIDE.md).
 
 Wall surfaces facing up the table need a slope, or a ball can come to rest on them, and gaps need more
 than the ball's diameter (currently 0.06834), with some clearance. The outer wall is an invisible collider; the UI adds no decorative drain or shooter-channel outline. `decor` lists static kit models, and a lamp's `"shape": "arrow"` with `"angle"`

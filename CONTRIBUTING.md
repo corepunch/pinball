@@ -33,14 +33,22 @@ to override it. `CONFIG=Debug` changes the default Release device build.
 6. Run `git diff --check`, update affected documentation, and report verification/limitations.
    Documentation-only edits need consistency and local-link checks; they do not require a build.
 
-`make test` runs scene/compiler checks, native flipper-shot probes, strict Aurora route contracts, macOS XCTest, and
+`make test` runs scene/compiler checks, native flipper-shot probes, strict campaign route contracts, macOS XCTest, and
 `make ui-check`. The last command exercises actual UI nodes, touch routing, sprite states, projection,
-and live transforms without requiring a graphics device. It does not capture screenshots.
+and live transforms on all three tables without requiring a graphics device. It also checks compact
+atlas packing and lossless crop recovery. It does not capture screenshots.
 
 Use `make analysis-test` when changing analysis code. For level/layout changes, also use
 `make spacing`, `make shots`, and the relevant `make playtest` or `make analysis TABLE=aurora`
 workflow. Read the analysis/level guides before treating exploratory results as acceptance criteria.
 `make playtest PLAYTEST=--tune` changes level goals/stars; use it only when tuning is intended.
+
+## Shape PNG export
+
+`make sprites TABLE=aurora` exports the real schematic shape artwork to `Art/Sprites/aurora/`.
+Use `TABLE=meridian` or `TABLE=tide` for the other layouts, and `SPRITE_OUT=/tmp/sprites` to override
+the destination. The transparent rectangular atlas trims alpha, shares identical images and keeps
+the long shooter rail intact. Pivot/placement metadata accompanies it. See [Art/SPRITES.md](Art/SPRITES.md).
 
 ## Real captures
 

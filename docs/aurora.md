@@ -40,8 +40,9 @@ the Space Cadet reference instead of using four long dark partitions.
   targets after 0.9 seconds. Green arrows track the bank's collected targets.
 - The scoop scores 2,500 and automatically returns the ball; it does not start multiball.
 - The shared inlane bonus, three balls and 12-second ball save remain in force.
-- The score goal is 24,000; two/three stars require 50,000 / 86,000. These are preliminary
-  autopilot-based thresholds, to be judged with manual play after the added scoring opportunities. No lock, magnet, upper deck
+- The score goal is 36,000; two/three stars require 90,000 / 150,000. These are initial
+  thresholds calibrated with 60 autopilot games, pending manual play. The scoop ejection aim was
+  adjusted from `0.65 -1` to `0.73 -1` to keep seeds 17/41/73 inside the right-flipper feed. No lock, magnet, upper deck
   or additional flipper is needed for this introductory layout.
 
 ## Regression and acceptance

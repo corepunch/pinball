@@ -3,7 +3,8 @@
 The board is text. `Scenes/` is the source, and nothing else is edited by hand:
 
 ```sh
-make scenes    # Needs Python and Xcode's scntool.
+make scenes    # Runtime JSON only; Python, no scntool needed.
+make sprites TABLE=aurora  # PNG atlas from shipping code shapes; macOS/Xcode CLI tools.
 ```
 
 | Source | Becomes |
@@ -71,14 +72,16 @@ A table is its layout and rules. A plastic wall can name its kit prefab with `pa
 
 ### Layout rules
 
-Judge a layout as the player sees it: through the 20-degree tilted orthographic camera, on a phone, where a raised part appears higher up the screen than its coordinates say.
+Judge a layout through the shipping flat overhead projection at phone size. Keep ball paths and
+returns readable at the larger scale. See [the current campaign workflow](../docs/campaign.md) and
+[PNG export guide](SPRITES.md). The mesh details below are retained 3D authoring references.
 
 - **Leave 5 points of clear board between parts** (0.0127 of the table's width). `make spacing` measures this; closer than that reads as touching.
 - **Mirror only the lower kit.** Flippers, slingshots, inlanes, outlanes, their lamps and floors mirror around x = 0.457, derived from the current flipper pivots by tooling. Above the slingshots, a table should differ left to right, usually with one big feature taking over a side. `Art/TABLE_LAYOUT_GUIDE.md` covers historical research for the upper board.
 - **The axis is the middle of the play area,** from the left wall to the shooter lane, so both outlanes come out the same width with no filler. `make spacing` compares the outlanes and each lower part with its twin (`MIRRORED`, `MIRRORED_LANES`).
 - **A part that meets the screen's edge runs past it,** so its trim is off screen rather than drawn along the edge.
 - **Parallel lines share a named angle.** `<angles>` in `Scenes/base.xml` holds them: `slope` for the flippers, inlanes, slingshot bases and floors, and `guide` for the orbit guides. Write such a line as a point then `dir(rotation,length)`, as in `0.123,0.2243 dir(-slope,0.14013)`, its mirror image as `dir(180+slope,...)`, a gate as `a`, `rotation`, `length`, and a flipper as `restAngle="-slope"`. Rotations are degrees anticlockwise from +x. Changing the number turns every line that uses it, though you may need to adjust lengths where lines must meet. `make spacing` fails when a line drifts off its angle (`MATCHED_ANGLES`).
-- **Ramps are optional and currently deferred for shipped levels.** First Light stays on one plane. The current ramp solver only applies side rails to balls already on that ramp; it does not provide a solid, height-aware underside or block lateral entry through low sections. Before reintroducing a ramp, verify the mouth, side impacts, and every proposed underpass with the full ball diameter and actual renders. Retain the engine and kits for fixtures and future work. If requested later, use at most one aluminum ramp to keep the field readable.
+- **Ramps are optional and currently deferred for shipped levels.** All three campaign layouts stay on one plane. The current ramp solver only applies side rails to balls already on that ramp; it does not provide a solid, height-aware underside or block lateral entry through low sections. Before reintroducing a ramp, verify the mouth, side impacts, and every proposed underpass with the full ball diameter and actual renders. Retain the engine and kits for fixtures and future work. If requested later, use at most one aluminum ramp to keep the field readable.
 - **The second level.** `<deck height="...">` sets its height, and a `plastic` wall with `part="deck"` is its raised block, solid to balls on the board. A ramp reaches it with `exitLayer="deck"`, and parts on it say `layers="deck"`: walls, stand-ups, a flipper, a hole. Keep it to about a quarter of the table's width at the back or side, and always give it a hole as the way down.
 - **Drop holes.** A saucer with `comesUpAt="x y"` swallows the ball, and after `transitSeconds` brings it up there, moving along `ejectDirection`.
 - **Check shots with `make shots`.** It fires real flipper shots on this Mac in seconds, and fails if no flipper reaches a ramp, hole or orbit. Use `--fan` through `tools/playtest/run_shots.py` to see each shot's heading, so parts can go on real shot lines.
@@ -119,7 +122,7 @@ Scoops next to a long ramp's entrance trap the ball: use one by a short ramp, or
 ```sh
 make scenes && make test
 make spacing
-tools/render_preview.sh /tmp/board orbital
+PB_PREVIEW_TABLE=aurora zsh tools/render_ui_preview.sh - /tmp/board
 ```
 
 `make playtest` plays every level with the autopilot and lists trapped balls with their position, parts never reached, layout problems, endless scoring loops, and goals never met. It must end with no problems, and its numbers make tuning honest, though the autopilot doesn't aim as a person does. `PLAYTEST="--only tide"` plays one.

@@ -6,10 +6,13 @@
 #import "PBSpriteSnapshot.h"
 #import "PBGameUI.h"
 #import "PBTablePresentation.h"
+#import "PBLevels.h"
 
 static void Require(BOOL value, NSString *message) {
     if (!value) { NSLog(@"UI verification failed: %@", message); exit(1); }
 }
+
+#import "PBTableSpriteExport.h"
 
 static void VerifyFullScreen(PBGameUI *ui, PBTableDefinition *table, CGSize size, CGFloat top, CGFloat bottom) {
     [ui layoutForViewSize:size topInset:top bottomInset:bottom];
@@ -45,9 +48,10 @@ static void Export(id renderer, PBGameUI *ui, PBMenuScreen screen, NSString *pat
 
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
-        if (argc < 3 || argc > 4) { fprintf(stderr, "usage: render_ui_preview resource-bundle output-directory [--check-only]\n"); return 2; }
+        if (argc < 3 || argc > 4) { fprintf(stderr, "usage: render_ui_preview resource-bundle output-directory [--check-only|--export-sprites]\n"); return 2; }
         BOOL checkOnly = argc == 4 && strcmp(argv[3], "--check-only") == 0;
-        Require(argc == 3 || checkOnly, @"unknown option");
+        BOOL exportSprites = argc == 4 && strcmp(argv[3], "--export-sprites") == 0;
+        Require(argc == 3 || checkOnly || exportSprites, @"unknown option");
         [NSApplication sharedApplication];
         PBCaptureTextureSources();
         NSBundle *bundle = [NSBundle bundleWithPath:[NSString stringWithUTF8String:argv[1]]];
@@ -65,6 +69,8 @@ int main(int argc, const char *argv[]) {
         PBGame *game = [[PBGame alloc] initWithTable:table highScore:0 seed:17];
         [game requestNewGame]; [game update:1.0/60];
         [scene syncWithGame:game];
+        if (exportSprites) { PBExportTableSprites(scene,table,output); return 0; }
+        if (checkOnly) PBExportTableSprites(scene,table,nil);
         id renderer = checkOnly ? nil : @YES;
         PBGameUI *ui = [[PBGameUI alloc] initWithBundle:bundle];
         ui.tableDefinition = table;
@@ -205,8 +211,15 @@ int main(int argc, const char *argv[]) {
         ui.frameHandler = nil; ui.deferChanges = NO;
         [ui layoutForViewSize:CGSizeMake(402,874) topInset:59 bottomInset:34];
         [scene layoutForViewSize:CGSizeMake(402,874) topInset:59 bottomInset:34];
-        [game.world placeBall:0 at:simd_make_float2(.45,.72) velocity:0];
+        [game.world placeBall:0 at:simd_make_float2(.44,.58) velocity:0];
         [scene syncWithGame:game];
+        // Final board/motion evidence uses the selected campaign level's actual goal.
+        PBLevelCatalog *catalog = [PBLevelCatalog catalogInBundle:bundle error:NULL];
+        for (PBLevelDef *level in catalog.levels) if ([level.table isEqual:table.identifier]) {
+            ui.levelGoalKind = level.goal; ui.levelTarget = level.goalCount;
+            ui.levelProgress = level.goalCount / 2;
+            break;
+        }
         [ui updateScore:3550 best:985400 ball:1 ballCount:3];
         Export(renderer,ui,PBMenuPlaying,[output stringByAppendingPathComponent:@"mini-pinball.png"],CGSizeMake(804,1748));
         if (!checkOnly) {

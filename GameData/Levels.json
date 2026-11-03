@@ -6,10 +6,34 @@
    "table": "aurora",
    "skin": "orbital",
    "goal": "score",
-   "count": 24000,
+   "count": 36000,
    "stars": [
-    50000,
-    86000
+    90000,
+    150000
+   ]
+  },
+  {
+   "id": "l02",
+   "name": "Crosswind",
+   "table": "meridian",
+   "skin": "orbital",
+   "goal": "drops",
+   "count": 6,
+   "stars": [
+    92000,
+    130000
+   ]
+  },
+  {
+   "id": "l03",
+   "name": "Undertow",
+   "table": "tide",
+   "skin": "orbital",
+   "goal": "spinners",
+   "count": 13,
+   "stars": [
+    88000,
+    150000
    ]
   }
  ]

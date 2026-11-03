@@ -26,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) simd_float3 flipperRubberColor;
 @property (nonatomic, readonly) simd_float3 slingLensColor;
 @property (nonatomic, readonly) simd_float3 capBaseColor, capStarColor;
+@property (nonatomic, readonly) simd_float3 guideBodyColor, guideFaceColor, guideEdgeColor, guideInlayColor, guideMarkColor;
 /// The painted walls of the board and its ramps' outsides.
 @property (nonatomic, readonly) simd_float3 shellColor;
 @property (nonatomic, readonly) float hardwareMetalness;

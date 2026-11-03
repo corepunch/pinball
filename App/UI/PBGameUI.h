@@ -2,9 +2,12 @@
 #import "PBMenuFlow.h"
 
 NS_ASSUME_NONNULL_BEGIN
+@class PBTableDefinition;
 
 /// Explicit input forwarding keeps menu touches out of the flipper controls.
 @interface PBGameUI : SKScene
+/// Geometry is read only to align the 2D boundary with the world camera.
+@property (nonatomic, strong, nullable) PBTableDefinition *tableDefinition;
 @property (nonatomic, copy, nullable) void (^actionHandler)(PBUIAction action);
 /// Told when a popup appears over the game, or the last one goes. Every screen but the game itself is one.
 @property (nonatomic, copy, nullable) void (^popupHandler)(BOOL shown);
@@ -20,6 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// The level whose tile was last tapped.
 @property (nonatomic, readonly) NSInteger selectedLevel;
 @property (nonatomic, copy, nullable) NSString *levelName, *levelGoal;
+@property (nonatomic, copy, nullable) NSString *levelGoalKind;
+@property (nonatomic) int64_t levelTarget, levelProgress;
 @property (nonatomic) int64_t levelTwoStarScore, levelThreeStarScore, levelBest;
 @property (nonatomic) NSInteger resultStars;
 @property (nonatomic) BOOL resultGoalMet, hasNextLevel;
@@ -34,7 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)onRenderThread;
 - (void)layoutForViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom;
 - (void)showScreen:(PBMenuScreen)screen;
-/// A moment's news from the game, or nil to go back to showing the level's goal.
+/// Receives legacy game events; the compact gameplay HUD omits message text.
 - (void)showMessage:(nullable NSString *)message;
 /// Opens the map on the page holding this level, and makes it the one the goal screen describes.
 - (void)showLevelPageForLevel:(NSInteger)index;

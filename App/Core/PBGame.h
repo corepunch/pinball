@@ -38,6 +38,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)update:(double)elapsed;
 
 #pragma mark Input, any thread
+- (void)setPrimaryPressed:(BOOL)pressed;
+/// Discard a held gameplay press without firing the spring (pause/interruption).
+- (void)cancelPrimaryInput;
 - (void)requestNewGame;
 - (void)setLeftPressed:(BOOL)pressed;
 - (void)setRightPressed:(BOOL)pressed;

@@ -44,6 +44,16 @@ def main():
             positive = {'id': 'hit', 'mode': 'fixture', 'position': [.569, 1], 'velocity': [-1, 0], 'seconds': .1, 'seed': 1, 'expect': [{'event': 'bumper', 'element': 'fixture'}]}
             negative = dict(positive, id='miss', position=[.2, .2], velocity=[0, 0])
             strict = dict(negative, id='trap', seconds=4)
+            # Above nominal table.size.y remains valid inside the full-screen reference field.
+            upper = dict(negative, id='upper-display', position=[.5, 2.05])
+            escaped = dict(negative, id='escaped-display', position=[.5, 2.5])
+            display = dict(fixture, walls=[w for w in table['walls'] if w['id'] == 'outer'])
+            display_path = Path(directory)/'display.json'
+            display_path.write_text(json.dumps(display))
+            bounds = run({'table': str(display_path), 'grid': 32, 'workers': 1, 'trials': [upper, escaped]})
+            assert [r['status'] for r in bounds['trials']] == ['timeout', 'invalid'], [(r['status'], r['trace'][:1]) for r in bounds['trials']]
+            assert bounds['size'][1] > 2.05 and bounds['height'] > 61
+
             raw = run({'table': str(path), 'grid': 32, 'workers': 1, 'trials': [positive, negative, strict]})
             assert [r['status'] for r in raw['trials']] == ['success', 'timeout', 'stuck'], [(r['id'], r['status']) for r in raw['trials']]
         # Coverage report for each shipping table; defects are reported, never hidden.

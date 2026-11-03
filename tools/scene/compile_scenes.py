@@ -21,6 +21,9 @@ import prefabs  # noqa: E402
 import table_xml  # noqa: E402
 
 ROLES = {
+    'guide_tube': (.66, .08, .045, 1), 'pivot_ink': (.025, .065, .06, 1), 'pivot_cap': (.88, .79, .55, 1),
+    'guide_body': (.035, .15, .15, 1), 'guide_face': (.98, .91, .76, 1),
+    'guide_edge': (.96, .78, .42, 1), 'guide_inlay': (.11, .34, .32, 1), 'guide_mark': (.66, .08, .045, 1),
     'cabinet_shell': (.018, .035, .065, 1), 'guide_glow': (1, .32, .04, 1), 'channel_liner': (.29, .35, .40, 1), 'plate_frame': (.62, .63, .66, 1),
     'channel_entry': (.72, .6, .38, 1), 'channel_floor': (.52, .57, .61, 1), 'channel_aluminum': (.66, .71, .75, 1), 'channel_shell': (.35, .40, .44, 1),
     'channel_arrow': (1, .12, .025, 1), 'metal': (.56, .61, .65, 1), 'accent': (.72, .48, .19, 1), 'dark': (.012, .019, .027, 1),
@@ -162,24 +165,57 @@ def rail_screws(outline):
     return [(ax + (bx - ax) * share + side[0] * across, ay + (by - ay) * share + side[1] * across) for share in (.12, .5, .88)]
 
 
-def walls_part(table, centred, skip=()):
+def walls_part(table, centred, builder, skip=()):
     data = mesher.MeshData()
     for wall in table['walls']:
         if wall['id'] in skip:
             continue
         if wall['style'] in ('wall', 'rail', 'rubber'):
             points = [centred(*p) for p in expand_points(wall['points'])]
-            built = mesher.raised_outline(points, wall['radius'], wall['height']) if wall.get('closed') else geometry.build_wall(points, wall['radius'], wall['height'])
-            # A rail is a steel guide, a rubber wall a black rubber band, a thin wall solid metal; anything else is a painted plank.
-            look = 'metal' if wall['style'] == 'rail' else 'black_rubber' if wall['style'] == 'rubber' else 'accent' if wall['radius'] < THIN_WALL else None
-            roles = [look for _ in built.roles] if look else built.roles
-            # A wall on the second level stands on it.
             base = table['deck']['height'] if 'deck' in wall.get('layers', []) else 0
-            data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)
+            top = None
+            if wall['style'] == 'rail' and wall.get('closed'):
+                clean = [p for i, p in enumerate(points) if math.dist(p, points[i - 1]) > 1e-5]
+                rim = mesher.inset_polygon(mesher.ccw(clean), -wall['radius'])
+                for level in (.5, 1):
+                    height = base + wall['height'] * level
+                    bottom = height - .0035
+                    plate = builder.build('guide-plate', {'rim': outline_text(rim), 'bottom': bottom})
+                    roles = []
+                    for face in plate.faces:
+                        low = min(plate.vertices[i][2] for i in face)
+                        if low >= height - 1e-8:
+                            roles.append('guide_face')
+                            if level == 1: top = [plate.vertices[i][:2] for i in face]
+                        elif low >= height - .001 - 1e-8:
+                            roles.append('guide_edge' if level == 1 else 'guide_mark')
+                        else:
+                            roles.append('guide_body' if level == 1 else 'guide_mark')
+                    data.add(plate.vertices, plate.faces, roles, plate.uvs, 35)
+                    # Close the underside with downward normals: these are plates, not open shells.
+                    underside = mesher.MeshData()
+                    mesher.flat(underside, rim, bottom, 'guide_body')
+                    underside.faces[-1] = tuple(reversed(underside.faces[-1]))
+                    data.add(underside.vertices, underside.faces, underside.roles, underside.uvs, 1)
+            else:
+                built = mesher.raised_outline(points, wall['radius'], wall['height']) if wall.get('closed') else geometry.build_wall(points, wall['radius'], wall['height'])
+                look = 'metal' if wall['style'] == 'rail' else 'black_rubber' if wall['style'] == 'rubber' else 'accent' if wall['radius'] < THIN_WALL else None
+                roles = [look for _ in built.roles] if look else built.roles
+                data.add([(v[0], v[1], v[2] + base) for v in built.vertices], built.faces, roles, None, 50)
+            if top:
+                cover = builder.build('guide-cover', {'top': outline_text(top), 'height': wall['height'] + base})
+                data.add(cover.vertices, cover.faces, cover.roles, cover.uvs, 1)
             if wall['style'] == 'rail':
                 # Three screws down the middle of its diagonal, as the real thing is bolted down.
-                for at in rail_screws(points):
-                    mesher.stud(data, .006, wall['height'] + base, at)
+                screws = rail_screws(points)
+                for at in screws:
+                    if top:
+                        tube = builder.build('guide-tube', {'x': at[0], 'y': at[1], 'height': wall['height'] + base, 'bottom': base})
+                        data.add(tube.vertices, tube.faces, tube.roles, tube.uvs, 45)
+                        socket = builder.build('guide-socket', {'x': at[0], 'y': at[1], 'height': wall['height'] + base})
+                        data.add(socket.vertices, socket.faces, socket.roles, socket.uvs, 1)
+                    else:
+                        mesher.stud(data, .006, wall['height'] + base, at)
     return data
 
 
@@ -231,7 +267,7 @@ def main():
     kit = {element.get('id'): element for element in ET.parse(ROOT / 'Scenes/kit.xml').getroot()}
     builder = prefabs.Builder(kit)
     # Helpers and table-driven prefabs are not parts of their own.
-    templates = {'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide', 'deck'}
+    templates = {'guide-plate', 'guide-tube', 'guide-cover', 'guide-socket', 'bolt', 'bullet-lamp', 'lit-arrow', 'flipper', 'slingshot', 'docking-pod', 'housing', 'slide', 'deck'}
     parts = {name: builder.build(name) for name in kit if name not in templates}
     base = table_xml.read(ROOT / 'Scenes/base.xml')
     flipper = base['flippers'][0]
@@ -240,14 +276,14 @@ def main():
     common = {w['id'] for w in base['walls']} | {p['id'] for p in base['plastics']}
     # Parts every table has are one model each, however many tables there are.
     parts['common-flipper'] = builder.build('flipper', {'base': flipper['baseRadius'] / flipper['length'], 'tip': flipper['tipRadius'] / flipper['length']})
-    parts['common-walls'] = walls_part(base, centred)
+    parts['common-walls'] = walls_part(base, centred, builder)
     parts['common-plastics'] = plastics_part(base, centred, builder)
     for path in table_xml.table_paths():
         table = table_json(table_xml.read(path))
         (tables / f"{table['id']}.json").write_text(json.dumps(table, indent=1) + '\n')
         if args.tables_only:
             continue
-        for suffix, data in (('walls', walls_part(table, centred, common)), ('plastics', plastics_part(table, centred, builder, common))):
+        for suffix, data in (('walls', walls_part(table, centred, builder, common)), ('plastics', plastics_part(table, centred, builder, common))):
             if data.faces:
                 parts[f"{table['id']}-{suffix}"] = data
         for ramp in table['ramps']:

@@ -71,6 +71,11 @@ static simd_float3 PBColor(NSArray *rgb, simd_float3 fallback) {
         _slingLensColor = PBColor(_palette[@"slingLens"], [self lampColor:@"red"]);
         _capBaseColor = PBColor(_palette[@"capBase"], simd_make_float3(0.92f, 0.86f, 0.72f));
         _capStarColor = PBColor(_palette[@"capStar"], simd_make_float3(0.7f, 0.08f, 0.05f));
+        _guideBodyColor = PBColor(_palette[@"guideBody"], _capStarColor * .3f);
+        _guideFaceColor = PBColor(_palette[@"guideFace"], _capBaseColor);
+        _guideEdgeColor = PBColor(_palette[@"guideEdge"], _accentColor);
+        _guideInlayColor = PBColor(_palette[@"guideInlay"], _capStarColor * .65f);
+        _guideMarkColor = PBColor(_palette[@"guideMark"], _slingLensColor * .7f);
         _shellColor = PBColor(_palette[@"shell"], simd_make_float3(.62f, .07f, .05f));
         NSDictionary *materials = _palette[@"materials"];
         _hardwareMetalness = materials[@"metalness"] ? [materials[@"metalness"] floatValue] : 1.0f;

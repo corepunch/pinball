@@ -6,10 +6,10 @@
    "table": "aurora",
    "skin": "orbital",
    "goal": "score",
-   "count": 7100,
+   "count": 24000,
    "stars": [
-    11000,
-    13000
+    50000,
+    86000
    ]
   }
  ]

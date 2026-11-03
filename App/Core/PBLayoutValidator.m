@@ -4,19 +4,15 @@
 
 #import "PBLayoutValidator.h"
 
-const float PBTableCameraFOV = 70.0f;
-const float PBTableCameraBand = 0.35f;
 const float PBTablePhoneAspect = 2.17f;
 
 float PBTableVisibleHeight(simd_float2 size, simd_float2 padding) {
-    return MAX(size.y + padding.y + PBTableCameraBand, (size.x + 2.0f * padding.x) * PBTablePhoneAspect);
+    PBTableCameraFrame frame = PBTableCameraFrameMake(size, CGSizeMake(402, 402 * PBTablePhoneAspect), 59, 34);
+    return frame.visibleHeight / cosf(PBTableCameraTilt * (float)M_PI / 180.0f);
 }
 
 simd_float2 PBTableProject(simd_float2 size, simd_float2 padding, simd_float2 p, float height) {
-    float visible = PBTableVisibleHeight(size, padding);
-    float distance = visible / (2.0f * tanf(PBTableCameraFOV * 0.5f * (float)M_PI / 180.0f));
-    simd_float2 centre = simd_make_float2(size.x * 0.5f, visible * 0.5f - padding.y);
-    return centre + (p - centre) * (distance / MAX(distance - height, 0.01f));
+    return p + simd_make_float2(0, height * tanf(PBTableCameraTilt * (float)M_PI / 180.0f));
 }
 const float PBBumperFootprintScale = 1.08f;
 const float PBLampFootprintScale = 1.12f;
@@ -421,8 +417,9 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
         for (NSInteger i = 0; i < part.count; i++) {
             PBCapsule c = part.items[i];
             simd_float2 low = simd_min(c.a, c.b) - c.radius, high = simd_max(c.a, c.b) + c.radius;
-            // The phone shows a band past the table's far end, where the readouts sit.
-            float top = MAX(size.y, PBTableVisibleHeight(size, _table.padding) - _table.padding.y);
+            // The area above the board now belongs to the 2D HUD. Raised hardware must
+            // fit below it rather than relying on the old cabinet/readout band.
+            float top = size.y;
             float over = MAX(MAX(MAX(-low.x, high.x - size.x), high.y - top), _table.apronY - low.y);
             if (over > 0) {
                 [self report:issues kind:PBLayoutIssueOutOfBounds first:part second:nil amount:over at:(c.a + c.b) * 0.5f];

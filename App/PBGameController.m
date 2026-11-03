@@ -29,8 +29,6 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     NSArray<NSString *> *_skins;
     NSString *_skinName;
     PBSkin *_skin;
-    NSLock *_lightingInputLock;
-    simd_quatf _lightingAttitude;
     PBGameCenter *_gameCenter;
     _Atomic(BOOL) _applicationActive, _gameCenterPresented, _resetFrameClock, _menuPaused, _hapticsEnabled;
     PBMenuFlow *_menuFlow;
@@ -61,8 +59,6 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         _gameCenter.presentationChanged = ^(BOOL presented) {
             [weakSelf setGameCenterPresented:presented];
         };
-        _lightingInputLock = [NSLock new];
-        _lightingAttitude = simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f);
         NSBundle *bundle = NSBundle.mainBundle;
         NSUserDefaults *launch = NSUserDefaults.standardUserDefaults;
         NSDictionary *arguments = [launch volatileDomainForName:NSArgumentDomain];
@@ -196,6 +192,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 }
 
 - (void)configureInterface {
+    _interface.tableDefinition = _table;
     _interface.skinName = _skinName.capitalizedString;
     _interface.tableName = _table.name;
     simd_float3 message = _skin.dmdColor;
@@ -214,6 +211,9 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     _interface.currentLevel = [_progress currentLevelIndexInCatalog:_catalog];
     _interface.levelName = level.name;
     _interface.levelGoal = level.goalText;
+    _interface.levelGoalKind = level.goal;
+    _interface.levelTarget = level.goalCount;
+    _interface.levelProgress = _session ? _session.progress : 0;
     _interface.levelTwoStarScore = level.twoStarScore;
     _interface.levelThreeStarScore = level.threeStarScore;
     _interface.levelBest = [_progress bestScoreForLevel:level];
@@ -287,6 +287,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 }
 
 - (void)releaseInputs {
+    [_game cancelPrimaryInput];
     [_game setLeftPressed:NO];
     [_game setRightPressed:NO];
     [_game setPlungerPressed:NO];
@@ -310,19 +311,12 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 
 - (void)viewDidResize {
     CGSize size = _view.bounds.size;
-    if (size.width > 0) {
-        [_tableScene fitCameraToAspect:size.height / size.width];
-    }
     UIEdgeInsets insets = _view.safeAreaInsets;
+    [SCNTransaction lock];
+    [_game.world fitDisplayBoundaryToViewSize:size topInset:insets.top bottomInset:insets.bottom];
+    [_tableScene fitCameraToViewSize:size topInset:insets.top bottomInset:insets.bottom];
+    [SCNTransaction unlock];
     [_interface layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
-}
-
-- (void)setLightingAttitude:(simd_quatf)attitude {
-    float lengthSquared = simd_length_squared(attitude.vector);
-    if (!isfinite(lengthSquared) || lengthSquared < 1e-6f) return;
-    [_lightingInputLock lock];
-    _lightingAttitude = simd_normalize(attitude);
-    [_lightingInputLock unlock];
 }
 
 #pragma mark - SCNSceneRendererDelegate
@@ -332,11 +326,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     BOOL resetClock = atomic_exchange(&_resetFrameClock, NO);
     double elapsed = _lastTime > 0 && !resetClock ? time - _lastTime : 1.0 / 60.0;
     _lastTime = time;
-    [_lightingInputLock lock];
-    simd_quatf attitude = _lightingAttitude;
-    [_lightingInputLock unlock];
     [SCNTransaction lock];
-    [_tableScene updateLightingForAttitude:attitude elapsed:elapsed];
     [_game update:elapsed];
     [_tableScene syncWithGame:_game elapsed:elapsed];
     [self showImpacts];
@@ -345,11 +335,13 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         int64_t score = _game.rules.score, best = _game.rules.highScore;
         NSInteger ball = _game.rules.ballNumber;
         NSInteger bonus = _game.rules.bonusMultiplier;
+        int64_t progress = _session.progress;
         NSString *message = _game.rules.displayIsMessage ? _game.rules.displayTop : nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             // A queued live snapshot must not overwrite the frozen game-over result.
             if (self->_menuFlow.screen == PBMenuPlaying) {
                 self->_interface.bonusMultiplier = bonus;
+                self->_interface.levelProgress = progress;
                 [self->_interface updateScore:score best:best ball:ball ballCount:self->_table.rules.balls];
                 [self->_interface showMessage:message];
             }

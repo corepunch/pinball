@@ -3,6 +3,7 @@ Build/
 DerivedData/
 xcuserdata/
 *.xcuserstate
+*.profraw
 __pycache__/
 reference/
 research_notes/

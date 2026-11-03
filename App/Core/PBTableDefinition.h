@@ -75,6 +75,7 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) BOOL vari;
 @property (nonatomic) simd_float2 a;
 @property (nonatomic) simd_float2 b;
+/// Selects the permitted side of a one-way gate; passage is measured normal to a–b.
 @property (nonatomic) simd_float2 passDirection;
 @property (nonatomic) PBLayerMask layers;
 @end

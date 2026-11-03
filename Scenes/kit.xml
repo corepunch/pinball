@@ -7,6 +7,22 @@
   <lathe role="metal" segments="16" sharp="80" points="{radius*.64},{z+radius*.28} {radius*.58},{z+radius*.56} {radius*.34},{z+radius*.84} .0001,{z+radius*.94}"/>
  </prefab>
 
+ <!-- Thin guide plates: the same outline at half and full height, on three tubes. -->
+ <prefab id="guide-plate">
+  <polygon points="{rim}" role="guide_body" z="{bottom}"><extrude amount=".0035"/><bevel amount=".001"/></polygon>
+ </prefab>
+ <prefab id="guide-tube">
+  <lathe role="guide_tube" segments="20" sharp="35" at="{x},{y}" points=".0065,{bottom} .0065,{height+.0075} .0032,{height+.0075} .0032,{bottom} .0065,{bottom}"/>
+  <circle role="pivot_ink" radius=".0031" z="{height+.0055}" segments="20" at="{x},{y}"/>
+ </prefab>
+ <!-- Painted top cover, inset within the unchanged guide footprint. -->
+ <prefab id="guide-cover">
+  <polygon points="{top}" role="guide_inlay" z="{height+.0001}"><inset amount=".0035"/></polygon>
+ </prefab>
+ <prefab id="guide-socket">
+  <circle role="guide_mark" radius=".0082" z="{height+.00025}" segments="20" at="{x},{y}"/>
+ </prefab>
+
  <!-- A mushroom: flared foot, black waist, and a wide cap overhanging them with a raised hub round the jewel. -->
  <prefab id="bumper-base">
   <lathe role="accent" segments="56" sharp="50" points=".88,0 .88,.06 .8,.11"/>
@@ -25,23 +41,25 @@
   <capsule base="{base}" tip="{tip}" role="black_rubber" z=".03"><extrude amount="{H-.03-.012}"/><bevel amount=".02"/></capsule>
   <capsule base="{base*.84}" tip="{tip*.84}" role="accent" z="{H-.02}"><extrude amount=".012"/></capsule>
   <capsule base="{base*.76}" tip="{tip*.76}" role="flipper_art" z="{H-.006}" uv="0 .78 1 .95"><extrude amount=".008"/><bevel amount=".004"/></capsule>
-  <lathe role="accent" segments="28" sharp="70" points="{base*.95},0 {base*.95},{H+.02} {base*.82},{H+.045} {base*.55},{H+.05}"/>
-  <lathe role="metal" segments="20" sharp="80" points="{base*.58},{H+.04} {base*.46},{H+.08} {base*.22},{H+.1} .001,{H+.105}"/>
+  <!-- Small, flat centred head with a dark washer; no slot, domed hub or tip screw. -->
+  <lathe role="pivot_ink" segments="24" sharp="25" points="{base*.34},{H+.006} {base*.34},{H+.018} {base*.30},{H+.024} .0001,{H+.024}"/>
+  <lathe role="pivot_cap" segments="24" sharp="20" points="{base*.25},{H+.018} {base*.25},{H+.044} {base*.21},{H+.05} .0001,{H+.05}"/>
   <polygon role="sling_lens" z="{H+.006}" points=".38,0 .22,-.05 .22,.05"/>
   <polyline role="accent" sharp="70" points=".22,.05,{H+.003} .22,-.05,{H+.003} .38,0,{H+.003}"><sweep closed="true" section="-.006,0 -.006,.007 .006,.007 .006,0"/></polyline>
-  <use prefab="bolt" radius="{tip*.42}" z="{H-.01}" at="1,0"/>
  </prefab>
 
  <!-- A slingshot from the table's outline: coloured base and top, cream band, inset cream line, a screw in each corner. -->
  <prefab id="slingshot">
+  <let name="CORNER" value=".014"/>
   <let name="BAND" value=".03"/>
   <let name="LIP" value=".037"/>
-  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius=".014"/><sweep section="0,0 0,.006 .0015,.0085"/></polygon>
-  <polygon points="{outline}" role="enamel" sharp="50"><inset amount=".002"/><fillet radius=".012"/><sweep section="0,.007 0,{BAND}"/></polygon>
-  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius=".014"/><sweep section=".002,{BAND} 0,{BAND+.002} 0,{LIP-.0025} .0025,{LIP}"/></polygon>
-  <polygon points="{outline}" role="{lens}" z="{LIP}"><inset amount=".0025"/><fillet radius=".0115"/></polygon>
-  <polygon points="{outline}" role="enamel" sharp="80"><inset amount=".0065"/><fillet radius=".0075"/><sweep section="0,{LIP+.0002} .0042,{LIP+.0002}"/></polygon>
-  <each-corner points="{outline}" inset=".0175">
+  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius="{CORNER}"/><sweep section="0,0 0,.006 .0015,.0085"/></polygon>
+  <polygon points="{outline}" role="enamel" sharp="50"><inset amount=".002" exact="true"/><fillet radius="{CORNER-.002}"/><sweep section="0,.007 0,{BAND}"/></polygon>
+  <polygon points="{outline}" role="{lens}" sharp="50"><fillet radius="{CORNER}"/><sweep section=".002,{BAND} 0,{BAND+.002} 0,{LIP-.0025} .0025,{LIP}"/></polygon>
+  <polygon points="{outline}" role="{lens}" z="{LIP}" sharp="1"><inset amount=".0025" exact="true"/><fillet radius="{CORNER-.0025}"/></polygon>
+  <polygon points="{outline}" role="enamel" sharp="80"><inset amount=".0065" exact="true"/><fillet radius="{CORNER-.0065}"/><sweep section="0,{LIP+.0002} .0042,{LIP+.0002}"/></polygon>
+  <!-- The radius-offset intersection is the centre of each rounded corner's arc. -->
+  <each-corner points="{outline}" inset="{CORNER}">
    <lathe role="metal" segments="14" sharp="70" points=".0058,{LIP} .0058,{LIP+.0012} .0042,{LIP+.0026} .001,{LIP+.0032}"/>
   </each-corner>
  </prefab>

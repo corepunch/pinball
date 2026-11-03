@@ -4,6 +4,7 @@
 #import <dispatch/dispatch.h>
 #import "PBGame.h"
 #import "PBLayoutValidator.h"
+#import "PBTablePresentation.h"
 #import <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,15 @@
 
 static simd_float2 Vec(NSArray *v) { return simd_make_float2([v[0] floatValue], [v[1] floatValue]); }
 static double Now(void) { return NSProcessInfo.processInfo.systemUptime; }
+// Match the reference phone used by the shared display contour and native table tests.
+// The full-screen field extends above the nominal 1.9-high authored rectangle.
+static simd_float2 AnalysisBounds(PBTableDefinition *table) {
+    simd_float2 bounds = table.size;
+    simd_float2 top = PBTablePointFromScreen(table.size, CGSizeMake(402, 874), 59, 34, CGPointMake(201, 0), 0);
+    bounds.y = MAX(bounds.y, top.y);
+    return bounds;
+}
+
 static NSArray *Inventory(PBTableDefinition *t) {
     NSMutableArray *result = [NSMutableArray array];
     NSDictionary *groups = @{ @"bumper":t.bumpers, @"sling":t.slingshots, @"drop":t.dropTargets,
@@ -32,6 +42,7 @@ static NSArray *Inventory(PBTableDefinition *t) {
 
 static NSDictionary *Trial(PBTableDefinition *table, NSDictionary *spec, NSInteger width) {
     double started = Now();
+    simd_float2 bounds = AnalysisBounds(table);
     uint32_t seed = [spec[@"seed"] unsignedIntValue];
     BOOL autoplay = [spec[@"mode"] isEqualToString:@"autoplay"];
     PBGame *game = autoplay ? [[PBGame alloc] initWithTable:table highScore:0 seed:seed] : nil;
@@ -46,7 +57,7 @@ static NSDictionary *Trial(PBTableDefinition *table, NSDictionary *spec, NSInteg
     for (NSUInteger i=0; i<table.magnets.count; i++) [world setMagnet:(NSInteger)i armed:[spec[@"magnets"] containsObject:table.magnets[i].identifier]];
     for (NSUInteger i=0; i<table.kickbacks.count; i++) [world setKickback:(NSInteger)i armed:[spec[@"kickbacks"] containsObject:table.kickbacks[i].identifier]];
     for (NSUInteger i=0; i<table.dropTargets.count; i++) if ([spec[@"dropsDown"] containsObject:table.dropTargets[i].identifier]) [world setDropTarget:(NSInteger)i up:NO];
-    NSInteger height = (NSInteger)ceil(table.size.y / table.size.x * width);
+    NSInteger height = (NSInteger)ceil(bounds.y / bounds.x * width);
     NSInteger count = width * height * 2;
     double *seconds = calloc((size_t)count, sizeof(double));
     double *vx = calloc((size_t)count, sizeof(double)), *vy = calloc((size_t)count, sizeof(double));
@@ -63,7 +74,7 @@ static NSDictionary *Trial(PBTableDefinition *table, NSDictionary *spec, NSInteg
         if (e->kind == PBEventBallStuck) stuck = YES;
         if (e->kind == PBEventDrain && (autoplay || e->ball == ball)) {
             drained = YES;
-            if (!isfinite(e->position.x) || !isfinite(e->position.y) || e->position.x<0 || e->position.x>table.size.x || e->position.y>table.size.y) invalid=YES;
+            if (!isfinite(e->position.x) || !isfinite(e->position.y) || e->position.x<0 || e->position.x>table.size.x || e->position.y>bounds.y) invalid=YES;
         }
         if (next < (NSInteger)expected.count) {
             NSDictionary *goal = expected[next];
@@ -100,7 +111,7 @@ static NSDictionary *Trial(PBTableDefinition *table, NSDictionary *spec, NSInteg
                 const PBBall *b=&world.balls[i];
                 if (b->state==PBBallInactive || b->captive) continue;
                 if (!isfinite(b->position.x)||!isfinite(b->position.y)||!isfinite(b->z)||!isfinite(b->velocity.x)||!isfinite(b->velocity.y)) { invalid=YES; break; }
-                if (b->position.x < 0 || b->position.x > table.size.x || b->position.y > table.size.y + table.ballRadius) { invalid=YES; break; }
+                if (b->position.x < 0 || b->position.x > table.size.x || b->position.y > bounds.y + table.ballRadius) { invalid=YES; break; }
                 if ((tick%8==0 || tick==total) && trace.count<30000) [trace addObject:@[ @(tick), @(i), @(b->position.x), @(b->position.y), @(b->ramp>=0), @(b->state) ]];
                 if (b->state!=PBBallFree || (fabsf(b->position.x-table.plunger.position.x)<table.plunger.width*.75f && b->position.y<table.plunger.position.y+table.ballRadius+.03f)) continue;
                 NSInteger x=(NSInteger)floor(b->position.x/table.size.x*width), y=(NSInteger)floor(b->position.y/table.size.x*width);
@@ -163,8 +174,9 @@ static NSDictionary *Run(NSDictionary *request) {
             @synchronized(results) { results[i]=r; }
         }
     });
-    return @{ @"version":@1, @"table":table.identifier, @"size":@[ @(table.size.x), @(table.size.y) ],
-        @"grid":@(width), @"height":@(ceil(table.size.y/table.size.x*width)), @"workers":@(workers),
+    simd_float2 bounds = AnalysisBounds(table);
+    return @{ @"version":@1, @"table":table.identifier, @"size":@[ @(bounds.x), @(bounds.y) ],
+        @"grid":@(width), @"height":@(ceil(bounds.y/bounds.x*width)), @"workers":@(workers),
         @"wallSeconds":@(Now()-start), @"layoutIssues":layout, @"inventory":Inventory(table), @"trials":results,
         @"sampling":@"occupancy fixture:960Hz, autoplay:60Hz approximate; trace fixture:120Hz, autoplay:60Hz" };
 }

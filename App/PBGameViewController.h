@@ -1,7 +1,7 @@
 //
 //  PBGameViewController.h
-//  iOS host: a full-screen SCNView. Touch left half or right half for the flippers.
-//  Hold the right side to charge the plunger when a ball is waiting. Shake to nudge.
+//  iOS host: a full-screen SCNView with context-sensitive anywhere-press controls.
+//  Press anywhere: charge a waiting ball, otherwise flip on the ball's side. Shake to nudge.
 //
 
 #import <UIKit/UIKit.h>

@@ -1,5 +1,7 @@
 #import <SceneKit/SceneKit.h>
 #import "PBGameUI.h"
+#import "PBGameHUD.h"
+#import "PBTablePresentation.h"
 #import <ImageIO/ImageIO.h>
 
 static CGImageRef PBCreateImageAtURL(NSURL *url) {
@@ -175,7 +177,7 @@ static NSString *PBScoreString(int64_t score) {
     CGFloat _logicalHeight, _topInset, _bottomInset;
     CGSize _inputViewSize;
     int64_t _score, _best;
-    SKSpriteNode *_scoreSprite, *_ballSprite, *_messageSprite;
+    PBGameHUD *_hud;
     NSInteger _liveEffects;
     NSString *_message;
     NSInteger _ball, _ballCount, _levelPage;
@@ -188,6 +190,7 @@ static const NSInteger kLevelsPerPage = 12;
 
 - (instancetype)initWithBundle:(NSBundle *)bundle {
     if ((self = [super initWithSize:CGSizeMake(402, 874)])) {
+        [PBGameHUD registerFontsInBundle:bundle];
         self.backgroundColor = SKColor.clearColor;
         self.scaleMode = SKSceneScaleModeResizeFill;
         self.userInteractionEnabled = NO;
@@ -382,7 +385,7 @@ static const NSInteger kLevelsPerPage = 12;
 - (void)rebuildNodes {
     [_root removeAllChildren];
     [_keys removeAllObjects];
-    _scoreSprite = _ballSprite = _messageSprite = nil;
+    _hud = nil;
     if (_screen == PBMenuPlaying) { [self renderHUD]; return; }
     SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.3]
                                                      size:CGSizeMake(402, _logicalHeight)];
@@ -540,8 +543,8 @@ static const NSInteger kLevelsPerPage = 12;
 
 - (void)renderHelp {
     [self heading:@"HOW TO PLAY" subtitle:@"LAUNCH. AIM. KEEP IT ALIVE." height:620];
-    NSArray *steps = @[@[@"01  LAUNCH", @"Hold the right side. Release to launch."],
-                       @[@"02  FLIP", @"Touch the left or right half to flip that side."],
+    NSArray *steps = @[@[@"01  LAUNCH", @"Hold anywhere to charge. Release to launch."],
+                       @[@"02  FLIP", @"Tap anywhere. The ball chooses the flipper."],
                        @[@"03  NUDGE", @"Give your phone a shove. Too much will tilt."],
                        @[@"04  BUILD YOUR SCORE", @"Complete lanes & targets. Chase multiball."],
                        @[@"05  KEEP GOING", @"Three balls. Bonus is counted after each drain."]];
@@ -599,91 +602,6 @@ static const NSInteger kLevelsPerPage = 12;
     [self key:@"secondary" title:@"KEEP PLAYING" action:PBUICancel x:0 y:-119 width:320 parent:_menu];
 }
 
-/// The classic 5x7 dot-matrix font: seven rows of five bits, top row first.
-static const uint8_t *PBLEDGlyph(unichar c) {
-    static const struct { char c; uint8_t rows[7]; } font[] = {
-        {'0',{14,17,17,17,17,17,14}},{'1',{4,12,4,4,4,4,14}},{'2',{14,17,1,2,4,8,31}},{'3',{31,2,4,2,1,17,14}},
-        {'4',{2,6,10,18,31,2,2}},{'5',{31,16,30,1,1,17,14}},{'6',{6,8,16,30,17,17,14}},{'7',{31,1,2,4,8,8,8}},
-        {'8',{14,17,17,14,17,17,14}},{'9',{14,17,17,15,1,2,12}},
-        {'A',{14,17,17,31,17,17,17}},{'B',{30,17,17,30,17,17,30}},{'C',{14,17,16,16,16,17,14}},{'D',{28,18,17,17,17,18,28}},
-        {'E',{31,16,16,30,16,16,31}},{'F',{31,16,16,30,16,16,16}},{'G',{14,17,16,23,17,17,15}},{'H',{17,17,17,31,17,17,17}},
-        {'I',{14,4,4,4,4,4,14}},{'J',{7,2,2,2,2,18,12}},{'K',{17,18,20,24,20,18,17}},{'L',{16,16,16,16,16,16,31}},
-        {'M',{17,27,21,21,17,17,17}},{'N',{17,17,25,21,19,17,17}},{'O',{14,17,17,17,17,17,14}},{'P',{30,17,17,30,16,16,16}},
-        {'Q',{14,17,17,17,21,18,13}},{'R',{30,17,17,30,20,18,17}},{'S',{15,16,16,14,1,1,30}},{'T',{31,4,4,4,4,4,4}},
-        {'U',{17,17,17,17,17,17,14}},{'V',{17,17,17,17,17,10,4}},{'W',{17,17,17,21,21,21,10}},{'X',{17,17,10,4,10,17,17}},
-        {'Y',{17,17,17,10,4,4,4}},{'Z',{31,1,2,4,8,16,31}},
-        {'+',{0,4,4,31,4,4,0}},{'-',{0,0,0,31,0,0,0}},{'.',{0,0,0,0,0,12,12}},{',',{0,0,0,0,12,4,8}},{':',{0,12,12,0,12,12,0}},
-        {'/',{0,1,2,4,8,16,0}},{'!',{4,4,4,4,4,0,4}},{'\'',{12,4,8,0,0,0,0}},
-    };
-    static const uint8_t blank[7] = {0};
-    if (c >= 'a' && c <= 'z') c = c - 'a' + 'A';
-    for (size_t i = 0; i < sizeof(font) / sizeof(font[0]); i++) if (font[i].c == c) return font[i].rows;
-    return blank;
-}
-
-/// Text as a dot-matrix display, `columns` characters wide and right-aligned when `right`.
-/// Strokes are two dots wide, as on Space Cadet's display. Each cell is seven dots across, seven high.
-static SKTexture *PBLEDTexture(NSString *text, NSUInteger columns, BOOL right, SKColor *color, CGFloat *outWidthInDots) {
-    columns = MAX(columns, text.length);
-    const size_t cell = 9;  // Pixels per dot; the sprite scales it to the display's pitch.
-    size_t dotsWide = columns * 7 - 1, width = dotsWide * cell, height = 7 * cell;
-    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-    CGContextRef c = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGImageAlphaPremultipliedLast);
-    CGColorSpaceRelease(space);
-    CGFloat r = 1, g = 1, b = 1, a = 1;
-#if TARGET_OS_IPHONE
-    [color getRed:&r green:&g blue:&b alpha:&a];
-#else
-    [[color colorUsingColorSpace:NSColorSpace.sRGBColorSpace] getRed:&r green:&g blue:&b alpha:&a];
-#endif
-    NSUInteger offset = right ? columns - text.length : 0;
-    for (size_t row = 0; row < 7; row++) {
-        for (size_t x = 0; x < dotsWide; x++) {
-            size_t column = x / 7, within = x % 7;
-            BOOL lit = NO;
-            if (within < 6 && column >= offset && column - offset < text.length) {
-                uint8_t bits = PBLEDGlyph([text characterAtIndex:column - offset])[row];
-                lit = (bits | bits << 1) >> (5 - within) & 1;
-            }
-            if (!lit) continue;
-            // Nearly touching, so strokes read as solid lines of light rather than scattered specks.
-            CGRect dot = CGRectInset(CGRectMake(x * cell, (6 - row) * cell, cell, cell), .3, .3);
-            CGContextSetRGBFillColor(c, r, g, b, 1);
-            CGContextFillEllipseInRect(c, dot);
-        }
-    }
-    if (outWidthInDots) *outWidthInDots = dotsWide;
-    CGImageRef image = CGBitmapContextCreateImage(c);
-    SKTexture *texture = [SKTexture textureWithCGImage:image];
-    CGImageRelease(image);
-    CGContextRelease(c);
-    return texture;
-}
-
-static SKColor *PBLEDColor(void) { return [SKColor colorWithRed:.72 green:.68 blue:1 alpha:1]; }
-
-/// Black that fades out at its sides and foot, behind the display. No panel, no border.
-static SKTexture *PBLEDBackdrop(size_t width, size_t height, size_t feather) {
-    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-    CGContextRef c = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGImageAlphaPremultipliedLast);
-    CGColorSpaceRelease(space);
-    uint8_t *pixels = CGBitmapContextGetData(c);
-    size_t stride = CGBitmapContextGetBytesPerRow(c);
-    for (size_t y = 0; y < height; y++) {
-        for (size_t x = 0; x < width; x++) {
-            float side = MIN(1.0f, (float)MIN(x, width - 1 - x) / feather);
-            // Bitmap rows run from the top of the image.
-            float foot = MIN(1.0f, (float)(height - 1 - y) / feather);
-            pixels[y * stride + x * 4 + 3] = (uint8_t)(255 * side * foot);
-        }
-    }
-    CGImageRef image = CGBitmapContextCreateImage(c);
-    SKTexture *texture = [SKTexture textureWithCGImage:image];
-    CGImageRelease(image);
-    CGContextRelease(c);
-    return texture;
-}
-
 /// A round texture from three grey levels and their alphas, brightest at centre. CoreGraphics, so it builds for Mac previews too.
 static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint centre) {
     CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
@@ -706,43 +624,22 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
     return texture;
 }
 
-/// Sets a sprite to show text as dots of this pitch, keeping its anchor where it is.
-- (void)showLED:(NSString *)text on:(SKSpriteNode *)sprite columns:(NSUInteger)columns right:(BOOL)right pitch:(CGFloat)pitch color:(SKColor *)color maxWidth:(CGFloat)maxWidth {
-    CGFloat dots = 0;
-    sprite.texture = PBLEDTexture(text, columns, right, color, &dots);
-    CGFloat scale = MIN(pitch, maxWidth / dots);
-    sprite.size = CGSizeMake(dots * scale, 7 * scale);
-}
-
 - (void)renderHUD {
-    // Dot-matrix readouts on the cabinet: the score and the ball count in the corners the arch
-    // leaves free either side of its crown, and the goal or message in the band above it.
-    CGFloat wingY = _logicalHeight - MAX(_topInset - 30, 30);
-    PBUIKey *pause = [self key:@"pause" title:nil action:PBUIPause x:326 y:wingY width:30 parent:_root];
+    _hud = [PBGameHUD node];
+    _hud.table = self.tableDefinition;
+    [_hud layoutForViewSize:CGSizeMake(402, _logicalHeight) topInset:_topInset bottomInset:_bottomInset];
+    [_root addChild:_hud];
+    PBGameViewLayout layout = PBGameViewLayoutMake(CGSizeMake(402, _logicalHeight), _topInset, _bottomInset);
+    PBUIKey *pause = [self key:@"pause" title:nil action:PBUIPause
+                            x:CGRectGetMidX(layout.pause) y:_logicalHeight - CGRectGetMidY(layout.pause)
+                        width:44 parent:_root];
+    pause.face.size = CGSizeMake(44, 44);
+    [pause refresh];
     pause.name = @"hud.pause";
-
-    CGFloat top = MAX(_topInset, 26);
-    CGFloat shoulderY = _logicalHeight - top - 71;
-
-    _scoreSprite = [SKSpriteNode node];
-    _scoreSprite.name = @"hud.score";
-    _scoreSprite.anchorPoint = CGPointMake(0, .5);
-    _scoreSprite.position = CGPointMake(14, shoulderY);
-    [_root addChild:_scoreSprite];
-
-    _ballSprite = [SKSpriteNode node];
-    _ballSprite.name = @"hud.balls";
-    _ballSprite.anchorPoint = CGPointMake(1, .5);
-    _ballSprite.position = CGPointMake(388, shoulderY);
-    [_root addChild:_ballSprite];
-
-    _messageSprite = [SKSpriteNode node];
-    _messageSprite.name = @"hud.message";
-    _messageSprite.position = CGPointMake(201, _logicalHeight - top - 30);
-    [_root addChild:_messageSprite];
-
+    CGFloat hitSize = MAX(44, 44 * 402 / _inputViewSize.width);
+    pause.hitRect = CGRectMake(-hitSize * .5, -hitSize * .5, hitSize, hitSize);
+    pause.zPosition = 10;
     [self updateScore:_score best:_best ball:_ball ballCount:_ballCount];
-    [self showMessage:_message];
 }
 
 - (void)showImpactAtPoint:(CGPoint)point color:(SKColor *)color sparks:(NSInteger)sparks points:(int64_t)points {
@@ -786,11 +683,7 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
         [effect addChild:emitter];
     }
     if (points > 0) {
-        NSString *text = [NSString stringWithFormat:@"+%lld", points];
-        CGFloat pitch = MIN(3.4, 1.7 + log10((double)MAX(points, 10)) * .34);
-        CGFloat dots = 0;
-        SKTexture *lit = PBLEDTexture(text, text.length, NO, [SKColor colorWithRed:1 green:.86 blue:.42 alpha:1], &dots);
-        SKSpriteNode *number = [SKSpriteNode spriteNodeWithTexture:lit size:CGSizeMake(dots * pitch, 7 * pitch)];
+        SKSpriteNode *number = [PBGameHUD flyingScoreForPoints:points];
         [number setScale:.5];
         [effect addChild:number];
         SKAction *pop = [SKAction sequence:@[ [SKAction scaleTo:1.15 duration:.1], [SKAction scaleTo:1 duration:.08] ]];
@@ -805,28 +698,13 @@ static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint
 
 - (void)showMessage:(NSString *)message {
     _message = message;
-    [self applyChange:^{
-    if (self->_messageSprite) {
-        NSString *text = message ?: self.levelGoal ?: @"";
-        const NSUInteger columns = 20;
-        if (text.length > columns) text = [text substringToIndex:columns];
-        [self showLED:text on:self->_messageSprite columns:text.length right:NO pitch:2.05 color:message ? self.messageColor : PBLEDColor() maxWidth:290];
-    }
-    }];
 }
 
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
          ballCount:(NSInteger)ballCount {
     _score = score; _best = best; _ball = ball; _ballCount = ballCount;
-    NSInteger multiplier = _bonusMultiplier;
     [self applyChange:^{
-    if (self->_scoreSprite) {
-        NSString *digits = [NSString stringWithFormat:@"%lld", score];
-        [self showLED:digits on:self->_scoreSprite columns:digits.length right:NO pitch:3.0 color:PBLEDColor() maxWidth:110];
-        NSString *balls = [NSString stringWithFormat:@"BALL %ld/%ld", (long)MAX(1, ball), (long)ballCount];
-        if (multiplier > 1) balls = [NSString stringWithFormat:@"X%ld %@", (long)multiplier, balls];
-        [self showLED:balls on:self->_ballSprite columns:balls.length right:YES pitch:1.9 color:PBLEDColor() maxWidth:104];
-    }
+    [self->_hud updateScore:score goal:self.levelTarget progress:self.levelProgress kind:self.levelGoalKind ?: @"score"];
     }];
 }
 

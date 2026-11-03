@@ -6,20 +6,15 @@
 //
 
 #import "PBTableDefinition.h"
+#import "PBTablePresentation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// The camera is orthographic, leaning this many degrees toward the player, as in the concept
-/// art: every part shows the same side, and none splays away from the screen's centre.
-/// The scene reads this too, so the test sees what the player sees.
-/// The camera hangs straight over the middle of what it shows, a perspective lens looking down: the
-/// floor maps to the screen unscaled, and anything raised leans away from the centre.
-extern const float PBTableCameraFOV;      // Vertical field of view, degrees.
-extern const float PBTableCameraBand;     // Board shown past the table's far end, for the readouts.
+/// Reference phone used for authoring. Runtime framing also respects each device's safe area.
 extern const float PBTablePhoneAspect;    // Height over width of the phone the layout is judged on.
-/// What the phone shows: the height of the visible board, from -padding.y up.
+/// Visible span expressed in floor/table units for the authoring report.
 float PBTableVisibleHeight(simd_float2 size, simd_float2 padding);
-/// Where a point at a height lands on the floor as the phone sees it.
+/// Floor-equivalent position seen by the tilted orthographic camera; no perspective growth.
 simd_float2 PBTableProject(simd_float2 size, simd_float2 padding, simd_float2 p, float height);
 
 /// Drawn size of round hardware relative to its table value. Art/Models/manifest.json records

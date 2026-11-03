@@ -5,12 +5,19 @@
 #import "PBGame.h"
 #import <stdatomic.h>
 
+typedef NS_ENUM(uint8_t, PBPrimaryAction) {
+    PBPrimaryNone, PBPrimaryLaunch, PBPrimaryLeft, PBPrimaryRight
+};
+
 @interface PBGame () <PBRuleEngineDelegate>
 @end
 
 @implementation PBGame {
     NSHashTable<id<PBGameObserver>> *_observers;
     _Atomic(BOOL) _leftInput, _rightInput, _plungerInput, _newGameRequested;
+    _Atomic(BOOL) _primaryInput, _cancelPrimaryInput;
+    BOOL _primaryApplied;
+    PBPrimaryAction _primaryAction;
     _Atomic(float) _nudgeX, _nudgeY;
     BOOL _leftApplied, _rightApplied;
     BOOL _charging;
@@ -41,6 +48,11 @@
 - (void)requestNewGame { atomic_store(&_newGameRequested, YES); }
 - (void)setRightPressed:(BOOL)pressed { atomic_store(&_rightInput, pressed); }
 - (void)setPlungerPressed:(BOOL)pressed { atomic_store(&_plungerInput, pressed); }
+- (void)setPrimaryPressed:(BOOL)pressed { atomic_store(&_primaryInput, pressed); }
+- (void)cancelPrimaryInput {
+    atomic_store(&_primaryInput, NO);
+    atomic_store(&_cancelPrimaryInput, YES);
+}
 - (void)requestNudgeX:(float)x y:(float)y {
     atomic_store(&_nudgeX, x);
     atomic_store(&_nudgeY, y);
@@ -57,22 +69,55 @@
     [_rules update:elapsed];
 }
 
+- (PBPrimaryAction)primaryActionForBall {
+    if (_world.isBallOnPlunger) return PBPrimaryLaunch;
+    // During multiball, help the free ball closest to the drain. Captive balls,
+    // saucers and underground transfers must not choose the player's flipper.
+    const PBBall *balls = _world.balls;
+    NSInteger chosen = -1;
+    for (NSInteger i = 0; i < _world.ballCapacity; i++) {
+        if (balls[i].state != PBBallFree || balls[i].captive) continue;
+        if (chosen < 0 || balls[i].position.y < balls[chosen].position.y) chosen = i;
+    }
+    if (chosen < 0) return PBPrimaryNone;
+    // The shared orthographic camera projects table.size.x / 2 to screen centre.
+    return balls[chosen].position.x < _table.size.x * .5f ? PBPrimaryLeft : PBPrimaryRight;
+}
+
 - (void)applyInput {
+    if (atomic_exchange(&_cancelPrimaryInput, NO)) {
+        _primaryApplied = NO;
+        _primaryAction = PBPrimaryNone;
+        _charging = NO;
+        [_world cancelPlungerPull];
+    }
+    BOOL primary = !_autopilot && atomic_load(&_primaryInput);
+    BOOL primaryEdge = primary && !_primaryApplied;
+    _primaryApplied = primary;
+    if (!primary) _primaryAction = PBPrimaryNone;
     BOOL left = atomic_load(&_leftInput);
     BOOL right = atomic_load(&_rightInput);
     BOOL plunger = atomic_load(&_plungerInput);
     if (_autopilot) [self runAutopilotLeft:&left right:&right plunger:&plunger];
 
-    BOOL leftEdge = left && !_leftApplied;
-    BOOL rightEdge = right && !_rightApplied;
-
-    if (atomic_exchange(&_newGameRequested, NO) ||
-        (_rules.phase == PBGamePhaseAttract && (leftEdge || rightEdge || (plunger && !_charging)))) {
+    BOOL started = atomic_exchange(&_newGameRequested, NO) ||
+        (_rules.phase == PBGamePhaseAttract && ((left && !_leftApplied) || (right && !_rightApplied) || primaryEdge || (plunger && !_charging)));
+    if (started) {
         _charging = NO;
+        _primaryAction = PBPrimaryNone;
         [_rules startGame];
-    } else {
-        // On a phone there is no plunger key, so a fresh right-hand press charges it
-        // whenever a ball is waiting in the lane.
+    } else if (primaryEdge) {
+        // Choose once per press. Holding does not automatically swap flippers
+        // when the ball crosses the screen; release and tap to choose again.
+        _primaryAction = [self primaryActionForBall];
+    }
+    left |= primary && _primaryAction == PBPrimaryLeft;
+    right |= primary && _primaryAction == PBPrimaryRight;
+    plunger |= primary && _primaryAction == PBPrimaryLaunch;
+    BOOL rightEdge = right && !_rightApplied;
+    if (!started) {
+        // Primary launch presses feed the plunger input. Keep direct controls
+        // available to autopilot and headless tools.
         if (rightEdge && _world.isBallOnPlunger) _charging = YES;
         if (plunger && _world.isBallOnPlunger) _charging = YES;
         BOOL holding = (right || plunger) && _charging;

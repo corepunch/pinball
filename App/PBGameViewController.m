@@ -19,9 +19,8 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
 @implementation PBGameViewController {
     PBGameController *_controller;
-    NSMutableSet<UITouch *> *_leftTouches, *_rightTouches;
+    NSMutableSet<UITouch *> *_gameplayTouches;
     CMMotionManager *_motion;
-    CMAttitude *_lightingReference;
     NSTimeInterval _lastNudge, _lastImpactHaptic;
     UIImpactFeedbackGenerator *_flipperHaptic, *_impactHaptic, *_springHaptic;
 }
@@ -35,8 +34,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    _leftTouches = [NSMutableSet set];
-    _rightTouches = [NSMutableSet set];
+    _gameplayTouches = [NSMutableSet set];
     _controller = [[PBGameController alloc] initWithView:(SCNView *)self.view];
     [_controller addGameObserver:self];
 
@@ -103,30 +101,25 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
 - (void)clearTouches {
     [_controller cancelUIPointers];
-    [_leftTouches removeAllObjects];
-    [_rightTouches removeAllObjects];
-    [_controller.game setLeftPressed:NO];
-    [_controller.game setRightPressed:NO];
+    [_gameplayTouches removeAllObjects];
+    [_controller.game cancelPrimaryInput];
 }
 
 - (void)applyTouches {
     if (_controller.isPaused) {
         // Clear gameplay fingers without cancelling a menu button still held down.
-        [_leftTouches removeAllObjects]; [_rightTouches removeAllObjects];
-        [_controller.game setLeftPressed:NO]; [_controller.game setRightPressed:NO];
+        [_gameplayTouches removeAllObjects];
+        [_controller.game cancelPrimaryInput];
         return;
     }
-    [_controller.game setLeftPressed:_leftTouches.count > 0];
-    [_controller.game setRightPressed:_rightTouches.count > 0];
+    [_controller.game setPrimaryPressed:_gameplayTouches.count > 0];
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    CGFloat middle = CGRectGetMidX(self.view.bounds);
     for (UITouch *touch in touches) {
         if ([_controller pointerBegan:touch atPoint:[touch locationInView:self.view]]) continue;
         if (_controller.isPaused) continue;
-        if ([touch locationInView:self.view].x < middle) [_leftTouches addObject:touch];
-        else [_rightTouches addObject:touch];
+        [_gameplayTouches addObject:touch];
     }
     [self applyTouches];
 }
@@ -138,7 +131,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     for (UITouch *touch in touches) {
         [_controller pointerEnded:touch atPoint:[touch locationInView:self.view] cancelled:NO];
-        [_leftTouches removeObject:touch]; [_rightTouches removeObject:touch];
+        [_gameplayTouches removeObject:touch];
     }
     [self applyTouches];
 }
@@ -146,18 +139,18 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     for (UITouch *touch in touches) {
         [_controller pointerEnded:touch atPoint:[touch locationInView:self.view] cancelled:YES];
-        [_leftTouches removeObject:touch]; [_rightTouches removeObject:touch];
+        [_gameplayTouches removeObject:touch];
     }
+    if (_gameplayTouches.count == 0) [_controller.game cancelPrimaryInput];
     [self applyTouches];
 }
 
-#pragma mark - Motion lighting and nudge
+#pragma mark - Motion nudge
 
 - (void)startMotion {
     if (UIApplication.sharedApplication.applicationState != UIApplicationStateActive) return;
     if (!_motion) _motion = [CMMotionManager new];
     if (!_motion.deviceMotionAvailable || _motion.deviceMotionActive) return;
-    _lightingReference = nil;
     _lastNudge = NSProcessInfo.processInfo.systemUptime;
     _motion.deviceMotionUpdateInterval = 1.0 / 60.0;
     __weak typeof(self) weakSelf = self;
@@ -169,19 +162,10 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 
 - (void)stopMotion {
     [_motion stopDeviceMotionUpdates];
-    _lightingReference = nil;
-    [_controller setLightingAttitude:simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f)];
 }
 
 - (void)handleMotion:(CMDeviceMotion *)motion {
     if (_controller.isPaused || !_motion.deviceMotionActive || UIApplication.sharedApplication.applicationState != UIApplicationStateActive) return;
-    // Recalibrate to the player's natural grip whenever the view/app becomes active.
-    if (!_lightingReference) _lightingReference = [motion.attitude copy];
-    CMAttitude *relative = [motion.attitude copy];
-    [relative multiplyByInverseOfAttitude:_lightingReference];
-    CMQuaternion q = relative.quaternion;
-    [_controller setLightingAttitude:simd_quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w)];
-
     CMAcceleration a = motion.userAcceleration;
     double magnitude = sqrt(a.x * a.x + a.y * a.y);
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;

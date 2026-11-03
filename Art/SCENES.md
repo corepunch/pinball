@@ -9,11 +9,11 @@ make scenes    # Needs Python and Xcode's scntool.
 | Source | Becomes |
 | --- | --- |
 | `Scenes/tables/*.xml` | One table each: `GameData/Tables/*.json`, plus its own walls and plastics |
-| `Scenes/base.xml` | What every table must have: flippers, slingshots, steel inlane guides and outlanes with their lamps, floors, plunger, the arched outer wall, scores. One shared model each |
-| `Scenes/ramps.xml` | Ramp kits, with the walls that go with them. A table takes one for each side with `kits="longL longR"` |
+| `Scenes/base.xml` | What every table must have: flippers, slingshots, steel inlane guides and outlanes with their lamps, floors, plunger, the reference rounded display boundary, scores. One shared model each |
+| `Scenes/ramps.xml` | Ramp kits, with the walls that go with them. Optional ramp kits, selected with `kits="longL longR"` |
 | `Scenes/kit.xml` | Every reusable part |
 
-The table's `padding="x y"` is how much board the phone shows past the table's sides and below its bottom edge. The cabinet fills everything outside the outer wall, in the skin's `shell` colour, so an arched outer wall reads as an arch with the readouts in the corners it leaves free; nothing has to be authored for it.
+The table's legacy `padding="x y"` remains in source data. Runtime framing now uses `PBTablePresentation` to fit the complete board under the safe-area-aware HUD with minimal side margins. Scenery extends to the display edge. The invisible outer collider adapts to the viewport through `PBTableDisplayBoundary`; it has no Dynamic Island obstacle. `PBGameHUD` draws the dark drain well without a decorative contour. There is no 3D cabinet.
 
 `GameData/Tables`, `Art/Models/premium/*.dae` and `GameData/Models/premium/*.scn` are compiled output. Skins, and `GameData/Levels.json` (the campaign), are edited directly; `make playtest PLAYTEST=--tune` sets a level's goal and stars.
 
@@ -46,7 +46,7 @@ All shapes take `role`, `sharp` (crease angle), `z`, `at`, `scale`, `mirror`, an
 | Modifiers | |
 | --- | --- |
 | `<extrude amount>`, `<bevel amount>` | Height and a chamfered top edge |
-| `<fillet radius>`, `<inset amount>` | Round the corners; move the outline in |
+| `<fillet radius>`, `<inset amount exact="true">` | Round the corners; move the outline in. `exact` preserves full miters so inset fillets remain concentric; omitted, long miters are limited |
 | `<sweep section>` | Run a (offset, height) section round the outline |
 | `<dome rings apex>` | A moulded lens over the outline |
 
@@ -67,26 +67,28 @@ Cues: `bumper`, `sling`, `drop`, `standup`, `saucer`, `spinner`, `ramp`, `lock`,
 
 ## Tables
 
-A table is its layout and rules. A plastic wall can name its kit prefab with `part`, as the floors under the flippers do. A rail with `closed="true"` is a steel plate whose `points` are its outline, grown by `radius`, which is also what the ball hits; its first edge carries the three screws, as the inlane guides do. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep at least 0.0625 of lane for the ball, or it becomes a trap.
+A table is its layout and rules. A plastic wall can name its kit prefab with `part`, as the floors under the flippers do. A rail with `closed="true"` is a steel plate whose `points` are its outline, grown by `radius`, which is also what the ball hits; its first edge carries the three screws, as the inlane guides do. Ramps are a line (`points`, in table units with height) and `<authoring>` settings: width, walls, funnel, arrows. Funnel colliders, entrance lamps and ramp mouths are generated from them, so they are not in the XML. Keep lane clearance wider than the 0.06834 ball diameter, or it becomes a trap.
 
 ### Layout rules
 
-Judge a layout as the player sees it: through the 30 degree camera, on a phone, where a raised part appears higher up the screen than its coordinates say.
+Judge a layout as the player sees it: through the 20-degree tilted orthographic camera, on a phone, where a raised part appears higher up the screen than its coordinates say.
 
 - **Leave 5 points of clear board between parts** (0.0127 of the table's width). `make spacing` measures this; closer than that reads as touching.
-- **Mirror only the lower kit.** Flippers, slingshots, inlanes, outlanes, their lamps and floors mirror around x = 0.461. Above the slingshots, a table should differ left to right, usually with one big feature taking over a side. `Art/TABLE_LAYOUT_GUIDE.md` covers how to lay out the upper board.
+- **Mirror only the lower kit.** Flippers, slingshots, inlanes, outlanes, their lamps and floors mirror around x = 0.457, derived from the current flipper pivots by tooling. Above the slingshots, a table should differ left to right, usually with one big feature taking over a side. `Art/TABLE_LAYOUT_GUIDE.md` covers historical research for the upper board.
 - **The axis is the middle of the play area,** from the left wall to the shooter lane, so both outlanes come out the same width with no filler. `make spacing` compares the outlanes and each lower part with its twin (`MIRRORED`, `MIRRORED_LANES`).
 - **A part that meets the screen's edge runs past it,** so its trim is off screen rather than drawn along the edge.
 - **Parallel lines share a named angle.** `<angles>` in `Scenes/base.xml` holds them: `slope` for the flippers, inlanes, slingshot bases and floors, and `guide` for the orbit guides. Write such a line as a point then `dir(rotation,length)`, as in `0.123,0.2243 dir(-slope,0.14013)`, its mirror image as `dir(180+slope,...)`, a gate as `a`, `rotation`, `length`, and a flipper as `restAngle="-slope"`. Rotations are degrees anticlockwise from +x. Changing the number turns every line that uses it, though you may need to adjust lengths where lines must meet. `make spacing` fails when a line drifts off its angle (`MATCHED_ANGLES`).
-- **One ramp per level, for now, in the aluminum style.** Ramps are a level's showpiece: more than one crowds the board. A new table's ramp can be a few control points; the compiler smooths it. Wire ramps were tried on level 1 and rejected.
+- **Ramps are optional and currently deferred for shipped levels.** First Light stays on one plane. The current ramp solver only applies side rails to balls already on that ramp; it does not provide a solid, height-aware underside or block lateral entry through low sections. Before reintroducing a ramp, verify the mouth, side impacts, and every proposed underpass with the full ball diameter and actual renders. Retain the engine and kits for fixtures and future work. If requested later, use at most one aluminum ramp to keep the field readable.
 - **The second level.** `<deck height="...">` sets its height, and a `plastic` wall with `part="deck"` is its raised block, solid to balls on the board. A ramp reaches it with `exitLayer="deck"`, and parts on it say `layers="deck"`: walls, stand-ups, a flipper, a hole. Keep it to about a quarter of the table's width at the back or side, and always give it a hole as the way down.
 - **Drop holes.** A saucer with `comesUpAt="x y"` swallows the ball, and after `transitSeconds` brings it up there, moving along `ejectDirection`.
 - **Check shots with `make shots`.** It fires real flipper shots on this Mac in seconds, and fails if no flipper reaches a ramp, hole or orbit. Use `--fan` through `tools/playtest/run_shots.py` to see each shot's heading, so parts can go on real shot lines.
 - **Walls are planks**: plain sides and top in the skin's shell colour, with a small chamfer and no trim, and so are the housings, the deck and the captive pod. A `style="rubber"` wall is a black rubber band. One under 0.0075 radius is solid metal instead, too thin for a plank top (`THIN_WALL`). The shooter lane's wall is 0.008: a 1 cm plank.
-- **Inlane guides are `style="rail"`:** steel, thicker than the flipper, with three screws, running down the flipper's slope and ending in an arc concentric with its pivot that wraps the back of the flipper. Keep the wrap short enough that a ball falling behind the flipper still rolls down the apron: the physics tests check it.
+- **Inlane guides are `style="rail"`:** two thin plates at half/full height on three hollow screw tubes, running down the flipper's slope and ending in an arc concentric with its pivot. Preserve the outer plan, collision outline and clear widths; leave the space between plates open so they cast separate shadows. `guide-plate`/`guide-tube` author the construction; `guide-cover`, `guide-fastener-band` and `guide-socket` author its colour layers. Keep the wrap short enough that a ball falling behind the flipper still rolls down the apron: the physics tests check it.
 - **The ball can always get under the flippers.** Below them the board stays open, and a low floor each side (`apronL`, `apronR`) slopes to the drain between them, so a ball falling behind rolls under and out. Their slope matches the flippers' at rest: any shallower and the ball wedges under a flipper's tip. Don't block this space.
-- **Centred parts sit on x = 0.461,** left of the screen's centre (0.5), because the shooter lane takes up the right side.
-- **Fit lamps to their lanes.** A lane is about 0.0625 wide, so its lamp has `size="0.017"` and sits above the wall ends rather than beside them.
+- **Centred parts sit on x = 0.457,** left of the screen's centre (0.5), because the shooter lane takes up the right side.
+- **Equal clear lane widths.** Both inlanes and both outlanes have 0.08125 clear width at their straight entries (measured at y = 0.43), about 1.19 times the 0.06834 ball diameter. Measure between physical faces, including rail and backing-wall radii. The source display contour matches the runtime reference phone so the left screen edge is measured correctly.
+- **Upper re-entry lanes use the same straight clearance target.** A pair of parallel separators of radius 0.0105 needs 0.10225 between centrelines to leave 0.08125 clear. Bends and entry mouths can flare wider to avoid clipping or pinching. Aurora uses this clear width between its two short internal dividers; its outer lane mouths open onto the field. Historical fixture dimensions are not the template for new geometry.
+- **Fit lamps to their lanes.** Centre each lamp and rollover bar between the clear faces. Lower lane lamps have `size="0.017"` and sit above the wall ends rather than beside them; tests enforce their centring.
 - **Arrows belong to a part.** Give a spinner, scoop, target, bumper, post or kickback `arrow="<colour>"` and the compiler puts an arrow lamp under it, centred on it and pointing at it, a fixed gap below its footprint; `arrowBind` lights it from the rules as a lamp's `bind` does. Never place an arrow by hand next to a part: it drifts when the part moves.
 - **Rollover bars belong to a lamp.** Give the lamp `bar="<rollover id>"` and the rollover only its `id` and `r`. The compiler puts the bar and its switch directly below the lamp, always the same distance away (`BAR_BELOW_LAMP`), so moving the lamp moves both. Never position a bar by hand.
 - **Change a ramp's shape smoothly.** The compiler rejects sudden changes in a ramp's curve, so blend a move over many points.

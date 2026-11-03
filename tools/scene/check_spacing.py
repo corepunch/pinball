@@ -4,7 +4,7 @@
     python3 tools/scene/check_spacing.py [--list N] [--svg DIR]
 
 Measures what the player sees, not the table's floor plan: everything is projected through the
-game's 30 degree camera, so a raised ramp is checked where it appears. Gaps are in points on a
+game's tilted orthographic camera, so a raised ramp is checked where it appears. Gaps are in points on a
 393 point wide phone. Run by `make test`; exits 1 if a pair is too close, a row is not level, or the two sides of the board no longer mirror each other.
 """
 import argparse
@@ -18,11 +18,10 @@ import compile_scenes  # noqa: E402
 import mesher  # noqa: E402
 import table_xml  # noqa: E402
 
-# The camera: straight down from above the middle of the visible board, as PBLayoutValidator has it.
-FOV = math.radians(70)   # PBTableCameraFOV
-BAND = .35               # PBTableCameraBand
-PHONE_ASPECT = 2.17      # PBTablePhoneAspect
-VIEW = {'size': (1, 2.286), 'padding': (0, 0)}
+# Same tilted orthographic projection as PBTablePresentation / PBLayoutValidator.
+TILT = math.radians(20)  # PBTableCameraTilt
+PHONE_ASPECT = 2.17
+VIEW = {'size': (1, 1.9), 'padding': (0, 0)}
 
 
 def set_view(table):
@@ -30,8 +29,11 @@ def set_view(table):
 
 
 def visible_height():
-    size, padding = VIEW['size'], VIEW['padding']
-    return max(size[1] + padding[1] + BAND, (size[0] + 2 * padding[0]) * PHONE_ASPECT)
+    # Reference phone: full-width world, HUD floats without reserving a top strip.
+    h = 402 * PHONE_ASPECT
+    board_top, board_bottom = 0, h - 17
+    unit = min(402 / VIEW['size'][0], (board_bottom - board_top) / (VIEW['size'][1] * math.cos(TILT)))
+    return h / (unit * math.cos(TILT))
 POINTS = 393  # A table's width on the phone.
 MIN_GAP = 5  # Points of clear board between two parts. Below this they read as touching.
 
@@ -56,8 +58,7 @@ ASSEMBLIES = (
     # Corner flashers stand high over the cabinet's edge.
     {'outer', 'flashTL', 'flashTR'},
 )
-# The board's axis: the middle of the play area, between the left wall and the shooter lane.
-AXIS = .461
+STANDARD_LANE_WIDTH = .08125  # Clear physical faces, about 1.19 current ball diameters.
 MAX_UNMIRRORED = 2  # Points of difference between the two sides.
 # Each part's twin on the other side of the axis.
 MIRRORED = (('flipperL', 'flipperR'), ('inlaneL', 'inlaneR'), ('plasticSlingL', 'plasticSlingR'), ('lampOutlaneL', 'lampSpecial'),
@@ -74,12 +75,8 @@ MATCHED_ANGLES = {
 
 
 def project(x, y, z=0.0):
-    """Where a point at height z lands on the floor as the phone sees it: raised parts lean away from the centre."""
-    visible = visible_height()
-    distance = visible / (2 * math.tan(FOV / 2))
-    cx, cy = VIEW['size'][0] / 2, visible / 2 - VIEW['padding'][1]
-    k = distance / max(distance - z, .01)
-    return cx + (x - cx) * k, cy + (y - cy) * k
+    """Raised parts shift up-table without changing width or scale."""
+    return x, y + z * math.tan(TILT)
 
 
 class Part:
@@ -180,8 +177,8 @@ def parts_of(table):
             add(wall['id'], 'wall').line(points + points[:1] if wall.get('closed') else points, wall['radius'], 0, wall['height'])
         elif wall['style'] == 'plastic':
             add(wall['id']).line(points + points[:1], .0042, 0, wall['height'])
-        elif wall['id'] == 'outer':
-            add(wall['id'], 'wall').line(points, wall['radius'])
+        # Invisible display bounds have no visual footprint. Lane-width checks
+        # below still use their physical contour, as the native validator does.
     for plastic in table['plastics']:
         # Rounded as the slingshot prefab rounds it: its corners reach less far than its outline's.
         points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
@@ -216,7 +213,8 @@ def parts_of(table):
     for kick in table['kickbacks']:
         add(kick['id']).disc(kick['x'], kick['y'] - .035, .018, 0, .018)
     for ball in table['captiveBalls']:
-        add(ball['id']).disc(ball['x'], ball['y'], table['physics']['ballRadius'], .03)
+        radius = table['physics']['ballRadius']
+        add(ball['id']).disc(ball['x'], ball['y'], radius, radius)
     for lamp in table['lamps']:
         if lamp.get('shape') == 'arrow':
             # A narrowed triangle, as the kit's arrowhead is: wide at the back, coming to a point.
@@ -263,11 +261,14 @@ def problems(table, parts=None):
             if clear < MIN_GAP and not ({a.kind, b.kind} == {'wall', 'ramp'} and clear < 0):
                 found.append((clear, a.name, b.name))
     found += unmirrored(table, parts)
+    for name, width in lower_lane_widths(table).items():
+        if abs(width - STANDARD_LANE_WIDTH) > .00001:
+            found.append((None, name, f'clear width {width:.5f}; expected {STANDARD_LANE_WIDTH:.5f}'))
     return sorted(found, key=lambda f: (f[0] is None, f[0] if f[0] is not None else 0))
 
 
-def lane_width(table, left, right, y):
-    """Clear floor between two walls at a height, on the table rather than through the camera."""
+def lane_bounds(table, left, right, y):
+    """Clear physical faces at a height, on the table rather than through the camera."""
     walls = {wall['id']: wall for wall in table['walls']}
 
     def crossings(wall):
@@ -277,7 +278,30 @@ def lane_width(table, left, right, y):
         return [a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) for a, b in zip(points, points[1:]) if a[1] != b[1] and min(a[1], b[1]) <= y <= max(a[1], b[1])]
     # A wall may cross the height twice, as the board's outer wall does: use its nearer side.
     inner, outer = crossings(walls[right]), crossings(walls[left])
-    return min(b - a for a in outer for b in inner if b > a) - walls[right]['radius'] - walls[left]['radius']
+    _, a, b = min((b - a, a, b) for a in outer for b in inner if b > a)
+    return a + walls[left]['radius'], b - walls[right]['radius']
+
+
+def lane_width(table, left, right, y):
+    a, b = lane_bounds(table, left, right, y)
+    return b - a
+
+
+def lower_lane_widths(table):
+    """Straight entry sections; include thickness on the rail and triangle backing."""
+    names = {wall['id'] for wall in table['walls']}
+    pairs = {'outlaneLeft': ('outer', 'inlaneL'), 'inlaneLeft': ('inlaneL', 'slingBackL'),
+             'inlaneRight': ('slingBackR', 'inlaneR'), 'outlaneRight': ('inlaneR', 'shooterInner')}
+    if not all(set(pair) <= names for pair in pairs.values()):
+        return {}
+    return {name: lane_width(table, *pair, .43) for name, pair in pairs.items()}
+
+
+def mirror_axis(table):
+    flippers = table.get('flippers', [])
+    left = next((f for f in flippers if f.get('side') == 'left'), None)
+    right = next((f for f in flippers if f.get('side') == 'right'), None)
+    return (left['pivot'][0] + right['pivot'][0]) * .5 if left and right else table['size'][0] * .5
 
 
 def line_angle(table, name, segment):
@@ -306,14 +330,15 @@ def unmatched_angles(table):
 
 
 def unmirrored(table, parts):
+    axis = mirror_axis(table)
     found = unmatched_angles(table)
     named = {p.name: p for p in parts}
     for a, b in MIRRORED:
         if a in named and b in named:
             left, right = named[a].bounds(), named[b].bounds()
-            off = max(abs(left[0] + right[2] - 2 * AXIS), abs(left[2] + right[0] - 2 * AXIS), abs(left[1] - right[1]), abs(left[3] - right[3]))
+            off = max(abs(left[0] + right[2] - 2 * axis), abs(left[2] + right[0] - 2 * axis), abs(left[1] - right[1]), abs(left[3] - right[3]))
             if off * POINTS > MAX_UNMIRRORED:
-                found.append((None, f'{a} / {b}', f'not mirrored around x = {AXIS}: {off * POINTS:.1f} pt out'))
+                found.append((None, f'{a} / {b}', f'not mirrored around x = {axis}: {off * POINTS:.1f} pt out'))
     for name, ((left, right), y) in MIRRORED_LANES.items():
         widths = [lane_width(table, *walls, y) for walls in (left, right)]
         if abs(widths[0] - widths[1]) * POINTS > MAX_UNMIRRORED:

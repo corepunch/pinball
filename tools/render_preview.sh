@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Native SceneKit preview + skin-resource smoke checks. No extra packages required.
-# Usage: tools/render_preview.sh [output-directory] [skin] [--tilt-animation]
+# Usage: tools/render_preview.sh [output-directory] [skin] [--shadow-compare|--ball-deformation|--ball-realtime|--gate-physics]
 set -eu
 cd "${0:A:h:h}"
 preview_cache="${TMPDIR:-/tmp}/pinball-preview"

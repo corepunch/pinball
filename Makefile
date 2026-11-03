@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test previews scenes spacing playtest shots
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes spacing playtest shots
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -27,6 +27,7 @@ help:
 	@echo "playtest       - Play every level headlessly and list problems (--tune via PLAYTEST=)"
 	@echo "shots          - Fire flipper shots at level 1 and list what each reaches (no Xcode)"
 	@echo "test           - Run the headless tests on this Mac"
+	@echo "ui-check       - Check real UI nodes, input and camera alignment without a GPU"
 	@echo "previews       - Render Art/Previews from the real scene"
 	@echo "analysis       - Timing sweeps and heatmaps (TABLE=aurora)"
 	@echo "analysis-test  - Reporter and production-physics integration tests"
@@ -97,7 +98,12 @@ simulator-run: simulator
 test:
 	python3 tools/scene/test_scenes.py
 	python3 tools/playtest/run_shots.py
+	CLANG_MODULE_CACHE_PATH="$(CURDIR)/Build/ModuleCache.noindex" python3 tools/analyze_table.py GameData/Tables/aurora.json --suite GameData/Analysis/aurora.json --strict --out Build/Analysis/aurora-routes
 	xcodebuild -project $(PROJECT) -scheme PinballCoreTests -destination platform=macOS -derivedDataPath Build/Mac test
+	$(MAKE) ui-check
+
+ui-check:
+	zsh tools/render_ui_preview.sh - "$(CURDIR)/Build/UICheck" --check-only
 
 previews:
 	tools/render_preview.sh "$(CURDIR)/Art/Previews"

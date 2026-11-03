@@ -42,6 +42,84 @@ try:
     raise AssertionError('expressions must stay arithmetic')
 except (KeyError, ValueError):
     pass
+# Actual fasteners share the centres of the rounded corner arcs, including the
+# acute tip. Verify against the sampled arcs, rather than just an inset value.
+kit = {part.get('id'): part for part in ET.parse(ROOT / 'Scenes/kit.xml').getroot()}
+for part in table_xml.read(ROOT / 'Scenes/base.xml')['plastics']:
+    outline = mesher.ccw(compile_scenes.expand_points(part['points']))
+    mesh = prefabs.Builder(kit).build('slingshot', {'outline': compile_scenes.outline_text(outline), 'lens': 'sling_lens'})
+    connected = {}
+    for face, role in zip(mesh.faces, mesh.roles):
+        if role == 'metal':
+            for vertex in face:
+                connected.setdefault(vertex, set()).update(face)
+    centres = []
+    while connected:
+        pending = [next(iter(connected))]; vertices = set()
+        while pending:
+            vertex = pending.pop()
+            if vertex not in connected:
+                continue
+            vertices.add(vertex); pending.extend(connected.pop(vertex))
+        centres.append(tuple(sum(mesh.vertices[v][axis] for v in vertices) / len(vertices) for axis in (0, 1)))
+    assert len(centres) == 3, f"{part['id']}: exactly three fastener heads"
+    arcs = mesher.filleted(outline, .014)
+    for corner in range(3):
+        arc = arcs[corner * 9:(corner + 1) * 9]
+        matches = [centre for centre in centres if all(abs(math.dist(centre, p) - .014) < 1e-7 for p in arc)]
+        assert len(matches) == 1, f"{part['id']}: bolt must be concentric with rounded corner {corner}"
+    normals = mesher.corner_normals(mesh)
+    tops = [f for f, (face, role) in enumerate(zip(mesh.faces, mesh.roles))
+            if role == 'sling_lens' and len(face) > 4]
+    assert len(tops) == 1, f"{part['id']}: one uninterrupted flat top"
+    for f in tops:
+        top_outline = [mesh.vertices[v][:2] for v in mesh.faces[f]]
+        for centre in centres:
+            assert sum(abs(math.dist(centre, p) - .0115) < 1e-7 for p in top_outline) == 9, f"{part['id']}: top fillet and bolt must share the outer fillet centre"
+        for v in mesh.faces[f]:
+            assert abs(mesh.vertices[v][2] - .037) < 1e-9, f"{part['id']}: top must be level"
+            assert math.dist(normals[(f, v)], (0, 0, 1)) < 1e-9, f"{part['id']}: top normals must not simulate a dome"
+# Guides are two thin plates at half/full height, joined by exactly three tubes.
+for part in table_xml.read(ROOT / 'Scenes/base.xml')['walls']:
+    if part['style'] != 'rail' or not part.get('closed'):
+        continue
+    points = compile_scenes.expand_points(part['points'])
+    original = mesher.raised_outline(points, part['radius'], part['height'])
+    decorated = compile_scenes.walls_part({'walls': [part]}, lambda x, y: (x, y), prefabs.Builder(kit))
+    assert all(role in decorated.roles for role in ('guide_body', 'guide_edge', 'guide_face', 'guide_inlay', 'guide_mark', 'guide_tube')), 'guide has separate plates, painted layers and tubes'
+    plate_tops = [set(decorated.vertices[v][2] for v in face) for face, role in zip(decorated.faces, decorated.roles)
+                  if role == 'guide_face' and len(face) > 20]
+    assert any(len(z) == 1 and abs(next(iter(z)) - part['height'] * .5) < 1e-8 for z in plate_tops), 'lower plate is at 50 percent height'
+    assert any(len(z) == 1 and abs(next(iter(z)) - part['height']) < 1e-8 for z in plate_tops), 'upper plate is at full height'
+    for face, role in zip(decorated.faces, decorated.roles):
+        heights = [decorated.vertices[v][2] for v in face]
+        if role == 'guide_body':
+            assert max(heights) - min(heights) <= .0035 + 1e-8, 'no monolithic side face spans the gap between plates'
+    tubes = {}
+    for face, role in zip(decorated.faces, decorated.roles):
+        if role == 'guide_tube':
+            for v in face: tubes.setdefault(v, set()).update(face)
+    count = 0
+    while tubes:
+        count += 1; pending = [next(iter(tubes))]
+        while pending:
+            v = pending.pop()
+            if v in tubes: pending.extend(tubes.pop(v))
+    assert count == 3, 'exactly three hollow screw tubes connect the guide plates'
+    for axis in range(2):
+        assert min(v[axis] for v in decorated.vertices) >= min(v[axis] for v in original.vertices) - 1e-8, 'guide assembly stays inside its old footprint'
+        assert max(v[axis] for v in decorated.vertices) <= max(v[axis] for v in original.vertices) + 1e-8, 'guide assembly does not narrow a channel'
+    assert max(v[2] for v in decorated.vertices) <= part['height'] + .008 + 1e-8, 'small tube rims project above the upper plate'
+
+flipper = prefabs.Builder(kit).build('flipper', {'base': .16, 'tip': .09})
+for face, role in zip(flipper.faces, flipper.roles):
+    if role in ('pivot_cap', 'pivot_ink'):
+        assert all(math.hypot(*flipper.vertices[v][:2]) <= .16 * .34 + 1e-8 for v in face), 'small pivot detail is centred on the hinge'
+assert 'metal' not in flipper.roles, 'old domed hub and tip screw are removed'
+cap = [flipper.vertices[v] for face, role in zip(flipper.faces, flipper.roles) if role == 'pivot_cap' for v in face]
+assert cap and max(v[2] for v in cap) < .31, 'pivot head is low and flat, not a tall dome'
+assert any(all(abs(flipper.vertices[v][2] - .303) < 1e-8 for v in face) for face, role in zip(flipper.faces, flipper.roles) if role == 'pivot_cap'), 'pivot has a flat top that casts a real shadow'
+
 # Concave polygons triangulate into the same area.
 ell = [(0, 0, 0), (2, 0, 0), (2, 1, 0), (1, 1, 0), (1, 2, 0), (0, 2, 0)]
 area = sum(abs((ell[b][0] - ell[a][0]) * (ell[c][1] - ell[a][1]) - (ell[b][1] - ell[a][1]) * (ell[c][0] - ell[a][0])) * .5 for a, b, c in mesher.triangulate(ell, list(range(6))))
@@ -65,6 +143,24 @@ for path in table_xml.table_paths():
                 assert found.get(part['id']) == part, f"{path.stem}: base part {part['id']} was changed or removed"
     # Nothing crowds anything else on the phone's screen, and the checker can see crowding.
     assert not (crowded := check_spacing.problems(compiled)), f'{path.stem}: run tools/scene/check_spacing.py: {crowded}'
+    widths = check_spacing.lower_lane_widths(compiled)
+    assert len(widths) == 4 and all(abs(w - .08125) < 1e-7 for w in widths.values()), 'all four lower lanes share the same physical clearance'
+    lane_faces = {'outlaneLeft': ('outer', 'inlaneL'), 'inlaneLeft': ('inlaneL', 'slingBackL'),
+                  'inlaneRight': ('slingBackR', 'inlaneR'), 'outlaneRight': ('inlaneR', 'shooterInner')}
+    for lamp in compiled['lamps']:
+        if lamp.get('bar') in lane_faces:
+            a, b = check_spacing.lane_bounds(compiled, *lane_faces[lamp['bar']], .43)
+            assert abs(lamp['x'] - (a + b) * .5) < 1e-7, f"{lamp['id']}: lamp and rollover centred in clear lane"
+            assert b - a > compiled['physics']['ballRadius'] * 2 + .01, 'lower lanes have room beyond the ball diameter'
+    if path.stem == 'aurora':
+        assert not compiled['ramps'], 'First Light stays on one plane; ramps are deferred'
+        # Three top lanes use just two short internal dividers; the outer mouths stay open.
+        guides = [w for w in compiled['walls'] if w['id'].startswith('laneGuide')]
+        assert len(guides) == 2 and all(math.dist(w['points'][0], w['points'][-1]) <= .09 + 1e-7 for w in guides), 'compact top dividers'
+        a, b = check_spacing.lane_bounds(compiled, 'laneGuideB', 'laneGuideC', 1.765)
+        assert abs(b - a - .08125) < 1e-7, 'middle top lane clear width'
+        bar = next(r for r in compiled['rollovers'] if r['id'] == 'laneB')
+        assert abs(bar['x'] - (a + b) * .5) < 1e-7, 'middle rollover centred in physical faces'
     # Every rollover bar sits the same distance from the lamp that owns it.
     lamps = {lamp['bar']: lamp for lamp in compiled['lamps'] if 'bar' in lamp}
     for rollover in compiled['rollovers']:
@@ -100,5 +196,6 @@ assert any(f[1] == 'slope angles' for f in check_spacing.unmatched_angles(crooke
 lanes = {'walls': [dict(id='l', points=[[0, 0], [0, 1]], radius=.01), dict(id='m', points=[[.1, 0], [.1, 1]], radius=.01), dict(id='r', points=[[.3, 0], [.3, 1]], radius=.01)]}
 assert abs(check_spacing.lane_width(lanes, 'l', 'm', .5) - .08) < 1e-9 and abs(check_spacing.lane_width(lanes, 'm', 'r', .5) - .18) < 1e-9, 'lanes are measured between wall faces'
 raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
-assert check_spacing.gap(near[0], raised) > 0 and raised.capsules[0][0][0] < -.03, 'spacing is measured through the lens: a raised part leans away from the centre of the view'
+assert check_spacing.gap(near[0], raised) > 0, 'height can visually separate parts under the tilted camera'
+assert abs(raised.capsules[0][0][0]) < 1e-9 and abs(raised.capsules[0][0][1] - (1 + .2 * math.tan(check_spacing.TILT))) < 1e-9, 'orthographic height shifts up-table without sideways growth'
 print('SCENES PASSED')

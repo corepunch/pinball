@@ -61,7 +61,7 @@ static PBShotOutcome *PBFire(PBTableDefinition *table, PBFlipperDef *flipper, fl
             else if (rightOrbit) reached = @"orbit right";
         }
         if (frame > 40 && b->position.y < 0.3f && b->velocity.y < 0.0f && !ended && b->ramp < 0) {
-            float middle = 0.461f;
+            float middle = (table.flippers[0].pivot.x + table.flippers[1].pivot.x) * .5f;
             if (b->position.x < 0.09f || b->position.x > 0.83f) ended = @"outlane";
             else if (fabsf(b->position.x - middle) < 0.05f) ended = @"gap";
             else ended = b->position.x < middle ? @"left flipper" : @"right flipper";

@@ -33,8 +33,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)pointerMoved:(id)pointer atPoint:(CGPoint)point;
 - (BOOL)pointerEnded:(id)pointer atPoint:(CGPoint)point cancelled:(BOOL)cancelled;
 - (void)cancelUIPointers;
-/// Device attitude relative to the player's neutral grip; safe from any thread.
-- (void)setLightingAttitude:(simd_quatf)attitude;
 
 @end
 

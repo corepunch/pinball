@@ -117,21 +117,27 @@
     },
     "common-flipper": {
       "objects": 1,
-      "triangles": 959,
+      "triangles": 743,
       "radius": 1.09,
-      "bytes": 76748
+      "bytes": 66614
     },
     "common-walls": {
       "objects": 1,
-      "triangles": 1616,
+      "triangles": 2388,
       "radius": 1.0567,
-      "bytes": 112352
+      "bytes": 198131
     },
     "common-plastics": {
       "objects": 1,
       "triangles": 1394,
-      "radius": 1.1198,
-      "bytes": 103466
+      "radius": 1.1217,
+      "bytes": 103377
+    },
+    "aurora-walls": {
+      "objects": 1,
+      "triangles": 176,
+      "radius": 0.8845,
+      "bytes": 13200
     }
   }
 }

@@ -100,8 +100,11 @@ def flat(data, outline, z, role, sharp=90, uv=None):
     data.add([(p[0], p[1], z) for p in outline], [tuple(range(len(outline)))], role, uvs, sharp)
 
 
-def inset_polygon(outline, distance):
-    """A convex counter-clockwise polygon moved in by distance."""
+def inset_polygon(outline, distance, min_cosine=.3):
+    """Inset a convex CCW polygon; min_cosine limits long mesh miters.
+
+    Use a near-zero limit for placement points that need the exact edge distance.
+    """
     out = []
     n = len(outline)
     for i in range(n):
@@ -109,7 +112,7 @@ def inset_polygon(outline, distance):
         t0, t1 = (p - a).normalized(), (b - p).normalized()
         miter = (t0 + t1).normalized()
         normal = Vector((-miter.y, miter.x))
-        q = p + normal * (distance / max(normal.dot(Vector((-t1.y, t1.x))), .3))
+        q = p + normal * (distance / max(normal.dot(Vector((-t1.y, t1.x))), min_cosine))
         out.append((q.x, q.y))
     return out
 

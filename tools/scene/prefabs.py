@@ -154,7 +154,9 @@ class Builder:
             self.line(element, a, data, names, xy)
         elif tag == 'each-corner':
             outline = mesher.ccw(pairs(a.get('points')))
-            for corner in mesher.inset_polygon(outline, a.number('inset', 0)):
+            # These are fastener centres, not mesh corners: clipping a sharp
+            # miter silently moves a rivet onto the rounded edge of the part.
+            for corner in mesher.inset_polygon(outline, a.number('inset', 0), min_cosine=1e-6):
                 self.run(element, data, names, (corner[0], corner[1]))
         else:
             outline = outline_of(a)
@@ -183,7 +185,8 @@ class Builder:
             if modifier.tag == 'fillet':
                 outline = mesher.filleted(mesher.ccw(outline), m.number('radius'), int(m.number('arc', 8)))
             elif modifier.tag == 'inset':
-                outline = mesher.inset_polygon(mesher.ccw(outline), m.number('amount'))
+                outline = mesher.inset_polygon(mesher.ccw(outline), m.number('amount'),
+                                               min_cosine=1e-6 if m.get('exact') == 'true' else .3)
             elif modifier.tag == 'extrude':
                 extrude = m.number('amount')
             elif modifier.tag == 'bevel':

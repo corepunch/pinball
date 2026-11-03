@@ -4,7 +4,12 @@
 
 Four art directions were explored in `Art/Concepts/premium-directions.png`. Orbital was selected for
 its Space Cadet-inspired navy/ivory/vermilion space illustration; Abyss for its distinct petrol/brass
-deep-sea illustration. The images are original artwork generated with the **built-in ImageGen tool**.
+deep-sea illustration. Orbital's current playfield uses a dark midnight-navy/petrol enamel surface with restrained
+blue/bronze edge pinstripes, following Space Cadet's playfield-to-lamp contrast. The quiet centre
+lets real emissive lamps and the coral ball stand out. Its original hardware stays in place.
+`Art/Masters/orbital-night-field.png` is the current source; the earlier space painting and mint
+field remain preserved as historical masters. `Art/Prompts/orbital-night-field.txt` records the edit.
+The images are original artwork generated with the **built-in ImageGen tool**.
 Exact prompts are preserved in `Art/Prompts/`, and lossless source PNGs in `Art/Masters/`.
 
 Each set has a separate tall playfield painting and a compact hardware atlas. The atlas contains both
@@ -23,7 +28,7 @@ The `inserts` slot is a 4×4 glyph sheet with optional `cellBleed` to exclude it
 
 Material controls under `materials` are `metalness`, `roughness`, `playfieldReflectivity`, `bloom`,
 `rampOpacity` and `rampGlass` (the ramp's tint; opacity 1 is solid sheet metal). All metal is a tinted MatCap: `matcap` and `rampMatcap` name them (`courtyard`, `studio`, `sunrise`). `rampBlur` (a mip bias) and `rampGloss` (0 to 1) set how satin the channel looks. `capBase` and `capStar` paint the bumper caps. Palette
-`shell` is the cabinet's and the walls' colour. `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
+`shell` is the opaque walls/apron colour; there is no surrounding 3D cabinet. `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
 sleeves of skins with no model kit.
 Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
 reflections. `modelKit: "premium"` selects the compiled domed bumper, insert socket, and ramp

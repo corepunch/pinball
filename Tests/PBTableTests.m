@@ -8,6 +8,7 @@
 #import <XCTest/XCTest.h>
 #import "PBGame.h"
 #import "PBLayoutValidator.h"
+#import "PBTablePresentation.h"
 
 @interface PBStatsObserver : NSObject <PBGameObserver>
 @property (nonatomic, strong) NSCountedSet<NSString *> *hits;
@@ -366,6 +367,17 @@
     XCTAssertTrue(found);
 }
 
+- (void)testValidatorFindsRaisedHardwareProjectingIntoTheHeader {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    // Its foot fits inside the board, but the tilted view shifts its top into the HUD.
+    json[@"bumpers"] = [@[ @{ @"id": @"tooHigh", @"x": @0.5, @"y": @1.88, @"r": @0.015 } ] mutableCopy];
+    BOOL found = NO;
+    for (PBLayoutIssue *issue in [self issuesForJSON:json]) {
+        if (issue.kind == PBLayoutIssueOutOfBounds && [issue.first isEqualToString:@"tooHigh"]) found = YES;
+    }
+    XCTAssertTrue(found, @"raised hardware must clear the compact gameplay header");
+}
+
 // Footprints are only honest if they cover the models actually drawn.
 - (void)testFootprintsCoverTheCompiledModels {
     NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../Art/Models/manifest.json"];
@@ -409,9 +421,172 @@
         for (NSInteger b = 0; b < game.world.ballCapacity; b++) {
             if (balls[b].state == PBBallInactive) continue;
             XCTAssertTrue(balls[b].position.x > 0.0f && balls[b].position.x < 1.0f, @"ball %ld x=%f", (long)b, balls[b].position.x);
-            XCTAssertTrue(balls[b].position.y > 0.0f && balls[b].position.y < table.size.y, @"ball %ld y=%f", (long)b, balls[b].position.y);
+            CGPoint screen = PBTableScreenPoint(table.size, CGSizeMake(402, 874), 59, 34, balls[b].position, balls[b].z);
+            XCTAssertTrue(screen.y >= 0 && balls[b].position.y > 0, @"ball %ld stays between the display top and drain, y=%f", (long)b, balls[b].position.y);
+            CGFloat radius = PBDisplayCornerRadius(CGSizeMake(402, 874), 59, 34);
+            if (screen.y < radius && (screen.x < radius || screen.x > 402 - radius)) {
+                CGFloat cx = screen.x < radius ? radius : 402 - radius;
+                XCTAssertLessThanOrEqual(hypot(screen.x - cx, screen.y - radius), radius, @"ball stays inside the rounded display corner");
+            }
             XCTAssertFalse(isnan(balls[b].position.x), @"NaN");
         }
+    }
+}
+
+- (PBGame *)casualGameAt:(simd_float2)point {
+    NSMutableDictionary *json = [self tableJSON:@"aurora"];
+    for (NSString *key in @[@"walls", @"posts", @"bumpers", @"slingshots", @"dropTargets", @"standups", @"rollovers", @"spinners", @"saucers", @"gates", @"kickbacks", @"magnets", @"captiveBalls", @"ramps"]) json[key] = @[];
+    json[@"physics"][@"gravity"] = @0;
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
+    PBGame *game = [[PBGame alloc] initWithTable:table highScore:0];
+    [game requestNewGame]; [game update:0];
+    [game.world removeAllPlayBalls];
+    NSInteger ball = [game.world spawnBallAtPlunger];
+    [game.world placeBall:ball at:point velocity:0];
+    return game;
+}
+
+- (void)advanceCasualGame:(PBGame *)game frames:(NSInteger)frames {
+    for (NSInteger i = 0; i < frames; i++) [game update:1.0 / 60];
+}
+
+- (void)assertCasualGame:(PBGame *)game left:(BOOL)left right:(BOOL)right {
+    for (NSUInteger i = 0; i < game.table.flippers.count; i++) {
+        PBFlipperDef *flipper = game.table.flippers[i];
+        BOOL pressed = flipper.isLeft ? left : right;
+        XCTAssertEqualWithAccuracy([game.world flipperAngle:i], pressed ? flipper.activeAngle : flipper.restAngle, 1e-4);
+    }
+}
+
+- (void)testAnywherePressChargesOnlySpringAndReleaseLaunches {
+    PBGame *game = [self casualGameAt:simd_make_float2(.962f, .132f)];
+    [game setPrimaryPressed:YES];
+    [self advanceCasualGame:game frames:18];
+    XCTAssertGreaterThan(game.world.plungerPull, .25f);
+    [self assertCasualGame:game left:NO right:NO];
+    [game setPrimaryPressed:NO]; [game update:1.0 / 60];
+    XCTAssertEqual(game.world.plungerPull, 0);
+    XCTAssertGreaterThan(game.world.balls[0].velocity.y, .5f);
+}
+
+- (void)testAnywherePressSelectsBallSideAndLatchesUntilRelease {
+    // .48 is left of the PHONE centre, although right of the lower kit's axis.
+    for (NSNumber *x in @[@.25, @.48, @.5, @.75]) {
+        PBGame *game = [self casualGameAt:simd_make_float2(x.floatValue, .9f)];
+        BOOL left = x.floatValue < .5f;
+        [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:6];
+        [self assertCasualGame:game left:left right:!left];
+        XCTAssertEqual(game.world.plungerPull, 0);
+        [game.world placeBall:0 at:simd_make_float2(left ? .75f : .25f, .9f) velocity:0];
+        [self advanceCasualGame:game frames:6];
+        [self assertCasualGame:game left:left right:!left];
+        [game setPrimaryPressed:NO]; [self advanceCasualGame:game frames:8];
+        [self assertCasualGame:game left:NO right:NO];
+        [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:6];
+        [self assertCasualGame:game left:!left right:left];
+    }
+}
+
+- (void)testAnywherePressUsesLowestFreeBallDuringMultiball {
+    PBGame *game = [self casualGameAt:simd_make_float2(.75f, 1.4f)];
+    NSInteger lower = [game.world spawnBallAtPlunger];
+    [game.world placeBall:lower at:simd_make_float2(.25f, .8f) velocity:0];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:6];
+    [self assertCasualGame:game left:YES right:NO];
+}
+
+- (void)testAnywherePressGivesWaitingLaunchBallPriority {
+    PBGame *game = [self casualGameAt:simd_make_float2(.25f, .8f)];
+    [game.world spawnBallAtPlunger];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:18];
+    XCTAssertGreaterThan(game.world.plungerPull, .25f);
+    [self assertCasualGame:game left:NO right:NO];
+}
+
+- (void)testCancellingAnywherePressDiscardsChargeWithoutLaunch {
+    PBGame *game = [self casualGameAt:simd_make_float2(.962f, .132f)];
+    PBStatsObserver *events = [PBStatsObserver new]; [game addObserver:events];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:18];
+    [game cancelPrimaryInput]; [self advanceCasualGame:game frames:6];
+    XCTAssertEqual(game.world.plungerPull, 0);
+    XCTAssertEqual([events.hits countForObject:@"plunge"], 0u);
+    XCTAssertLessThanOrEqual(game.world.balls[0].velocity.y, .01f);
+    [self assertCasualGame:game left:NO right:NO];
+    // The next genuine press still works after an interruption.
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:18];
+    XCTAssertGreaterThan(game.world.plungerPull, .25f);
+}
+
+- (void)testAnywherePressWithNoPlayableBallDoesNotRaiseFlippers {
+    PBGame *game = [self casualGameAt:simd_make_float2(.25f, .9f)];
+    [game.world removeAllPlayBalls];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:6];
+    [self assertCasualGame:game left:NO right:NO];
+    XCTAssertEqual(game.world.plungerPull, 0);
+}
+
+- (void)testRestartDiscardsHeldAnywhereAction {
+    PBGame *game = [self casualGameAt:simd_make_float2(.25f, .9f)];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:6];
+    [game requestNewGame]; [self advanceCasualGame:game frames:8];
+    [self assertCasualGame:game left:NO right:NO];
+    XCTAssertEqual(game.world.plungerPull, 0);
+    [game setPrimaryPressed:NO]; [game update:1.0 / 60];
+    [game setPrimaryPressed:YES]; [self advanceCasualGame:game frames:18];
+    XCTAssertGreaterThan(game.world.plungerPull, .25f);
+}
+
+- (void)testBallsFallFreelyThroughAllFourEqualLowerLanes {
+    for (NSString *name in [self allTableNames]) {
+        PBTableDefinition *table = [self loadTable:name];
+        for (PBSpotDef *lane in table.rollovers) {
+            if (![lane.identifier hasPrefix:@"inlane"] && ![lane.identifier hasPrefix:@"outlane"]) continue;
+            PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+            NSInteger ball = [world spawnBallAtPlunger];
+            [world placeBall:ball at:simd_make_float2(lane.position.x, .43f) velocity:simd_make_float2(0, -.5f)];
+            for (NSInteger tick = 0; tick < 80; tick++) {
+                [world advanceOneTick];
+                XCTAssertEqual(world.balls[ball].state, PBBallFree);
+                XCTAssertEqualWithAccuracy(world.balls[ball].position.x, lane.position.x, 1e-5, @"%@ stays clear of both channel faces", lane.identifier);
+                XCTAssertLessThan(world.balls[ball].velocity.y, -.4f, @"%@ must not wedge or bounce back", lane.identifier);
+            }
+            XCTAssertLessThan(world.balls[ball].position.y, .39f);
+        }
+    }
+}
+
+- (void)testAuthoredDisplayReferenceMatchesRuntimeBoundary {
+    PBTableDefinition *table = [self loadTable:@"aurora"];
+    PBWallDef *outer = nil;
+    for (PBWallDef *wall in table.walls) if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
+    XCTAssertNotNil(outer);
+    PBPointList *runtime = PBTableDisplayBoundary(table.size, CGSizeMake(402, 874), 59, 34, table.ballRadius, outer.radius);
+    XCTAssertEqual(outer.points.count, runtime.count);
+    for (NSInteger i = 0; i < runtime.count && i < outer.points.count; i++) {
+        XCTAssertLessThan(simd_distance(outer.points.points[i], runtime.points[i]), 2e-6f, @"authored lane measurements use actual display bounds");
+    }
+}
+
+- (void)testUnifiedBallSizeFitsTheLaunchLane {
+    for (NSString *name in [self allTableNames]) {
+        PBTableDefinition *table = [self loadTable:name];
+        XCTAssertEqualWithAccuracy(table.ballRadius, .03 * 1.34 * .85, 1e-7, @"15 percent smaller than the previous visible radius");
+        PBWallDef *inner = nil, *outer = nil;
+        for (PBWallDef *wall in table.walls) {
+            if ([wall.identifier isEqualToString:@"shooterInner"]) inner = wall;
+            if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
+        }
+        XCTAssertNotNil(inner); XCTAssertNotNil(outer);
+        PBPointList *edge = PBTableDisplayBoundary(table.size, CGSizeMake(402, 874), 59, 34, table.ballRadius, outer.radius);
+        float minimum = inner.points.points[0].x + inner.radius + table.ballRadius;
+        float maximum = edge.points[0].x - outer.radius - table.ballRadius;
+        XCTAssertGreaterThan(maximum - minimum, .001f, @"%@ launch lane clears the physical diameter", name);
+        PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
+        NSInteger ball = [world spawnBallAtPlunger];
+        [world advanceBy:1.0 / 60];
+        XCTAssertGreaterThanOrEqual(world.balls[ball].position.x, minimum - 1e-6f);
+        XCTAssertLessThanOrEqual(world.balls[ball].position.x, maximum + 1e-6f);
+        XCTAssertTrue(world.isBallOnPlunger);
     }
 }
 
@@ -431,7 +606,7 @@
         top = MAX(top, world.balls[index].position.y);
         leftmost = MIN(leftmost, world.balls[index].position.x);
     }
-    XCTAssertGreaterThan(top, table.size.y - 0.1f, @"ball should climb to the arch");
+    XCTAssertGreaterThan(top, table.size.y - 0.1f, @"ball should climb to the top lanes");
     XCTAssertLessThan(leftmost, 0.8f, @"ball should clear the one-way gate into the playfield");
 }
 

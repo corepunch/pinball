@@ -9,8 +9,10 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <simd/simd.h>
 #import "PBTableDefinition.h"
+#import "PBSoftBall.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -90,6 +92,8 @@ typedef struct {
 @property (nonatomic, readonly) uint64_t tick;
 /// Disable rescue in strict design trials; PBEventBallStuck still reports the defect.
 @property (nonatomic) BOOL automaticBallSearch;
+/// Call under the game/render lock when the viewport changes. No island collider.
+- (void)fitDisplayBoundaryToViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom;
 /// One exact production physics step, for headless fixtures; drain events after each step.
 - (void)advanceOneTick;
 
@@ -101,6 +105,8 @@ typedef struct {
 
 #pragma mark Balls
 - (const PBBall *)balls;
+/// Elastic presentation state driven by real contacts; never changes collision radius.
+- (PBSoftBall)softBallAtIndex:(NSInteger)index;
 /// Number of live non-captive balls.
 - (NSInteger)activeBallCount;
 - (NSInteger)spawnBallAtPlunger;
@@ -112,6 +118,7 @@ typedef struct {
 #pragma mark Controls
 - (void)setFlipperGroupLeft:(BOOL)left pressed:(BOOL)pressed;
 - (void)setPlungerPulled:(BOOL)pulled;
+- (void)cancelPlungerPull;
 - (void)autoPlunge;
 - (void)nudge:(simd_float2)impulse;
 - (void)setFlippersEnabled:(BOOL)enabled;
@@ -126,6 +133,7 @@ typedef struct {
 #pragma mark State for drawing
 - (float)flipperAngle:(NSInteger)index;
 - (float)spinnerAngle:(NSInteger)index;
+/// Actual opening angle in radians, shared by the moving wire collider and mesh.
 - (float)gateAngle:(NSInteger)index;
 - (float)dropTargetDrop:(NSInteger)index;
 /// Seconds since a bumper, sling or stand-up last fired, for animation.

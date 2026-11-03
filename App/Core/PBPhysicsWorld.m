@@ -3,6 +3,8 @@
 //
 
 #import "PBPhysicsWorld.h"
+#import "PBTablePresentation.h"
+#import "PBGateGeometry.h"
 
 NSString *PBEventName(PBEventKind kind) {
     static NSString *const names[] = { @"bumper", @"sling", @"drop", @"standup", @"rollover", @"spinner", @"saucer", @"saucerEject", @"rampEnter", @"rampComplete", @"kickback", @"magnet", @"drain", @"flipUp", @"flipDown", @"wall", @"plunge", @"gate", @"stuck", @"coil", @"flipperContact", @"rampRollback", @"magnetRelease" };
@@ -72,7 +74,6 @@ typedef struct {
     PBColliderKind kind;
     int16_t ramp;         // Side rails belong to one elevated path; -1 for global colliders.
     BOOL enabled;
-    simd_float2 passDirection;
 } PBCollider;
 
 typedef struct {
@@ -122,6 +123,15 @@ static inline simd_float2 PBClosestOnSegment(simd_float2 p, simd_float2 a, simd_
     return a + ab * t;
 }
 
+/// passDirection selects the permitted side of the segment, not a velocity axis.
+static simd_float2 PBGateNormal(PBEdgeDef *gate) {
+    simd_float2 edge = gate.b - gate.a;
+    float length = simd_length(edge);
+    if (length < 1e-6f) return simd_make_float2(0, 1);
+    simd_float2 normal = simd_make_float2(-edge.y, edge.x) / length;
+    return simd_dot(normal, gate.passDirection) < 0 ? -normal : normal;
+}
+
 /// Signed-area crossing test used by mouths and spinners.
 static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a, simd_float2 b) {
     simd_float2 r = p1 - p0, s = b - a;
@@ -135,10 +145,12 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
 
 @implementation PBPhysicsWorld {
     PBBall _balls[kMaxBalls];
+    PBSoftBall _softBalls[kMaxBalls];
     double _accumulator;
 
     PBCollider *_colliders;
     NSInteger _colliderCount;
+    NSInteger _outerColliderBase, _outerColliderCount;
     NSInteger _stopperColliderBase;
     NSInteger _dropColliderBase;
     float *_activeCooldown;   // Per collider.
@@ -166,6 +178,8 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     float *_slingFlash;
     float *_standupFlash;
     float *_gateAngles;
+    float *_gateVelocities;
+    uint8_t *_gatePassingBalls;
 
     PBEvent _events[kMaxEvents];
     NSInteger _eventCount;
@@ -222,17 +236,21 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     for (NSInteger i = 0; i < _rampCount; i++) { free(_ramps[i].points); free(_ramps[i].distances); }
     free(_ramps); free(_saucers); free(_kickbacks); free(_magnets); free(_rollovers);
     free(_rolloverInside); free(_dropDrop); free(_bumperFlash); free(_slingFlash); free(_standupFlash); free(_gateAngles);
+    free(_gateVelocities); free(_gatePassingBalls);
 }
 
 - (NSInteger)ballCapacity { return kMaxBalls; }
 - (float)plungerPull { return _plungerPull; }
 - (const PBBall *)balls { return _balls; }
+- (PBSoftBall)softBallAtIndex:(NSInteger)index {
+    return index >= 0 && index < kMaxBalls ? _softBalls[index] : (PBSoftBall){0};
+}
 
 #pragma mark - Setup
 
 - (void)buildColliders {
     PBTableDefinition *t = _table;
-    NSInteger capacity = 64;
+    NSInteger capacity = 128;
     for (PBWallDef *wall in t.walls) capacity += wall.points.count + 1;
     for (PBRampDef *ramp in t.ramps) capacity += ramp.pointCount * 2 + 2 + (NSInteger)ramp.supportColumns.count;
     capacity += (NSInteger)(t.posts.count + t.bumpers.count + t.slingshots.count + t.dropTargets.count + t.standups.count + t.gates.count + t.stoppers.count);
@@ -249,6 +267,18 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
 
     for (PBWallDef *wall in t.walls) {
         float bounce = wall.style == PBWallStyleRubber ? 0.72f : (wall.style == PBWallStyleRail ? 0.32f : 0.42f);
+        if ([wall.identifier isEqualToString:@"outer"]) {
+            // The screen owns this boundary. Headless play uses the reference phone;
+            // the app replaces these same segments when it receives its real viewport.
+            PBPointList *edge = PBTableDisplayBoundary(t.size, CGSizeMake(402, 874), 59, 34, t.ballRadius, wall.radius);
+            _outerColliderBase = n;
+            _outerColliderCount = edge.count - 1;
+            for (NSInteger i = 0; i < _outerColliderCount; i++) {
+                simd_float2 a = edge.points[i], b = edge.points[i + 1];
+                add(a, b, wall.radius, bounce, (uint32_t)wall.layers, PBColliderStatic, -1);
+            }
+            continue;
+        }
         const simd_float2 *p = wall.points.points;
         for (NSInteger i = 0; i + 1 < wall.points.count; i++) add(p[i], p[i + 1], wall.radius, bounce, (uint32_t)wall.layers, PBColliderStatic, -1);
         if (wall.closed) add(p[wall.points.count - 1], p[0], wall.radius, bounce, (uint32_t)wall.layers, PBColliderStatic, -1);
@@ -281,8 +311,8 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         add(s.a, s.b, 0.005f, 0.4f, s.layers & PBLayerDeck ? PBLayerDeck : PBLayerPlayfield | PBLayerCaptive, PBColliderStandup, (NSInteger)i);
     }];
     [t.gates enumerateObjectsUsingBlock:^(PBEdgeDef *g, NSUInteger i, BOOL *stop) {
-        add(g.a, g.b, 0.004f, 0.2f, PBLayerPlayfield, PBColliderGate, (NSInteger)i);
-        self->_colliders[n - 1].passDirection = g.passDirection;
+        PBGateGeometry gate = PBGateGeometryMake(t.ballRadius);
+        add(g.a, g.b, gate.wireRadius, 0.2f, (uint32_t)g.layers, PBColliderGate, (NSInteger)i);
     }];
 
     // Side rails for each ramp, offset from its centreline; only balls on the ramp feel them.
@@ -311,8 +341,14 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
 }
 
 - (void)buildGrid {
+    free(_cellStart); free(_cellItems);
+    _cellStart = NULL; _cellItems = NULL;
     _gridWidth = (NSInteger)ceilf(_table.size.x / kCellSize) + 1;
     _gridHeight = (NSInteger)ceilf(_table.size.y / kCellSize) + 1;
+    for (NSInteger i = 0; i < _colliderCount; i++) {
+        _gridWidth = MAX(_gridWidth, (NSInteger)ceilf(MAX(_colliders[i].a.x, _colliders[i].b.x) / kCellSize) + 1);
+        _gridHeight = MAX(_gridHeight, (NSInteger)ceilf(MAX(_colliders[i].a.y, _colliders[i].b.y) / kCellSize) + 1);
+    }
     NSInteger cells = _gridWidth * _gridHeight;
     NSInteger *counts = calloc((size_t)cells + 1, sizeof(NSInteger));
 
@@ -320,6 +356,9 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         for (NSInteger i = 0; i < self->_colliderCount; i++) {
             PBCollider *c = &self->_colliders[i];
             float reach = c->radius + self->_ballRadius + 0.012f;
+            // The hinged door rotates away from its closed line. Keep its whole
+            // movement envelope in the grid without rebuilding it every tick.
+            if (c->kind == PBColliderGate) reach += simd_distance(c->a, c->b) * 2 * sinf(PBGateGeometryMake(self->_ballRadius).maxAngle * .5f);
             NSInteger x0 = MAX(0, (NSInteger)floorf((MIN(c->a.x, c->b.x) - reach) / kCellSize));
             NSInteger x1 = MIN(self->_gridWidth - 1, (NSInteger)floorf((MAX(c->a.x, c->b.x) + reach) / kCellSize));
             NSInteger y0 = MAX(0, (NSInteger)floorf((MIN(c->a.y, c->b.y) - reach) / kCellSize));
@@ -350,6 +389,18 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
     _cellItems = calloc((size_t)MAX(total, 1), sizeof(int32_t));
     visit(YES);
     free(counts);
+}
+
+- (void)fitDisplayBoundaryToViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom {
+    if (!isfinite(size.width) || !isfinite(size.height) || size.width <= 0 || size.height <= 0 || !_outerColliderCount) return;
+    PBCollider *outer = &_colliders[_outerColliderBase];
+    PBPointList *edge = PBTableDisplayBoundary(_table.size, size, top, bottom, _ballRadius, outer->radius);
+    NSAssert(edge.count == _outerColliderCount + 1, @"Display contour segment count is stable");
+    for (NSInteger i = 0; i < _outerColliderCount; i++) {
+        outer[i].a = edge.points[i];
+        outer[i].b = edge.points[i + 1];
+    }
+    [self buildGrid];
 }
 
 static PBSpotState PBSpotFrom(PBSpotDef *def) {
@@ -432,6 +483,8 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     _slingFlash = calloc(MAX(t.slingshots.count, 1u), sizeof(float));
     _standupFlash = calloc(MAX(t.standups.count, 1u), sizeof(float));
     _gateAngles = calloc(MAX(t.gates.count, 1u), sizeof(float));
+    _gateVelocities = calloc(MAX(t.gates.count, 1u), sizeof(float));
+    _gatePassingBalls = calloc(MAX(t.gates.count, 1u), sizeof(uint8_t));
     for (NSUInteger i = 0; i < t.bumpers.count; i++) _bumperFlash[i] = 10.0f;
     for (NSUInteger i = 0; i < t.slingshots.count; i++) _slingFlash[i] = 10.0f;
     for (NSUInteger i = 0; i < t.standups.count; i++) _standupFlash[i] = 10.0f;
@@ -469,6 +522,8 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     NSInteger index = [self freeBallSlot];
     if (index < 0) return -1;
     PBBall *ball = &_balls[index];
+    _softBalls[index] = (PBSoftBall){0};
+    for (NSUInteger g = 0; g < _table.gates.count; g++) _gatePassingBalls[g] &= ~(1u << index);
     ball->state = PBBallFree;
     ball->captive = NO;
     ball->position = simd_make_float2(_plungerSpot.x, _plungerY + _ballRadius + 0.002f);
@@ -508,6 +563,8 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 - (void)removeBall:(NSInteger)index { _balls[index].state = PBBallInactive; }
 
 - (void)placeBall:(NSInteger)index at:(simd_float2)position velocity:(simd_float2)velocity {
+    _softBalls[index] = (PBSoftBall){0};
+    for (NSUInteger g = 0; g < _table.gates.count; g++) _gatePassingBalls[g] &= ~(1u << index);
     _balls[index].position = position;
     _balls[index].velocity = velocity;
 }
@@ -535,6 +592,12 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     _plungerHeld = pulled;
 }
 
+- (void)cancelPlungerPull {
+    _plungerHeld = NO;
+    _plungerPull = 0;
+    _plungerY = _plungerSpot.y;
+}
+
 - (void)releasePlungerWithStrength:(float)strength {
     [self emit:PBEventPlungerRelease element:0 ball:-1 magnitude:strength at:_plungerSpot];
     for (NSInteger i = 0; i < kMaxBalls; i++) {
@@ -542,6 +605,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         if (ball->state != PBBallFree || ball->captive || ![self isBallInLane:ball]) continue;
         if (ball->position.y < _plungerSpot.y + _ballRadius + 0.03f) {
             ball->velocity = simd_make_float2(0.0f, _plungerSpeed * strength);
+            PBSoftBallHit(&_softBalls[i], simd_make_float3(0, 1, 0), _plungerSpeed * strength * .55f);
         }
     }
     _plungerPull = 0;
@@ -659,11 +723,12 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     for (NSUInteger i = 0; i < t.bumpers.count; i++) _bumperFlash[i] += dt;
     for (NSUInteger i = 0; i < t.slingshots.count; i++) _slingFlash[i] += dt;
     for (NSUInteger i = 0; i < t.standups.count; i++) _standupFlash[i] += dt;
-    for (NSUInteger i = 0; i < t.gates.count; i++) _gateAngles[i] *= (1.0f - 5.0f * dt);
+    for (NSUInteger i = 0; i < t.gates.count; i++) [self stepGate:i dt:dt];
 
     for (NSInteger i = 0; i < kMaxBalls; i++) {
         PBBall *ball = &_balls[i];
-        if (ball->state == PBBallInactive) continue;
+        if (ball->state == PBBallInactive) { _softBalls[i] = (PBSoftBall){0}; continue; }
+        PBSoftBallAdvance(&_softBalls[i], dt);
         if (ball->state == PBBallInSaucer) continue;
         if (ball->state == PBBallHeldByMagnet) { [self stepHeldBall:i dt:dt]; continue; }
         if (ball->state == PBBallInTransit) { [self stepBallInTransit:i dt:dt]; continue; }
@@ -685,6 +750,50 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         f->velocity = 0;
     } else {
         f->angle += step;
+    }
+}
+
+- (void)stepGate:(NSInteger)index dt:(float)dt {
+    PBEdgeDef *gate = _table.gates[index];
+    PBGateGeometry geometry = PBGateGeometryMake(_ballRadius);
+    simd_float2 normal = PBGateNormal(gate);
+    simd_float2 edge = gate.b - gate.a;
+    float length = simd_length(edge);
+    simd_float2 along = length > 1e-6f ? edge / length : simd_make_float2(1, 0);
+    float lead = _ballRadius + .065f;
+    float exit = length + _ballRadius + .012f;
+    uint8_t passing = _gatePassingBalls[index];
+    BOOL heldOpen = NO;
+    for (NSInteger i = 0; i < kMaxBalls; i++) {
+        PBBall *ball = &_balls[i];
+        uint8_t bit = (uint8_t)(1u << i);
+        if (ball->state != PBBallFree || ball->captive || !(ball->layers & gate.layers)) { passing &= ~bit; continue; }
+        if (ball->z - _ballRadius > geometry.barHeight + geometry.wireRadius) { passing &= ~bit; continue; }
+        simd_float2 relative = ball->position - gate.a;
+        float side = simd_dot(relative, normal), across = simd_dot(relative, along);
+        BOOL inSpan = across >= -_ballRadius && across <= length + _ballRadius;
+        BOOL inSweep = inSpan && side >= -lead && side <= exit;
+        if (!inSweep) passing &= ~bit;
+        // Latch admission for the *whole* passage. Reversing before clearing the
+        // bar must let a weak plunge roll back, not close a collider inside it.
+        if (inSweep && side <= 0 && simd_dot(ball->velocity, normal) > .02f) passing |= bit;
+        if (passing & bit) heldOpen = YES;
+        // A returning door yields while a ball occupies its sweep.
+        if (_gateAngles[index] > .01f && inSpan && side >= -_ballRadius - geometry.wireRadius && side <= exit) heldOpen = YES;
+    }
+    _gatePassingBalls[index] = passing;
+    if (heldOpen) {
+        // A light door turns away from the launched ball. Its collider and
+        // mesh rotate around the same fixed hinge at endpoint a.
+        _gateVelocities[index] = 70;
+        _gateAngles[index] += _gateVelocities[index] * dt;
+        if (_gateAngles[index] >= geometry.maxAngle) { _gateAngles[index] = geometry.maxAngle; _gateVelocities[index] = 0; }
+    } else {
+        _gateVelocities[index] += (-400 * _gateAngles[index] - 26 * _gateVelocities[index]) * dt;
+        _gateAngles[index] += _gateVelocities[index] * dt;
+        if (_gateAngles[index] >= geometry.maxAngle) { _gateAngles[index] = geometry.maxAngle; _gateVelocities[index] = MIN(0, _gateVelocities[index]); }
+        // Mechanical stop: never swing into the shooter lane or bounce open.
+        if (_gateAngles[index] <= 0) { _gateAngles[index] = 0; _gateVelocities[index] = 0; }
     }
 }
 
@@ -771,7 +880,10 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     if (ball->z > restZ + 1e-4f && ball->ramp < 0) {
         ball->zVelocity -= 12.0f * dt;
         ball->z += ball->zVelocity * dt;
-        if (ball->z <= restZ) { ball->z = restZ; ball->zVelocity = 0; }
+        if (ball->z <= restZ) {
+            PBSoftBallHit(&_softBalls[index], simd_make_float3(0, 0, 1), -ball->zVelocity);
+            ball->z = restZ; ball->zVelocity = 0;
+        }
     } else {
         ball->z = restZ;
         ball->zVelocity = 0;
@@ -799,6 +911,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 // Shoving hasn't freed it, so it is somewhere a ball shouldn't be: serve it again.
                 ball->stuckCount = 0;
                 ball->position = simd_make_float2(_plungerSpot.x, _plungerY + _ballRadius + 0.002f);
+                _softBalls[index] = (PBSoftBall){0};
                 ball->velocity = simd_make_float2(0.0f, 0.0f);
                 ball->layers = PBLayerPlayfield;
                 ball->ramp = -1;
@@ -892,6 +1005,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     if (ball->position.y < floorY) {
         ball->position.y = floorY;
         float impact = -ball->velocity.y;
+        PBSoftBallHit(&_softBalls[index], simd_make_float3(0, 1, 0), impact);
         if (ball->velocity.y < 0.0f) ball->velocity.y *= -0.2f;
         if (fabsf(ball->velocity.y) < 0.05f) ball->velocity.y = 0;
         if (impact > 0.0f && ball->velocity.y > 0.0f) {
@@ -901,20 +1015,13 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
 }
 
 - (void)resolveBall:(NSInteger)index against:(PBCollider *)c colliderIndex:(int32_t)colliderIndex {
+    if (c->kind == PBColliderGate) { [self resolveGate:c ball:index]; return; }
     PBBall *ball = &_balls[index];
     simd_float2 q = PBClosestOnSegment(ball->position, c->a, c->b, NULL);
     simd_float2 delta = ball->position - q;
     float reach = _ballRadius + c->radius;
     float distanceSquared = simd_length_squared(delta);
     if (distanceSquared >= reach * reach || distanceSquared < 1e-12f) return;
-
-    if (c->kind == PBColliderGate) {
-        // One-way wire: open to a ball moving with the pass direction, solid against it.
-        if (simd_dot(ball->velocity, c->passDirection) > 0.0f) {
-            _gateAngles[c->element] = 1.0f;
-            return;
-        }
-    }
 
     float distance = sqrtf(distanceSquared);
     simd_float2 normal = delta / distance;
@@ -968,11 +1075,41 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
         default:
             break;
     }
+    // Includes powered bumper/sling impulse without adding duplicate score events.
+    float contactSpeed = MAX(impact, (impact + simd_dot(ball->velocity, normal)) * .5f);
+    PBSoftBallHit(&_softBalls[index], simd_make_float3(normal.x, normal.y, 0), contactSpeed);
     // A passive rebound still happens when an element is cooling down or a sling
     // is hit too gently to fire. Report it once, without duplicating active hits.
     if (!activeHit && impact > kMinBounceImpact) {
         [self emit:PBEventWallHit element:-1 ball:index magnitude:impact at:ball->position];
     }
+}
+
+- (void)resolveGate:(PBCollider *)collider ball:(NSInteger)index {
+    NSInteger gateIndex = collider->element;
+    if (_gatePassingBalls[gateIndex] & (1u << index)) return;
+    PBEdgeDef *gate = _table.gates[gateIndex];
+    PBGateGeometry geometry = PBGateGeometryMake(_ballRadius);
+    float angle = _gateAngles[gateIndex];
+    simd_float2 forward = PBGateNormal(gate);
+    simd_float2 tip = PBGateTip(gate.a, gate.b, gate.passDirection, angle);
+    float height = geometry.barHeight;
+    PBBall *ball = &_balls[index];
+    float dz = ball->z - height;
+    float reach = _ballRadius + collider->radius;
+    if (fabsf(dz) >= reach) return; // Airborne balls can clear the fixed-height door.
+    float horizontalReach = sqrtf(reach * reach - dz * dz);
+    simd_float2 q = PBClosestOnSegment(ball->position, gate.a, tip, NULL);
+    simd_float2 delta = ball->position - q;
+    float distance = simd_length(delta);
+    if (distance >= horizontalReach) return;
+    simd_float2 normal = distance > 1e-6f ? delta / distance : forward;
+    ball->position = q + normal * horizontalReach;
+    float vn = simd_dot(ball->velocity, normal);
+    if (vn >= 0) return;
+    ball->velocity -= normal * vn * (1 + collider->bounce);
+    PBSoftBallHit(&_softBalls[index], simd_make_float3(normal * horizontalReach, dz) / reach, -vn);
+    if (-vn > kMinBounceImpact) [self emit:PBEventWallHit element:-1 ball:index magnitude:-vn at:ball->position];
 }
 
 - (void)collideFlippers:(NSInteger)index {
@@ -1003,6 +1140,7 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
             BOOL moving = fabsf(f->velocity) > 1.0f;
             float bounce = moving ? kFlipperMovingBounce : kFlipperRestBounce;
             ball->velocity -= normal * vn * (1.0f + bounce);
+            PBSoftBallHit(&_softBalls[index], simd_make_float3(normal.x, normal.y, 0), -vn);
             if (-vn > kMinBounceImpact) {
                 [self emit:PBEventWallHit element:-1 ball:index magnitude:-vn at:ball->position];
                 [self emit:PBEventFlipperContact element:i ball:index magnitude:-vn at:ball->position];
@@ -1035,7 +1173,8 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
     if (ball->ramp < 0) {
         for (NSInteger g = 0; g < (NSInteger)_table.gates.count; g++) {
             PBEdgeDef *gate = _table.gates[g];
-            if (simd_dot(ball->velocity, gate.passDirection) > 0 && PBSegmentsCross(previous, ball->position, gate.a, gate.b))
+            simd_float2 normal = PBGateNormal(gate);
+            if (simd_dot(previous - gate.a, normal) <= 0 && simd_dot(ball->position - gate.a, normal) > 0 && PBSegmentsCross(previous, ball->position, gate.a, gate.b))
                 [self emit:PBEventGate element:g ball:index magnitude:simd_length(ball->velocity) at:ball->position];
         }
         uint8_t *inside = &_rolloverInside[index * _rolloverCount];
@@ -1121,6 +1260,9 @@ static PBSpotState PBSpotFrom(PBSpotDef *def) {
                 simd_float2 impulse = normal * vn * 0.5f * (1.0f + 0.85f);
                 a->velocity -= impulse;
                 b->velocity += impulse;
+                simd_float3 axis = simd_make_float3(normal.x, normal.y, 0);
+                PBSoftBallHit(&_softBalls[i], axis, -vn * .5f);
+                PBSoftBallHit(&_softBalls[j], -axis, -vn * .5f);
                 if (-vn > kMinBounceImpact) [self emit:PBEventWallHit element:-1 ball:i magnitude:-vn at:a->position];
             }
         }

@@ -7,9 +7,13 @@
 #import "PBPlayfieldPainter.h"
 #import "PBModelLibrary.h"
 #import "PBLayoutValidator.h"
+#import "PBTablePresentation.h"
+#import "PBGateGeometry.h"
 
-static const float kLightingMaxTilt = 0.60f;  // Radians; keep the light above the table.
-static const float kLightingResponse = 0.10f; // Seconds; suppress hand tremor without lag.
+// A single 2:1 map: its 4096-texel axis follows the length of the phone.
+// 32 MiB for 32-bit depth; no cascades.
+static const NSUInteger kShadowMapWidth = 4096;
+static const NSUInteger kShadowMapHeight = 2048;
 
 /// PBR can produce NaN or infinity at silhouette edges under a close light. One such pixel
 /// becomes a black square once bloom downsamples it, so every PBR material filters them out.
@@ -17,6 +21,52 @@ static NSString *const kPBHDRGuard =
     @"float3 pbGuard = _output.color.rgb;\n"
     @"if (any(isnan(pbGuard)) || any(isinf(pbGuard))) pbGuard = float3(0.0);\n"
     @"_output.color.rgb = min(pbGuard, float3(6.0));\n";
+
+// Fine, tileable mould grain. This is a normal map (linear data), not painted
+// lighting: the surface responds to the real lights and rolls with the ball.
+static float PBRubberGrainHash(int x, int y, int width, int height) {
+    x = (x % width + width) % width; y = (y % height + height) % height;
+    uint32_t bits = (uint32_t)x * 0x8da6b343u ^ (uint32_t)y * 0xd8163841u ^ 0x59b13f21u;
+    bits ^= bits >> 16; bits *= 0x7feb352du; bits ^= bits >> 15;
+    return (bits & 0xffffu) / 65535.0f;
+}
+
+static float PBRubberGrainHeight(float u, float v) {
+    float x = u * 64, y = v * 32;
+    int ix = (int)floorf(x), iy = (int)floorf(y);
+    float tx = x - ix, ty = y - iy;
+    tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+    float a = PBRubberGrainHash(ix, iy, 64, 32), b = PBRubberGrainHash(ix + 1, iy, 64, 32);
+    float c = PBRubberGrainHash(ix, iy + 1, 64, 32), d = PBRubberGrainHash(ix + 1, iy + 1, 64, 32);
+    return (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+}
+
+static CGImageRef PBRubberNormalImage(void) {
+    static CGImageRef image;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        const size_t width = 512, height = 256;
+        CGColorSpaceRef space = CGColorSpaceCreateWithName(kCGColorSpaceLinearSRGB);
+        CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, 0, space,
+            (CGBitmapInfo)kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+        CGColorSpaceRelease(space);
+        uint8_t *pixels = CGBitmapContextGetData(context);
+        size_t stride = CGBitmapContextGetBytesPerRow(context);
+        for (size_t y = 0; y < height; y++) for (size_t x = 0; x < width; x++) {
+            float u = (float)x / width, v = (float)y / (height - 1);
+            float pole = sinf((float)M_PI * v);
+            float dx = PBRubberGrainHeight(u + 1.0f / width, v) - PBRubberGrainHeight(u - 1.0f / width, v);
+            float dy = PBRubberGrainHeight(u, v + 1.0f / height) - PBRubberGrainHeight(u, v - 1.0f / height);
+            simd_float3 normal = simd_normalize(simd_make_float3(-dx * 2.8f * pole, -dy * 2.8f * pole, 1));
+            uint8_t *pixel = pixels + y * stride + x * 4;
+            for (int channel = 0; channel < 3; channel++) pixel[channel] = (uint8_t)lroundf((normal[channel] * .5f + .5f) * 255);
+            pixel[3] = 255;
+        }
+        image = CGBitmapContextCreateImage(context);
+        CGContextRelease(context);
+    });
+    return image;
+}
 
 /// Glowing parts light what is around them, and put a rim on it. SceneKit lights are too costly for
 /// every lamp and take no rim, so the sources go to the shader as one block, brightest first.
@@ -71,33 +121,16 @@ static NSString *PBFloorSurfaceModifier(simd_float2 size) {
             @"constexpr sampler pbSampler(coord::normalized, address::mirrored_repeat, filter::linear, mip_filter::linear, max_anisotropy(8));\n"
             @"float3 pbP = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;\n"
             @"float2 pbUV = float2(pbP.x / %f + 0.5, pbP.z / %f + 0.5);\n"
-            // The tilted board leaves a band above its far end: the art carries on there, dimmed.
             @"_surface.diffuse = pbPlayfield.sample(pbSampler, pbUV);\n"
-            @"_surface.diffuse.rgb *= 1.0 - 0.92 * saturate(-pbUV.y / 0.06);\n"
-            // In the surface stage: a fragment modifier on SCNFloor loses its planar reflection.
+            // Surface-stage sampling keeps the artwork and local glow together.
             @"%@_surface.emission.rgb += pbGlowLit;\n", kPBGlowDeclaration, size.x, size.y, PBGlowBody(0.14f)];
 }
 
-/// The tops of the solid walls and floors show the board's art beneath them, lifted by the skin's
-/// wall colour so they stand out from it. Their sides stay plain, to read as an edge.
-static NSString *PBShellSurfaceModifier(simd_float2 size) {
-    return [NSString stringWithFormat:
-            @"#pragma arguments\n"
-            @"texture2d<float> pbPlayfield;\n"
-            @"#pragma body\n"
-            @"constexpr sampler pbSampler(coord::normalized, address::mirrored_repeat, filter::linear, mip_filter::linear, max_anisotropy(8));\n"
-            @"float3 pbP = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;\n"
-            @"float3 pbN = (scn_frame.inverseViewTransform * float4(_surface.normal, 0.0)).xyz;\n"
-            @"float3 pbArt = pbPlayfield.sample(pbSampler, float2(pbP.x / %f + 0.5, pbP.z / %f + 0.5)).rgb;\n"
-            @"_surface.diffuse.rgb = mix(_surface.diffuse.rgb, pbArt * 2.8 + _surface.diffuse.rgb * 0.8, smoothstep(0.5, 0.9, pbN.y));\n", size.x, size.y];
-}
-
 /// A MatCap: the look of polished metal is read from a captured sphere by the surface's facing
-/// alone. The normal turns with the room as the phone tilts, so the highlights slide across the parts.
+/// alone. The room stays fixed while the geometry (ball, flippers, gates) moves.
 static NSString *const kPBMatcapModifier =
     @"#pragma arguments\n"
     @"texture2d<float> pbMatcap;\n"
-    @"float4x4 pbRoom;\n"
     @"float pbBlur;\n"
     @"float pbGloss;\n"
     @"float pbSatin;\n"
@@ -105,7 +138,6 @@ static NSString *const kPBMatcapModifier =
     @"#pragma body\n"
     @"constexpr sampler pbSampler(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);\n"
     @"float3 pbN = (scn_frame.inverseViewTransform * float4(normalize(_surface.normal), 0.0)).xyz;\n"
-    @"pbN = (pbRoom * float4(pbN, 0.0)).xyz;\n"
     @"pbN = normalize((scn_frame.viewTransform * float4(pbN, 0.0)).xyz);\n"
     @"float2 pbUV = float2(pbN.x, -pbN.y) * 0.492 + 0.5;\n"
     // Deep shadows and clipped peaks: a metal's highlights go past its own colour, toward white,
@@ -117,29 +149,6 @@ static NSString *const kPBMatcapModifier =
     @"float3 pbTint = _surface.diffuse.rgb;\n"
     @"float3 pbMetal = pbTint * pbHue * (0.06 + 1.1 * pbCap) + mix(pbTint * pbHue, float3(1.0), 0.45) * 1.4 * pbGloss * pow(pbCap, 5.0);\n"
     @"_surface.diffuse.rgb = mix(pbMetal, pbTint * (0.85 + 0.30 * pbLight) + pbMetal * 0.16, pbSatin) * pbGain;\n";
-
-/// Chrome ball that mirrors the playfield it actually sits over. A reflection ray that
-/// hits the table is traced into the playfield texture, so the reflection moves correctly
-/// with the ball. Rays going up keep SceneKit's environment reflection of the room.
-static NSString *PBBallReflectionModifier(simd_float2 size) {
-    return [NSString stringWithFormat:
-            @"#pragma arguments\n"
-            @"texture2d<float> pbPlayfield;\n"
-            @"#pragma body\n"
-            @"constexpr sampler pbSampler(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);\n"
-            @"float3 pbN = normalize((scn_frame.inverseViewTransform * float4(_surface.normal, 0.0)).xyz);\n"
-            @"float3 pbV = normalize((scn_frame.inverseViewTransform * float4(_surface.view, 0.0)).xyz);\n"
-            @"float3 pbP = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;\n"
-            @"float3 pbR = reflect(-pbV, pbN);\n"
-            @"if (pbR.y < -0.03) {\n"
-            @"  float pbT = -pbP.y / pbR.y;\n"
-            @"  float2 pbHit = pbP.xz + pbR.xz * pbT;\n"
-            @"  float2 pbUV = float2(pbHit.x / %f + 0.5, pbHit.y / %f + 0.5);\n"
-            @"  float3 pbColor = pbPlayfield.sample(pbSampler, pbUV, level(2.0)).rgb;\n"
-            @"  float pbAmount = smoothstep(0.03, 0.30, -pbR.y);\n"
-            @"  _output.color.rgb = mix(_output.color.rgb, pbColor * 1.25, pbAmount * 0.92);\n"
-            @"}\n%@", size.x, size.y, kPBHDRGuard];
-}
 
 @interface PBLampView : NSObject
 @property (nonatomic, strong) SCNNode *node;
@@ -182,10 +191,11 @@ static const float kPBStarFlashEnd = 0.12f;
     SCNNode *_root;
     SCNCamera *_camera;
     SCNVector3 _baseCameraPosition;
-    NSMutableArray<SCNMaterial *> *_matcapMaterials;
     SCNMaterial *_accentMaterial, *_metalMaterial;
-    SCNNode *_lightingRig;
-    simd_quatf _lightingRotation;
+    SCNNode *_keyLightNode;
+    CGSize _shadowViewSize;
+    CGFloat _shadowTopInset, _shadowBottomInset;
+    float _shadowCasterHeight;
     BOOL _plasticsModelled;
 
     NSMutableArray<SCNNode *> *_ballNodes;
@@ -228,14 +238,12 @@ static const float kPBStarFlashEnd = 0.12f;
         _scene = [SCNScene scene];
         _root = _scene.rootNode;
         _shakeSeed = 0x12345;
-        _lightingRotation = simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f);
         _litMaterials = [NSMutableDictionary dictionary];
 
         _playfieldImage = [PBPlayfieldPainter newPlayfieldForTable:table skin:skin];
 
         [self buildCameraAndLights];
         [self buildPlayfield];
-        [self buildCabinet];
         [self buildWalls];
         [self buildPosts];
         [self buildPlastics];
@@ -251,6 +259,8 @@ static const float kPBStarFlashEnd = 0.12f;
         [self buildDecor];
         [self buildPlunger];
         [self buildBalls];
+        [self measureShadowCasterHeight];
+        [self fitShadowsToViewSize:_shadowViewSize topInset:_shadowTopInset bottomInset:_shadowBottomInset];
     }
     return self;
 }
@@ -312,13 +322,10 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterialProperty *capture = [SCNMaterialProperty materialPropertyWithContents:url];
     capture.mipFilter = SCNFilterModeLinear;
     [material setValue:capture forKey:@"pbMatcap"];
-    [material setValue:[NSValue valueWithSCNMatrix4:SCNMatrix4Identity] forKey:@"pbRoom"];
     [material setValue:@0.0f forKey:@"pbBlur"];
     [material setValue:@1.0f forKey:@"pbGloss"];
     [material setValue:@0.0f forKey:@"pbSatin"];
     [material setValue:@1.0f forKey:@"pbGain"];
-    if (!_matcapMaterials) _matcapMaterials = [NSMutableArray array];
-    [_matcapMaterials addObject:material];
     return material;
 }
 
@@ -334,7 +341,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     [_glowMaterials addObject:material];
 }
 
-// One shared material each, so a tilt updates only a handful of materials per frame.
+// One shared material per metal finish.
 - (SCNMaterial *)accentMetal {
     if (!_accentMaterial) {
         _accentMaterial = [self matcapNamed:_skin.hardwareMatcap color:_skin.accentColor];
@@ -356,6 +363,20 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
 - (SCNMaterial *)rubber {
     return [self pbrWithDiffuse:[self color:_skin.rubberColor] metalness:0.0 roughness:0.6];
+}
+
+/// Printed/enamel guide layers keep their colour when the key light is grazing.
+- (SCNMaterial *)guidePaint:(simd_float3)color name:(NSString *)name {
+    SCNMaterial *material = [SCNMaterial material];
+    material.name = name;
+    material.lightingModelName = SCNLightingModelBlinn;
+    material.diffuse.contents = [self color:color];
+    material.emission.contents = material.diffuse.contents;
+    material.emission.intensity = .22;
+    material.specular.contents = [self color:simd_make_float3(.16f, .16f, .16f)];
+    material.shininess = 42;
+    material.shaderModifiers = @{ SCNShaderModifierEntryPointFragment: kPBHDRGuard };
+    return material;
 }
 
 - (SCNMaterial *)blackRubber {
@@ -429,8 +450,14 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         // Matte: a gloss highlight from the key light would read as lit.
         targetLens.lightingModelName = SCNLightingModelLambert;
         targetLens.emission.intensity = 0;
+        // A flat plate gets its shading from its real normal and lights. The radial
+        // lamp texture above falsely made the broad triangle face look inflated.
+        SCNMaterial *slingPlate = [slingLens copy];
+        slingPlate.diffuse.contents = [self color:_skin.slingLensColor * .65f];
+        slingPlate.emission.contents = [self color:_skin.slingLensColor * .65f];
+        slingPlate.roughness.contents = @.32;
         // One each, as a hit lights only the bouncer that was hit.
-        _slingLenses = @[ [slingLens copy], [slingLens copy] ];
+        _slingLenses = @[ [slingPlate copy], [slingPlate copy] ];
         CGImageRef amberImage = [PBPlayfieldPainter newLensWithColor:[_skin lampColor:@"amber"]];
         SCNMaterial *amberLens = [self pbrWithDiffuse:(__bridge id)amberImage metalness:0 roughness:0.16];
         amberLens.emission.contents = (__bridge id)amberImage;
@@ -464,10 +491,6 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         shell.diffuse.contents = [self color:wallColor];
         shell.specular.contents = [self color:simd_make_float3(.13f, .15f, .18f)];
         shell.shininess = 28;
-        shell.shaderModifiers = @{ SCNShaderModifierEntryPointSurface: PBShellSurfaceModifier(_size) };
-        SCNMaterialProperty *shellArt = [SCNMaterialProperty materialPropertyWithContents:(__bridge id)_playfieldImage];
-        shellArt.mipFilter = SCNFilterModeLinear;
-        [shell setValue:shellArt forKey:@"pbPlayfield"];
         // Upright inward faces need their own light-responsive finish: grazing-angle MatCaps
         // made them almost black against the dark arrow deck from the actual game camera.
         SCNMaterial *liner = [SCNMaterial material];
@@ -527,6 +550,14 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             @"dark": dark, @"channel_liner": liner, @"plate_frame": plateFrame, @"channel_floor": floor, @"channel_entry": entry, @"channel_aluminum": aluminum,
             @"channel_shell": channelShell, @"channel_arrow": channelArrow,
             @"cabinet_shell": shell, @"guide_glow": _guideGlowMaterial,
+            @"guide_body": [self guidePaint:_skin.guideBodyColor name:@"guide_body"],
+            @"guide_face": [self guidePaint:_skin.guideFaceColor name:@"guide_face"],
+            @"guide_edge": [self guidePaint:_skin.guideEdgeColor name:@"guide_edge"],
+            @"guide_inlay": [self guidePaint:_skin.guideInlayColor name:@"guide_inlay"],
+            @"guide_mark": [self guidePaint:_skin.guideMarkColor name:@"guide_mark"],
+            @"guide_tube": [self guidePaint:_skin.guideEdgeColor * .82f name:@"guide_tube"],
+            @"pivot_ink": [self guidePaint:simd_make_float3(.025f, .065f, .06f) name:@"pivot_ink"],
+            @"pivot_cap": [self guidePaint:simd_make_float3(.88f, .79f, .55f) name:@"pivot_cap"],
             @"glow_amber": amber, @"jewel": jewel, @"skirt_lamp": skirtLamp, @"black_rubber": [self blackRubber], @"amber_lens": amberLens, @"sling_lens": slingLens, @"sling_lens_0": _slingLenses[0], @"sling_lens_1": _slingLenses[1], @"target_lens": targetLens, @"ramp_floor": rampFloor, @"enamel": enamel,
             @"cap_art": [self printedMaterial:@"bumper_cap"],
             @"lens": lens,
@@ -534,7 +565,8 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
             @"target_art": [self printedMaterial:@"drop_target"],
         };
         for (NSString *role in @[ @"metal", @"accent", @"rubber", @"dark", @"channel_liner", @"channel_floor", @"channel_entry", @"channel_aluminum", @"channel_shell",
-                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art" ]) {
+                                  @"cabinet_shell", @"black_rubber", @"enamel", @"flipper_art",
+                                  @"guide_body", @"guide_face", @"guide_edge", @"guide_inlay", @"guide_mark", @"guide_tube", @"pivot_ink", @"pivot_cap" ]) {
             [self receiveGlow:_modelMaterials[role]];
         }
         if ([_skin hasImageForSlot:@"ramp_chase_off"]) {
@@ -643,8 +675,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 - (void)buildCameraAndLights {
     _camera = [SCNCamera camera];
     _camera.projectionDirection = SCNCameraProjectionDirectionVertical;
-    _camera.usesOrthographicProjection = NO;
-    _camera.fieldOfView = PBTableCameraFOV;
+    _camera.usesOrthographicProjection = YES;
     _camera.zNear = 0.1;
     _camera.zFar = 20.0;
     _camera.wantsHDR = YES;
@@ -664,7 +695,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
     _cameraNode = [SCNNode node];
     _cameraNode.camera = _camera;
-    _cameraNode.eulerAngles = SCNVector3Make(-(float)M_PI_2, 0, 0);
+    _cameraNode.eulerAngles = SCNVector3Make(-(float)M_PI_2 + PBTableCameraTilt * (float)M_PI / 180.0f, 0, 0);
     [_root addChildNode:_cameraNode];
     [self fitCameraToAspect:(CGFloat)_size.y / _size.x];
 
@@ -683,19 +714,20 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     [_root addChildNode:ambientNode];
 
     SCNLight *key = [SCNLight light];
-    key.type = SCNLightTypeSpot;
+    key.type = SCNLightTypeDirectional;
     key.intensity = _skin.keyIntensity * 0.72f;
     key.color = [self color:_skin.keyColor];
-    key.spotInnerAngle = 50;
-    key.spotOuterAngle = 86;
     key.attenuationStartDistance = 0;
     key.attenuationEndDistance = 0;
     key.castsShadow = YES;
-    key.shadowMapSize = CGSizeMake(2048, 2048);
-    key.shadowSampleCount = 8;
-    key.shadowRadius = 1.8;
+    key.shadowMapSize = CGSizeMake(kShadowMapWidth, kShadowMapHeight);
+    key.shadowSampleCount = 32;
+    key.shadowRadius = 4.0; // Soft edge without spreading texels over unused scenery.
     key.shadowColor = [self color:simd_make_float3(0.0f, 0.0f, 0.0f)];
     key.shadowBias = 2.0;
+    key.automaticallyAdjustsShadowProjection = NO;
+    key.shadowCascadeCount = 1;
+    key.maximumShadowDistance = 20;
     key.zNear = 1.0;
     key.zFar = 8.0;
     SCNNode *keyNode = [SCNNode node];
@@ -704,11 +736,15 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     // Off-axis, like a cabinet's lamps. Directly above, the mirror direction of every
     // up-facing surface would point into the overhead camera and wash the parts out.
     keyNode.position = SCNVector3Make(-2.2f, 2.9f, 1.4f);
-    [keyNode lookAt:SCNVector3Make(0, 0, 0)];
-    _lightingRig = [SCNNode node];
-    _lightingRig.name = @"lighting.rig";
-    [_lightingRig addChildNode:keyNode];
-    [_root addChildNode:_lightingRig];
+    // Roll the shadow view so its wide texture axis runs up the long playfield.
+    // A directional light's roll changes shadow allocation, not illumination.
+    simd_float3 z = simd_normalize(keyNode.simdPosition);
+    simd_float3 along = simd_make_float3(0, 0, -1);
+    simd_float3 x = simd_normalize(along - z * simd_dot(along, z));
+    simd_float3 y = simd_cross(z, x);
+    keyNode.simdOrientation = simd_quaternion((simd_float3x3){ .columns = {x, y, z} });
+    _keyLightNode = keyNode;
+    [_root addChildNode:keyNode];
 
     _bumperLights = [NSMutableArray array];
     for (PBSpotDef *bumper in _table.bumpers) {
@@ -717,28 +753,91 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     }
     _slingLights = [NSMutableArray array];
     for (PBEdgeDef *sling in _table.slingshots) {
-        [_slingLights addObject:[self addEffectLightAt:(sling.a + sling.b) * 0.5f height:0.14f color:simd_make_float3(1.0f, 0.9f, 0.8f) range:0.5f]];
+        simd_float2 centre = [self centreForSlingshot:sling];
+        // On a flat top, the specular spot lies down-table from an elevated
+        // light. Offset the source so the flare itself lands on the centroid.
+        float top = _models ? .037f : .006f;
+        centre.y += (.14f - top) * tanf(PBTableCameraTilt * (float)M_PI / 180);
+        SCNLight *light = [self addEffectLightAt:centre height:0.14f color:simd_make_float3(1.0f, 0.9f, 0.8f) range:0.5f];
+        light.name = [@"sling.flare." stringByAppendingString:sling.identifier];
+        [_slingLights addObject:light];
     }
 }
 
-/// The room stays stationary as the phone turns, so move it by the inverse attitude.
-/// All node/material mutations happen on the render thread, never in a motion callback.
-- (void)updateLightingForAttitude:(simd_quatf)attitude elapsed:(double)elapsed {
-    float lengthSquared = simd_length_squared(attitude.vector);
-    if (!isfinite(lengthSquared) || lengthSquared < 1e-6f || !isfinite(elapsed)) return;
-    attitude = simd_normalize(attitude);
-    if (attitude.vector.w < 0) attitude.vector = -attitude.vector;
-    // Device x/y/z -> table x/-z/y. Quaternion axes transform in the same basis.
-    simd_quatf target = simd_inverse(simd_quaternion(attitude.vector.x, attitude.vector.z, -attitude.vector.y, attitude.vector.w));
-    float angle = 2.0f * acosf(MIN(1.0f, target.vector.w));
-    if (angle > kLightingMaxTilt) target = simd_slerp(simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f), target, kLightingMaxTilt / angle);
-    float blend = 1.0f - expf(-(float)MIN(MAX(elapsed, 0), 0.1) / kLightingResponse);
-    _lightingRotation = simd_normalize(simd_slerp(_lightingRotation, target, blend));
-    _lightingRig.simdOrientation = _lightingRotation;
-    NSValue *room = [NSValue valueWithSCNMatrix4:SCNMatrix4FromMat4(simd_matrix4x4(simd_inverse(_lightingRotation)))];
-    for (SCNMaterial *material in _matcapMaterials) [material setValue:room forKey:@"pbRoom"];
-    // Rotate the existing reflection map; no image regeneration or probe rebaking per frame.
-    _scene.lightingEnvironment.contentsTransform = SCNMatrix4FromMat4(simd_matrix4x4(_lightingRotation));
+/// Match the triangle body nearest the collision edge, then use its area centroid.
+/// This keeps the effect attached when a table's outline or winding changes.
+- (simd_float2)centreForSlingshot:(PBEdgeDef *)sling {
+    simd_float2 mid = (sling.a + sling.b) * .5f, result = mid;
+    float nearest = INFINITY;
+    for (PBPlasticDef *part in _table.plastics) {
+        const simd_float2 *points = part.points.points;
+        float area = 0;
+        simd_float2 weighted = simd_make_float2(0, 0);
+        for (NSInteger i = 0; i < part.points.count; i++) {
+            simd_float2 a = points[i], b = points[(i + 1) % part.points.count];
+            float cross = a.x * b.y - b.x * a.y;
+            area += cross;
+            weighted += (a + b) * cross;
+        }
+        if (fabsf(area) < 1e-8f) continue;
+        simd_float2 centre = weighted / (3 * area);
+        float distance = simd_distance_squared(mid, centre);
+        if (distance < nearest) { nearest = distance; result = centre; }
+    }
+    return result;
+}
+
+/// Include the highest authored mesh, then allow ball clearance over it.
+- (void)measureShadowCasterHeight {
+    __block float height = .12f;
+    [_root enumerateChildNodesUsingBlock:^(SCNNode *node, BOOL *stop) {
+        if (!node.geometry || !node.castsShadow) return;
+        SCNVector3 lo, hi;
+        if (![node getBoundingBoxMin:&lo max:&hi]) return;
+        for (NSInteger i = 0; i < 8; i++) {
+            SCNVector3 p = [node convertPosition:SCNVector3Make(i & 1 ? hi.x : lo.x,
+                i & 2 ? hi.y : lo.y, i & 4 ? hi.z : lo.z) toNode:self->_root];
+            if (isfinite(p.y)) height = MAX(height, p.y);
+        }
+    }];
+    _shadowCasterHeight = height + MAX(.08f, _table.ballRadius * 2);
+}
+
+/// Fit the light's orthographic projection to the *camera's* visible receiver/caster
+/// slab, not the whole scene (the background floor extends beyond the display).
+- (void)fitShadowsToViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom {
+    if (!_keyLightNode) return;
+    // Fit in a rotation-only light basis. Including the previous light position
+    // would accumulate floating-point drift every time UIKit repeats layout.
+    simd_float4x4 basis = simd_matrix4x4(_keyLightNode.simdOrientation);
+    simd_float4x4 inverse = simd_inverse(basis);
+    SCNVector3 lo = SCNVector3Make(INFINITY, INFINITY, INFINITY);
+    SCNVector3 hi = SCNVector3Make(-INFINITY, -INFINITY, -INFINITY);
+    for (NSInteger i = 0; i < 8; i++) {
+        float height = i & 4 ? _shadowCasterHeight : 0;
+        CGPoint screen = CGPointMake(i & 1 ? size.width : 0, i & 2 ? size.height : 0);
+        simd_float2 table = PBTablePointFromScreen(_size, size, top, bottom, screen, height);
+        SCNVector3 world = [self at:table height:height];
+        simd_float4 projected = simd_mul(inverse, simd_make_float4(world.x, world.y, world.z, 1));
+        SCNVector3 light = SCNVector3Make(projected.x, projected.y, projected.z);
+        lo = SCNVector3Make(MIN(lo.x, light.x), MIN(lo.y, light.y), MIN(lo.z, light.z));
+        hi = SCNVector3Make(MAX(hi.x, light.x), MAX(hi.y, light.y), MAX(hi.z, light.z));
+    }
+    // Offscreen casters can still shadow an onscreen receiver along a light ray.
+    // That preserves light-space x/y, but requires extra near depth for their height.
+    float towardLightY = _keyLightNode.simdWorldTransform.columns[2].y;
+    hi.z += _shadowCasterHeight / MAX(towardLightY, .1f);
+    const float pad = .025f; // Camera shake, moving tips and PCF samples at the border.
+    float aspect = (float)kShadowMapWidth / kShadowMapHeight;
+    // orthographicScale is the vertical half-span; viewport aspect gives width.
+    float halfSpan = MAX((hi.x - lo.x) / aspect, hi.y - lo.y) * .5f + pad;
+    float texel = halfSpan * 2 / kShadowMapHeight;
+    SCNVector3 centre = SCNVector3Make(roundf((lo.x + hi.x) * .5f / texel) * texel,
+        roundf((lo.y + hi.y) * .5f / texel) * texel, hi.z + 1);
+    _keyLightNode.simdPosition = simd_mul(basis, simd_make_float4(centre.x, centre.y, centre.z, 1)).xyz;
+    _keyLightNode.light.orthographicScale = halfSpan;
+    _keyLightNode.light.zNear = .5;
+    _keyLightNode.light.zFar = hi.z - lo.z + 1.5;
 }
 
 /// Always-on lights whose intensity animates. Toggling lights would force shader recompiles.
@@ -758,32 +857,37 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 }
 
 - (void)fitCameraToAspect:(CGFloat)heightOverWidth {
-    // Straight down from above the middle of the visible board: the whole table, its padding and the
-    // band past its far end, however the screen is shaped. The floor maps to the screen unscaled.
-    simd_float2 padding = _table.padding;
-    CGFloat visibleHeight = MAX((CGFloat)_size.y + padding.y + PBTableCameraBand, ((CGFloat)_size.x + 2 * padding.x) * heightOverWidth);
-    CGFloat distance = visibleHeight / (2.0 * tan(PBTableCameraFOV * 0.5 * M_PI / 180.0));
-    CGFloat centreY = visibleHeight * 0.5 - padding.y;
-    _baseCameraPosition = SCNVector3Make(0, (float)distance, -(float)(centreY - _size.y * 0.5));
+    if (!isfinite(heightOverWidth) || heightOverWidth <= 0) return;
+    // Same full-screen world and floating safe-area HUD as the actual reference phone.
+    [self fitCameraToViewSize:CGSizeMake(402, 402 * heightOverWidth) topInset:59 bottomInset:34];
+}
+
+- (void)fitCameraToViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom {
+    if (!isfinite(size.width) || !isfinite(size.height) || size.width <= 0 || size.height <= 0) return;
+    PBTableCameraFrame frame = PBTableCameraFrameMake(_size, size, top, bottom);
+    float tilt = PBTableCameraTilt * (float)M_PI / 180.0f;
+    const float distance = 3.0f; // Orthographic distance affects clipping, never magnification.
+    _camera.orthographicScale = frame.visibleHeight * .5;
+    _baseCameraPosition = SCNVector3Make(0, distance * cosf(tilt),
+                                        _size.y * .5f - frame.centerY + distance * sinf(tilt));
     _cameraNode.position = _baseCameraPosition;
+    _shadowViewSize = size;
+    _shadowTopInset = top;
+    _shadowBottomInset = bottom;
+    [self fitShadowsToViewSize:size topInset:top bottomInset:bottom];
 }
 
 #pragma mark - Static table
 
 - (void)buildPlayfield {
-    // SCNFloor gives true planar reflections of everything above it: the polished
-    // clear-coat look, with ball and bumpers mirrored in the playfield.
+    // Matte field: no mirrored copy of the ball or hardware beneath the surface.
     SCNFloor *floor = [SCNFloor floor];
     floor.width = _size.x * 2.0f;
     floor.length = _size.y * 2.0f;
-    floor.reflectivity = _skin.playfieldReflectivity;
-    floor.reflectionFalloffStart = 0.0;
-    floor.reflectionFalloffEnd = 0.32;
-    floor.reflectionResolutionScaleFactor = 0.75;
-    floor.reflectionCategoryBitMask = ~(NSUInteger)kPBNotReflected;
+    floor.reflectivity = 0;
 
     // Lambert, not PBR: with the camera straight above, a specular highlight from the
-    // overhead light would burn out the middle of the art. Gloss comes from the reflections.
+    // overhead light would burn out the middle of the art.
     SCNMaterial *material = [SCNMaterial material];
     material.lightingModelName = SCNLightingModelLambert;
     material.diffuse.contents = [self color:simd_make_float3(1.0f, 1.0f, 1.0f)];
@@ -797,38 +901,6 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     [material setValue:art forKey:@"pbPlayfield"];
     floor.firstMaterial = material;
     [self addNodeWithGeometry:floor material:nil];
-}
-
-- (void)buildCabinet {
-    // The board's rim and everything past it, as far as the phone can see: a block in the skin's
-    // shell colour with the table's own outline cut out of it, so an arched outer wall shows as an
-    // arch. The outer wall itself is never drawn; this is what the ball runs along.
-    PBWallDef *outer = nil;
-    for (PBWallDef *wall in _table.walls) if ([wall.identifier isEqualToString:@"outer"]) outer = wall;
-    const float margin = 1.0f;
-    const float height = 0.02f;  // Low: a taller wall shows its inner face, dark on one side and lit on the other, so the board looks off centre.
-    CGMutablePathRef path = CGPathCreateMutable();
-    CGPathAddRect(path, NULL, CGRectMake(-margin, -margin, _size.x + 2 * margin, _size.y + 2 * margin));
-    if (outer && outer.points.count > 1) {
-        const simd_float2 *p = outer.points.points;
-        CGPathMoveToPoint(path, NULL, p[0].x, p[0].y);
-        for (NSInteger i = 1; i < outer.points.count; i++) CGPathAddLineToPoint(path, NULL, p[i].x, p[i].y);
-        CGPathCloseSubpath(path);
-    } else {
-        CGPathAddRect(path, NULL, CGRectMake(0, 0, _size.x, _size.y));
-    }
-    SCNGeometry *frame = [PBGeometry prismWithPath:path height:height chamfer:0.0f evenOdd:YES];
-    CGPathRelease(path);
-    SCNMaterial *board = [SCNMaterial material];
-    board.lightingModelName = SCNLightingModelBlinn;
-    board.diffuse.contents = [self color:_skin.shellColor];
-    board.specular.contents = [self color:simd_make_float3(.12f, .12f, .12f)];
-    board.shininess = 0.2;
-    [self receiveGlow:board];
-    frame.firstMaterial = board;
-    SCNNode *node = [self prismNodeWithGeometry:frame height:height baseHeight:0.0f];
-    node.castsShadow = NO;  // It would throw a band of shadow across the playfield.
-    [_root addChildNode:node];
 }
 
 - (void)buildWalls {
@@ -1308,20 +1380,30 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     SCNMaterial *wireMetal = [self accentMetal];
     _gatePlates = [NSMutableArray array];
     for (PBEdgeDef *def in _table.gates) {
+        PBGateGeometry gate = PBGateGeometryMake(_table.ballRadius);
         float width = simd_distance(def.a, def.b);
         SCNNode *pivot = [SCNNode node];
-        pivot.position = [self at:(def.a + def.b) * 0.5f height:0.05f];
+        pivot.name = [@"gate.pivot." stringByAppendingString:def.identifier];
+        pivot.position = [self at:def.a height:gate.barHeight];
         pivot.eulerAngles = SCNVector3Make(0, atan2f(def.b.y - def.a.y, def.b.x - def.a.x), 0);
         [_root addChildNode:pivot];
-        SCNCapsule *wire = [SCNCapsule capsuleWithCapRadius:0.0075f height:width];
+        // Capsule height includes both end caps; its centreline must match a–b.
+        SCNCapsule *wire = [SCNCapsule capsuleWithCapRadius:gate.wireRadius height:width + 2 * gate.wireRadius];
         wire.firstMaterial = wireMetal;
         SCNNode *wireNode = [SCNNode nodeWithGeometry:wire];
+        wireNode.name = [@"gate.bar." stringByAppendingString:def.identifier];
         wireNode.eulerAngles = SCNVector3Make(0, 0, (float)M_PI_2);
-        wireNode.position = SCNVector3Make(0, -0.03f, 0);
+        wireNode.position = SCNVector3Make(width * .5f, 0, 0);
         SCNNode *swing = [SCNNode node];
+        swing.name = [@"gate.swing." stringByAppendingString:def.identifier];
         [swing addChildNode:wireNode];
         [pivot addChildNode:swing];
         [_gatePlates addObject:swing];
+        SCNCylinder *bearing = [SCNCylinder cylinderWithRadius:.009f height:gate.barHeight + .012f];
+        bearing.firstMaterial = wireMetal;
+        SCNNode *hinge = [self addNodeWithGeometry:bearing material:nil];
+        hinge.name = [@"gate.hinge." stringByAppendingString:def.identifier];
+        hinge.position = [self at:def.a height:(gate.barHeight + .012f) * .5f];
     }
 }
 
@@ -1555,21 +1637,30 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
 
 - (void)buildBalls {
     _ballNodes = [NSMutableArray array];
-    SCNMaterial *chrome = [SCNMaterial material];
-    chrome.lightingModelName = SCNLightingModelPhysicallyBased;
-    chrome.diffuse.contents = [self color:simd_make_float3(0.93f, 0.93f, 0.96f)];
-    chrome.metalness.contents = @1.0;
-    chrome.roughness.contents = @0.12;
-    chrome.shaderModifiers = @{ SCNShaderModifierEntryPointFragment: PBBallReflectionModifier(_size) };
-    SCNMaterialProperty *reflection = [SCNMaterialProperty materialPropertyWithContents:(__bridge id)_playfieldImage];
-    reflection.mipFilter = SCNFilterModeLinear;
-    [chrome setValue:reflection forKey:@"pbPlayfield"];
+    // Uncoated moulded rubber: a broad satin highlight and fine surface grain,
+    // rather than the narrow lacquer sparkle of the previous resin material.
+    SCNMaterial *rubber = [SCNMaterial material];
+    rubber.name = @"ball.coral-rubber";
+    rubber.lightingModelName = SCNLightingModelPhysicallyBased;
+    rubber.diffuse.contents = [self color:simd_make_float3(.98f, .28f, .12f)];
+    rubber.metalness.contents = @0.0;
+    rubber.roughness.contents = @0.68;
+    rubber.clearCoat.contents = @0.0;
+    rubber.normal.contents = (__bridge id)PBRubberNormalImage();
+    rubber.normal.intensity = .18;
+    rubber.normal.wrapS = SCNWrapModeRepeat;
+    rubber.normal.wrapT = SCNWrapModeClamp;
+    rubber.normal.mipFilter = SCNFilterModeLinear;
+    rubber.normal.minificationFilter = SCNFilterModeLinear;
+    rubber.normal.magnificationFilter = SCNFilterModeLinear;
+    rubber.shaderModifiers = @{ SCNShaderModifierEntryPointFragment: kPBHDRGuard };
 
     for (NSInteger i = 0; i < 8; i++) {
         SCNSphere *sphere = [SCNSphere sphereWithRadius:_table.ballRadius];
         sphere.segmentCount = 40;
-        sphere.firstMaterial = chrome;
+        sphere.firstMaterial = rubber;
         SCNNode *node = [SCNNode nodeWithGeometry:sphere];
+        node.name = [NSString stringWithFormat:@"ball.visual.%ld", (long)i];
         node.hidden = YES;
         [_root addChildNode:node];
         [_ballNodes addObject:node];
@@ -1607,10 +1698,28 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         BOOL live = balls[i].state != PBBallInactive && balls[i].state != PBBallInTransit;
         node.hidden = !live;
         if (!live) continue;
-        node.position = [self at:balls[i].position height:balls[i].z];
+        PBSoftBall elastic = [world softBallAtIndex:i];
+        simd_float3x3 shape = PBSoftBallShape(elastic);
+        float radius = _table.ballRadius;
+        // Hold the compressed contact face in place, and keep a grounded ball's
+        // bulging underside on the surface. This only offsets the drawn mesh.
+        simd_float3 normal = elastic.contactNormal;
+        simd_float3 offset = normal * (radius * MIN(0, PBSoftBallSupport(shape, normal) - 1));
+        float lift = 0;
+        if (fabsf(balls[i].zVelocity) < 1e-5f) lift += radius * (PBSoftBallSupport(shape, simd_make_float3(0, 0, 1)) - 1);
+        SCNVector3 position = [self at:balls[i].position + offset.xy height:balls[i].z + lift];
         // Table space (x, y, up) to scene (x, up, -y).
         simd_quatf q = balls[i].orientation;
-        node.simdOrientation = simd_quaternion(q.vector.x, q.vector.z, -q.vector.y, q.vector.w);
+        simd_float3x3 basis = { .columns = {simd_make_float3(1, 0, 0), simd_make_float3(0, 0, -1), simd_make_float3(0, 1, 0)} };
+        simd_float3x3 strain = simd_mul(basis, simd_mul(shape, simd_transpose(basis)));
+        simd_float3x3 rolling = simd_matrix3x3(simd_quaternion(q.vector.x, q.vector.z, -q.vector.y, q.vector.w));
+        simd_float3x3 mesh = simd_mul(strain, rolling);
+        // Strain precedes rolling: the squash axis stays at the contact normal as
+        // highlights roll over it. SceneKit also deforms real geometry/shadows.
+        simd_float4x4 transform = matrix_identity_float4x4;
+        for (int axis = 0; axis < 3; axis++) transform.columns[axis] = simd_make_float4(mesh.columns[axis], 0);
+        transform.columns[3] = simd_make_float4(position.x, position.y, position.z, 1);
+        node.simdTransform = transform;
     }
 
     for (NSUInteger i = 0; i < _flipperNodes.count; i++) {
@@ -1625,7 +1734,9 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
         _spinnerPlates[i].eulerAngles = SCNVector3Make([world spinnerAngle:(NSInteger)i], 0, 0);
     }
     for (NSUInteger i = 0; i < _gatePlates.count; i++) {
-        _gatePlates[i].eulerAngles = SCNVector3Make([world gateAngle:(NSInteger)i] * 1.1f, 0, 0);
+        PBEdgeDef *gate = _table.gates[i];
+        float sign = PBGateOpeningSign(gate.a, gate.b, gate.passDirection);
+        _gatePlates[i].eulerAngles = SCNVector3Make(0, [world gateAngle:(NSInteger)i] * sign, 0);
     }
 
     for (NSUInteger i = 0; i < _bumpers.count; i++) {
@@ -1749,7 +1860,7 @@ static inline CGColorRef PBCGColor(simd_float3 c) {
     for (NSUInteger i = 0; i < _table.slingshots.count; i++) {
         float kick = expf(-[world slingFlash:(NSInteger)i] * 6.0f);
         PBEdgeDef *sling = _table.slingshots[i];
-        add((sling.a + sling.b) * 0.5f, 0.03f, 0.26f, _skin.slingLensColor, 0.3f + kick * 2.6f);
+        add([self centreForSlingshot:sling], 0.03f, 0.26f, _skin.slingLensColor, 0.3f + kick * 2.6f);
     }
     for (NSUInteger i = 0; i < _table.standups.count; i++) {
         float hit = expf(-[world standupFlash:(NSInteger)i] * 5.0f);

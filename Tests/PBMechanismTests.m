@@ -1,5 +1,6 @@
 #import <XCTest/XCTest.h>
 #import "PBGame.h"
+#import "PBGateGeometry.h"
 
 @interface PBMechanismTests : XCTestCase @end
 @implementation PBMechanismTests
@@ -67,6 +68,103 @@
     [w placeBall:b at:simd_make_float2(.5,.95) velocity:simd_make_float2(0,2)];
     XCTAssertTrue([[self run:w ticks:40] containsObject:@"gate:gate"]);
 }
+- (void)testDiagonalGateBlocksReverseEvenWithUpwardTangentialVelocity {
+    NSMutableDictionary *json = [self empty:@"aurora"];
+    json[@"gates"] = @[@{@"id": @"diagonal", @"a": @[@.3, @.9], @"b": @[@.7, @1.3], @"passDirection": @[@0, @1]}];
+    PBPhysicsWorld *world = [self world:json];
+    simd_float2 normal = simd_normalize(simd_make_float2(-1, 1));
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.5, 1.1) + normal * .033f velocity:simd_make_float2(2, .1)];
+    NSArray *events = [self run:world ticks:8];
+    XCTAssertGreaterThan(simd_dot(world.balls[ball].velocity, normal), 0, @"positive y velocity must not bypass the slanted closed gate from its back");
+    XCTAssertEqualWithAccuracy([world gateAngle:0], 0, 1e-6);
+    XCTAssertFalse([events containsObject:@"gate:diagonal"]);
+}
+
+- (void)testDiagonalGateAllowsForwardPassWithNegativeVerticalVelocity {
+    NSMutableDictionary *json = [self empty:@"aurora"];
+    json[@"gates"] = @[@{@"id": @"diagonal", @"a": @[@.3, @.9], @"b": @[@.7, @1.3], @"passDirection": @[@0, @1]}];
+    PBPhysicsWorld *world = [self world:json];
+    simd_float2 normal = simd_normalize(simd_make_float2(-1, 1));
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.5, 1.1) - normal * .045f velocity:simd_make_float2(-2, -.1)];
+    NSArray *events = [self run:world ticks:80];
+    XCTAssertTrue([events containsObject:@"gate:diagonal"], @"actual forward crossing, independent of the vertical velocity sign");
+    XCTAssertLessThan(world.balls[ball].velocity.x, -1.9f, @"light gate does not reverse or slow the legal shot");
+    XCTAssertGreaterThan([world gateAngle:0], 1.2f);
+}
+
+- (void)testWeakPlungeCanReverseInsideTheGateWithoutSnappingOrBeingTrapped {
+    NSMutableDictionary *json = [self empty:@"aurora"];
+    json[@"physics"][@"gravity"] = @2.2;
+    json[@"gates"] = @[@{@"id": @"gate", @"a": @[@.3, @1], @"b": @[@.7, @1], @"passDirection": @[@0, @1]}];
+    PBPhysicsWorld *world = [self world:json];
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.5, .95) velocity:simd_make_float2(0, .5)];
+    NSArray *events = [self run:world ticks:528];
+    XCTAssertTrue([events containsObject:@"gate:gate"]);
+    XCTAssertFalse([events containsObject:@"wall:wall"], @"the gate must not close its collider inside a returning ball");
+    XCTAssertLessThan(world.balls[ball].position.y, .95f);
+    XCTAssertLessThan(world.balls[ball].velocity.y, -.65f);
+    [self run:world ticks:400];
+    XCTAssertEqualWithAccuracy([world gateAngle:0], 0, .001, @"wire returns to its mechanical stop once the whole ball clears");
+}
+
+- (void)testPartlyOpenedGateCannotSwingPastItsUpperStopAfterBallLeaves {
+    NSMutableDictionary *json = [self empty:@"aurora"];
+    json[@"gates"] = @[@{@"id": @"gate", @"a": @[@.3, @1], @"b": @[@.7, @1], @"passDirection": @[@0, @1]}];
+    PBPhysicsWorld *world = [self world:json];
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.5, .95) velocity:simd_make_float2(0, 2)];
+    [world advanceOneTick];
+    XCTAssertGreaterThan([world gateAngle:0], 0);
+    [world removeBall:ball];
+    for (int i = 0; i < 960; i++) {
+        [world advanceOneTick];
+        XCTAssertGreaterThanOrEqual([world gateAngle:0], 0);
+        XCTAssertLessThanOrEqual([world gateAngle:0], 1.48001f);
+    }
+    XCTAssertEqualWithAccuracy([world gateAngle:0], 0, .001);
+}
+
+- (void)testOpenDoorRotatesInTheFieldAndStillCollidesAtItsFreeEnd {
+    NSMutableDictionary *json = [self empty:@"aurora"];
+    json[@"gates"] = @[@{@"id": @"door", @"a": @[@.3, @1], @"b": @[@.7, @1], @"passDirection": @[@0, @1]}];
+    PBPhysicsWorld *world = [self world:json];
+    NSInteger ball = [world spawnBallAtPlunger];
+    [world placeBall:ball at:simd_make_float2(.5, .95) velocity:simd_make_float2(0, 2)];
+    [self run:world ticks:30];
+    float angle = [world gateAngle:0];
+    XCTAssertGreaterThan(angle, 1.4f);
+    simd_float2 hinge = simd_make_float2(.3, 1), closedTip = simd_make_float2(.7, 1);
+    simd_float2 tip = PBGateTip(hinge, closedTip, simd_make_float2(0, 1), angle);
+    XCTAssertEqualWithAccuracy(simd_distance(hinge, tip), .4f, 1e-6);
+    simd_float2 axis = simd_normalize(tip - hinge);
+    simd_float2 normal = simd_make_float2(-axis.y, axis.x);
+    float reach = world.table.ballRadius + PBGateGeometryMake(world.table.ballRadius).wireRadius;
+    [world placeBall:ball at:(hinge + tip) * .5f + normal * (reach - .002f) velocity:-normal * 2];
+    [world advanceOneTick];
+    XCTAssertGreaterThan(simd_dot(world.balls[ball].velocity, normal), 0, @"the open door has a rotated collider at ball height, rather than floating above it");
+}
+
+- (void)testRealShooterGateOpensAndClosesAfterOneCleanFullPowerPass {
+    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:[self pathForTable:@"aurora"]] options:0 error:NULL];
+    PBPhysicsWorld *world = [self world:json];
+    [world spawnBallAtPlunger];
+    [world setPlungerPulled:YES];
+    [self run:world ticks:960];
+    [world setPlungerPulled:NO];
+    __block NSInteger crossings = 0;
+    float maximum = 0;
+    for (int i = 0; i < 960; i++) {
+        [world advanceOneTick]; maximum = MAX(maximum, [world gateAngle:0]);
+        [world drainEvents:^(const PBEvent *event) { if (event->kind == PBEventGate && event->element == 0) crossings++; }];
+    }
+    XCTAssertGreaterThan(maximum, 1.4f);
+    XCTAssertEqualWithAccuracy([world gateAngle:0], 0, .001);
+    XCTAssertEqual(crossings, 1);
+}
+
 - (void)testSaucerEjectionCannotImmediatelyRecaptureSlowBall {
     NSMutableDictionary *j=[self empty:@"aurora"];
     j[@"saucers"]=@[ @{ @"id":@"s", @"x":@.5,@"y":@1,@"r":@.03,@"captureSpeed":@3,@"ejectSpeed":@1,@"ejectDirection":@[ @0,@-1 ] } ];

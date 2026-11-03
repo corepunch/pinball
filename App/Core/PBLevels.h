@@ -2,7 +2,7 @@
 //  PBLevels.h
 //  Levels are data: GameData/Levels.json pairs a table and skin with a goal and star scores.
 //  A level's goal earns its first star and unlocks the next level; its score earns the others.
-//  No SceneKit, UIKit or AppKit here, so all of it runs in the unit tests.
+//  No SpriteKit, UIKit or AppKit here, so all of it runs in the unit tests.
 //
 
 #import <Foundation/Foundation.h>

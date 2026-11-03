@@ -20,7 +20,7 @@ PLIST
 fi
 xcrun clang -fobjc-arc -fmodules -Wno-deprecated-declarations \
   -fmodules-cache-path="$ui_preview_cache/modules" \
-  -I App/Scene -I App/Core -I App -I App/UI -I App/UI/Model \
+  -I App/Core -I App -I App/UI -I App/UI/Model \
   -framework CoreText -framework AppKit -framework SpriteKit -framework QuartzCore -framework ImageIO \
   tools/render_ui_preview.m App/UI/*.m App/UI/Model/*.m App/Core/*.m \
   -o "$ui_preview_cache/render_ui_preview"

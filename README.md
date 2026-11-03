@@ -11,8 +11,7 @@ and [CONTRIBUTING.md](CONTRIBUTING.md). The [documentation map](docs/README.md) 
 Author tables in `Scenes/` XML, then run `make scenes` to compile runtime JSON. The shipping game
 uses custom physics and SpriteKit for both board and HUD. First Light has three bumpers, three bonus
 lanes, three drop targets, two stand-ups, a spinner and a timed scoop above the shared lower kit.
-Ramps, locks and multiball are absent. Sound is synthesized. The SceneKit renderer and its models
-remain available as reference tools through `make models`; the app does not instantiate them.
+Ramps, locks and multiball are absent. Sound is synthesized.
 
 ```bash
 open Pinball.xcodeproj
@@ -177,11 +176,11 @@ xcodebuild -project Pinball.xcodeproj -scheme PinballCoreTests \
 
 Export the live schematic shapes with `make sprites TABLE=aurora` (also `meridian` or `tide`).
 It writes a tightly packed rectangular transparent PNG and pivot/placement JSON; see
-[the sprite guide](Art/SPRITES.md). The retained SceneKit skin renderer is described separately in
+[the sprite guide](Art/SPRITES.md). Skin palettes and assets are described in
 [Art/SKIN_GUIDE.md](Art/SKIN_GUIDE.md).
 
 Wall surfaces facing up the table need a slope, or a ball can come to rest on them, and gaps need more
-than the ball's diameter (currently 0.06834), with some clearance. The outer wall is an invisible collider; the UI adds no decorative drain or shooter-channel outline. `decor` lists static kit models, and a lamp's `"shape": "arrow"` with `"angle"`
+than the ball's diameter (currently 0.06834), with some clearance. The outer wall is an invisible collider; the UI adds no decorative drain or shooter-channel outline. A lamp's `"shape": "arrow"` with `"angle"`
 makes a triangular insert pointing at its shot. Rollover roles come from id prefixes: `orbit*`, `outlane*`, `inlane*`.
 
 ## Level analysis

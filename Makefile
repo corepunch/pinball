@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Device/Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Sim/Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes models spacing playtest shots sprites
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes spacing playtest shots sprites
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -29,7 +29,7 @@ help:
 	@echo "shots          - Fire flipper shots at level 1 and list what each reaches (no Xcode)"
 	@echo "test           - Run the headless tests on this Mac"
 	@echo "ui-check       - Check real UI nodes, input and camera alignment without a GPU"
-	@echo "previews       - Render Art/Previews from the real scene"
+	@echo "previews       - Capture Art/Previews from the real sprite graph"
 	@echo "analysis       - Timing sweeps and heatmaps (TABLE=aurora)"
 	@echo "analysis-test  - Reporter and production-physics integration tests"
 
@@ -39,11 +39,6 @@ scenes:
 SPRITE_OUT ?= $(CURDIR)/Art/Sprites/$(TABLE)
 sprites: scenes
 	PB_PREVIEW_TABLE="$(TABLE)" zsh tools/render_ui_preview.sh - "$(SPRITE_OUT)" --export-sprites
-
-# Retained SceneKit reference tooling, outside the shipping sprite pipeline.
-models:
-	python3 tools/scene/compile_scenes.py
-	tools/compile_models.sh
 
 playtest:
 	python3 tools/playtest/run_playtests.py $(PLAYTEST)
@@ -119,7 +114,7 @@ ui-check:
 	done
 
 previews:
-	tools/render_preview.sh "$(CURDIR)/Art/Previews"
+	zsh tools/render_ui_preview.sh - "$(CURDIR)/Art/Previews"
 
 
 # Analysis uses the same production Core; compilation is cached across edits.

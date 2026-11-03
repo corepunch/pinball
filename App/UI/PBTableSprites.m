@@ -84,6 +84,15 @@ static CGMutablePathRef RoundedPolygon(const simd_float2 *points, NSInteger coun
     return path;
 }
 
+/// Moves a triangle's faces inward by `distance`, so sweeping it by that radius restores its faces.
+static void InsetTriangle(simd_float2 *p, float distance) {
+    float a = simd_distance(p[1], p[2]), b = simd_distance(p[2], p[0]), c = simd_distance(p[0], p[1]);
+    simd_float2 centre = (a*p[0] + b*p[1] + c*p[2]) / (a+b+c);
+    simd_float2 e1 = p[1]-p[0], e2 = p[2]-p[0];
+    float inradius = fabsf(e1.x*e2.y - e1.y*e2.x) / (a+b+c);
+    for (int i = 0; i < 3; i++) p[i] = centre + (p[i]-centre) * ((inradius-distance)/inradius);
+}
+
 @implementation PBTableSprites {
     PBTableDefinition *_table;
     SKNode *_world;
@@ -112,9 +121,16 @@ static CGMutablePathRef RoundedPolygon(const simd_float2 *points, NSInteger coun
                 simd_float2 p = wall.points.points[i];
                 if (!i) CGPathMoveToPoint(path, NULL, p.x, p.y); else CGPathAddLineToPoint(path, NULL, p.x, p.y);
             }
+            // The collider is the polyline swept by its radius (and, when closed, everything inside),
+            // so its corners are rounded. Inset by half the ink line: the line's outer edge is the face.
+            CGFloat sweep = MAX(wall.radius - .0015, .0005);
             CGPathRef shape;
-            if (wall.closed) { CGPathCloseSubpath(path); shape = CGPathCreateCopy(path); }
-            else shape = CGPathCreateCopyByStrokingPath(path, NULL, wall.radius*2, kCGLineCapRound, kCGLineJoinRound, 2);
+            if (wall.closed) {
+                CGPathCloseSubpath(path);
+                CGPathRef rim = CGPathCreateCopyByStrokingPath(path, NULL, sweep*2, kCGLineCapRound, kCGLineJoinRound, 2);
+                shape = CGPathCreateCopyByUnioningPath(path, rim, NO);
+                CGPathRelease(rim);
+            } else shape = CGPathCreateCopyByStrokingPath(path, NULL, sweep*2, kCGLineCapRound, kCGLineJoinRound, 2);
             SKColor *color = wall.style == PBWallStyleRail ? Tone(@"cyan") : [SKColor colorWithRed:.29 green:.48 blue:.48 alpha:1];
             if (wall.style == PBWallStylePlastic) color = Ink();
             [self add:Sprite(shape, color, .003, YES) name:wall.identifier position:0 z:2];
@@ -198,9 +214,11 @@ static CGMutablePathRef RoundedPolygon(const simd_float2 *points, NSInteger coun
         for (PBLampDef *lamp in table.lamps) {
             SKSpriteNode *node;
             if (lamp.isArrow) {
-                CGMutablePathRef path = CGPathCreateMutable();
-                CGPathMoveToPoint(path, NULL, 0, lamp.size); CGPathAddLineToPoint(path,NULL,-lamp.size*.65,-lamp.size*.6);
-                CGPathAddLineToPoint(path,NULL,lamp.size*.65,-lamp.size*.6); CGPathCloseSubpath(path);
+                simd_float2 tip[3] = { simd_make_float2(0, lamp.size), simd_make_float2(-lamp.size*.65, -lamp.size*.6),
+                                       simd_make_float2(lamp.size*.65, -lamp.size*.6) };
+                // Same outer faces as the sharp arrow, with corners rounded by a fifth of its size.
+                InsetTriangle(tip, lamp.size*.2);
+                CGMutablePathRef path = RoundedPolygon(tip, 3, lamp.size*.2);
                 node = Sprite(path, Tone(lamp.color), .002, NO); CGPathRelease(path);
                 node.zRotation = lamp.angle - M_PI_2;
             } else node = Disc(lamp.size, Tone(lamp.color), YES);

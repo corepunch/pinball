@@ -30,9 +30,11 @@ chat history, machine-specific paths, and unverified test results as project pol
   sprites, drop banks, bonus lanes, spinners and catch-and-release scoops, without locks/multiball.
   Ramps remain deferred. See [the campaign workflow](docs/campaign.md) and
   [First Light's detailed shot plan](docs/aurora.md). Do not restore historical mechanisms from fixtures.
-- `make sprites TABLE=<id>` exports the actual code shapes as a tightly packed rectangular PNG atlas
-  and pivot manifest. Keep the long shooter divider intact; trim transparent margins and share identical
-  images. See [the sprite export guide](Art/SPRITES.md).
+- `make sprites TABLE=<id>` exports the actual code shapes as a rectangular PNG atlas packed by each
+  image's outline (quarter turns allowed) with a cut-out mesh per sprite, plus a pivot manifest.
+  Keep the long shooter divider intact; trim transparent margins and share identical images. Consumers
+  draw meshes, never crop rects. CI regenerates atlases on pull requests. See
+  [the sprite export guide](Art/SPRITES.md).
 
 ## Ownership and behavior
 

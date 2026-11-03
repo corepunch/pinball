@@ -1,28 +1,36 @@
-name: Probe aurora right-orbit variants (temporary)
-# Temporary: shot playtest and strict route analysis for candidate aurora layouts in probe/.
+name: Probe aurora regressions (temporary)
+# Temporary: strict route analysis per table before/after #8, and the shots that reached aurora's
+# right orbit before #8 compared with the same shots now.
 on:
   pull_request:
 permissions:
   contents: read
 jobs:
-  variants:
+  probe:
     runs-on: macos-15
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: Shots and analysis per variant
+        with:
+          fetch-depth: 0
+      - name: Strict analysis per commit
         run: |
-          python3 - <<'PY'
-          import json, subprocess, sys
-          sys.path.insert(0, 'tools/playtest'); import run_shots
-          run_shots.build()
-          for v in sorted(__import__('glob').glob('probe/aurora-v*.json')):
-              r = json.loads(subprocess.run([str(run_shots.BINARY), v], capture_output=True, text=True, check=True).stdout)
-              parts = []
-              for f, fan in sorted(r.items()):
-                  t = fan['shots']; parts.append(f"{f}: orbitR {fan['reached'].get('orbit right',0)}/{t} orbitL {fan['reached'].get('orbit left',0)}/{t} scoop {fan['reached'].get('hole scoopL',0)} drops {fan['reached'].get('drops',0)} stand {fan['reached'].get('standups',0)} bump {fan['reached'].get('bumpers',0)}")
-              print('SHOTS', v, ' | '.join(parts), flush=True)
-          PY
-          for v in probe/aurora-v*.json; do
-            if CLANG_MODULE_CACHE_PATH="$PWD/Build/ModuleCache.noindex" python3 tools/analyze_table.py "$v" --suite GameData/Analysis/aurora.json --strict --out "Build/Analysis/$(basename $v .json)" > /tmp/a.log 2>&1; then echo "ANALYSIS $v PASS"; else echo "ANALYSIS $v FAIL: $(tail -3 /tmp/a.log | tr '\n' ' ')"; fi
+          for commit in db85bd4 7ce6e37 8791d3f 3468c0d; do
+            rm -rf /tmp/p && git worktree add -f /tmp/p $commit >/dev/null 2>&1
+            for t in aurora meridian tide; do
+              if (cd /tmp/p && CLANG_MODULE_CACHE_PATH=/tmp/mc python3 tools/analyze_table.py GameData/Tables/$t.json --suite GameData/Analysis/$t.json --strict --out /tmp/out-$t > /tmp/a.log 2>&1); then echo "ANALYSIS $commit $t PASS"; else echo "ANALYSIS $commit $t FAIL: $(grep -o 'analysis: .*' /tmp/a.log | head -1)"; fi
+            done
+            git worktree remove --force /tmp/p
+          done
+      - name: Right-orbit shots before and after
+        run: |
+          for commit in db85bd4 7ce6e37; do
+            rm -rf /tmp/p && git worktree add -f /tmp/p $commit >/dev/null 2>&1
+            (cd /tmp/p && python3 tools/playtest/run_shots.py --fan aurora > /tmp/fan-$commit.txt 2>&1 || true)
+            git worktree remove --force /tmp/p
+          done
+          echo "--- db85bd4 shots reaching orbit right:"; grep "orbit right" /tmp/fan-db85bd4.txt | grep heading || true
+          for h in $(grep "orbit right" /tmp/fan-db85bd4.txt | grep heading | awk '{print $2}' | sort -u); do
+            echo "--- heading $h before:"; grep -E "heading +$h " /tmp/fan-db85bd4.txt
+            echo "--- heading $h after (7ce6e37):"; grep -E "heading +$h " /tmp/fan-7ce6e37.txt
           done

@@ -14,8 +14,8 @@
   <!-- Slingshot bodies: the centres of the rounded triangle's corner arcs, swept by the corner radius. The straight
        faces sit where the earlier 0.006 backing and 0.008 kicker put them (vertical face x = 0.1845, as the inlane
        clearance requires); only the corners are rounded. The sprite and its corner bolts are drawn from these. -->
-  <wall id="slingBackL" style="none" height="0.022" radius="0.012" points="0.1965,0.562676 0.1965,0.367422 dir(-slope,0.111916)" />
-  <wall id="slingBackR" style="none" height="0.022" radius="0.012" points="0.7175,0.562676 0.7175,0.367422 dir(180+slope,0.111916)" />
+  <wall id="slingBackL" style="none" height="0.022" radius="0.016" points="0.2005,0.542742 0.2005,0.369971 dir(-slope,0.09903)" />
+  <wall id="slingBackR" style="none" height="0.022" radius="0.016" points="0.7135,0.542742 0.7135,0.369971 dir(180+slope,0.09903)" />
   <!-- Steel inlane guides, drawn as outlines: a narrow upright with a round top, a wide elbow, and a wide diagonal down
        the flipper's slope. Its end is cut concave round the flipper's base, concentric with the pivot. The top edge runs
        in line with the top of the bat, so a ball rolls straight on, and the plate is as high as the bat so the lens
@@ -32,10 +32,10 @@
   <flipper id="flipperR" side="right" pivot="0.6415 0.21" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="180+slope" activeAngle="152.0" />
  </flippers>
  <slingshots>
-  <!-- Each kicker lies on its body's long face, 0.004 outside the corner centres, so its 0.008 capsule
-       ends inside the 0.012 corner arcs. -->
-  <slingshot id="slingL" a="0.20019 0.564219" b="0.301621 0.321668" body="slingBackL" />
-  <slingshot id="slingR" a="0.612379 0.321668" b="0.71381 0.564219" body="slingBackR" />
+  <!-- Each kicker lies on its body's long face, 0.008 outside the corner centres, so its 0.008 capsule
+       ends inside the 0.016 corner arcs. It is not drawn: the body sprite shows the face. -->
+  <slingshot id="slingL" a="0.207881 0.545829" b="0.297632 0.331205" body="slingBackL" />
+  <slingshot id="slingR" a="0.616368 0.331205" b="0.706119 0.545829" body="slingBackR" />
  </slingshots>
  <rollovers>
   <rollover id="inlaneLeft" r="0.025" />

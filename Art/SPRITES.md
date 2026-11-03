@@ -19,7 +19,7 @@ The export needs macOS. On a pull request from this repository, the `Sprite atla
 
 Each export writes `sprites.png` and `sprites.json` under `Art/Sprites/<table>/`. The PNG is one
 transparent rectangular atlas containing complete assemblies: a bumper includes its rings, a
-flipper its hinge detail, and a slingshot its rounded body, kicker band and corner bolts. Every
+flipper its hinge detail, and a slingshot its rounded body and corner bolts. Every
 collider-backed shape is the collider's own outline: a wall is its points swept by its radius
 (closed walls include their inside), so corners are rounded exactly where the ball meets them, and
 each slingshot bolt sits on the centre of a corner arc. Arrow lamps keep their faces with rounded

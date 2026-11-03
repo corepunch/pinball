@@ -208,6 +208,13 @@ static void InsetTriangle(simd_float2 *p, float distance) {
             [self add:Sprite(path, Tone(@"amber"), .002, NO) name:rollover.identifier position:rollover.position z:1];
             CGPathRelease(path);
         }
+        for (PBSpotDef *kick in table.kickbacks) {
+            // An outlane kicker: a short rubber bar across the lane, as wide as its trigger. Its arrow lamp
+            // below shows when it is armed.
+            CGMutablePathRef path = Line(simd_make_float2(-kick.radius*.8f, 0), simd_make_float2(kick.radius*.8f, 0), .007);
+            [self add:Sprite(path, Tone(@"red"), .003, YES) name:kick.identifier position:kick.position z:1];
+            CGPathRelease(path);
+        }
         for (PBLampDef *lamp in table.lamps) {
             SKSpriteNode *node;
             if (lamp.isArrow) {

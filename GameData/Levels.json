@@ -5,12 +5,13 @@
    "name": "First Light",
    "table": "aurora",
    "skin": "orbital",
-   "goal": "score",
-   "count": 36000,
+   "goal": "bumpers",
+   "count": 40,
    "stars": [
     90000,
     150000
-   ]
+   ],
+   "introduces": "Pop bumpers + bonus lanes"
   },
   {
    "id": "l02",
@@ -22,19 +23,21 @@
    "stars": [
     92000,
     130000
-   ]
+   ],
+   "introduces": "Drop targets + spinner"
   },
   {
    "id": "l03",
    "name": "Undertow",
    "table": "tide",
    "skin": "orbital",
-   "goal": "spinners",
-   "count": 13,
+   "goal": "saucers",
+   "count": 4,
    "stars": [
     88000,
     150000
-   ]
+   ],
+   "introduces": "Scoop + kickback"
   }
  ]
 }

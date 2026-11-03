@@ -1,4 +1,5 @@
-<!-- Undertow: staggered upper pops, two spinner approaches and a right return cup. -->
+<!-- Undertow, the third level: introduces the catch-and-release scoop (right) and a left-outlane kickback,
+     lit by completing both stand-ups, among staggered pops, a drop bank and two spinners. -->
 <table id="tide" name="TIDE" defaultSkin="orbital" base="base">
  <walls>
   <wall id="laneGuideB" style="wall" height="0.018" radius="0.007" points="0.429625,1.44 0.429625,1.53" />
@@ -17,6 +18,9 @@
  <saucers>
   <saucer id="scoopR" x="0.74" y="0.98" r="0.039" captureSpeed="5.5" ejectDirection="-0.8 -1" ejectSpeed="1.25" arrow="cyan" />
  </saucers>
+ <kickbacks>
+  <kickback id="kickbackL" x="0.040625" y="0.29" r="0.035" speed="4.2" arrow="green" arrowBind="kickback" />
+ </kickbacks>
  <standups>
   <standup id="standA" a="0.37 0.73" b="0.45 0.75" arrow="amber" />
   <standup id="standB" a="0.75 1.36" b="0.83 1.34" arrow="amber" />
@@ -39,7 +43,7 @@
  <rules skillShotTarget="laneC" locksForMultiball="0">
   <groups>
    <group id="lanes" members="laneA laneB laneC" lamps="lampLaneA lampLaneB lampLaneC" rotateWithFlippers="true" completeScore="10000" actions="bonusX resetGroup" message="BONUS UP" />
-   <group id="targets" members="standA standB" lamps="lampStandA lampStandB" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
+   <group id="targets" members="standA standB" lamps="lampStandA lampStandB" completeScore="5000" actions="addBonus armKickback resetGroup" message="KICKBACK ON" />
    <group id="drops" members="dropA dropB dropC" lamps="lampDropA lampDropB lampDropC" completeScore="7500" actions="addBonus resetDrops" message="TARGETS CLEAR" />
   </groups>
  </rules>

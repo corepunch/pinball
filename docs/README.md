@@ -11,6 +11,7 @@ Start with the root documents, then read the guide for the system being changed.
 | [Scenes](../Art/SCENES.md) | XML format, layout rules, shared/base inheritance |
 | [UI guide](../Art/UI_GUIDE.md) | Overlay/HUD, authored control states, safe areas, input and UI verification |
 | [Sprite export](../Art/SPRITES.md) | Current code-shape PNG export, compact rectangular packing and pivots |
+| [Elements and progression](elements.md) | Pinball components, engine support, and the level-by-level introduction order |
 | [Campaign workflow](campaign.md) | Three compact layouts, shot/return contracts and authoring loop |
 | [Skin guide](../Art/SKIN_GUIDE.md) | Skin assets, atlas resources and palettes |
 | [Analysis tools — Russian](analysis-tools.ru.md) | Production-physics probes, reports, heatmaps, persistent runner, comparisons |

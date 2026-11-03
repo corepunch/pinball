@@ -1,4 +1,4 @@
-<!-- Crosswind: open right bank, left pops, a low spinner and a pause/return scoop. -->
+<!-- Crosswind, the second level: introduces the drop-target bank (right) and the spinner (low left), with left pops. -->
 <table id="meridian" name="MERIDIAN" defaultSkin="orbital" base="base">
  <walls>
   <wall id="laneGuideB" style="wall" height="0.018" radius="0.007" points="0.269625,1.44 0.269625,1.53" />
@@ -13,9 +13,6 @@
   <dropTarget id="dropB" a="0.60 1.14" rotation="guide" length="0.085" arrow="green" />
   <dropTarget id="dropC" a="0.54 0.98" rotation="guide" length="0.085" arrow="green" />
  </dropTargets>
- <saucers>
-  <saucer id="scoopL" x="0.27" y="0.88" r="0.039" captureSpeed="5.5" ejectDirection="0.65 -1" ejectSpeed="1.25" arrow="cyan" />
- </saucers>
  <standups>
   <standup id="standA" a="0.48 0.74" b="0.56 0.76" arrow="amber" />
   <standup id="standB" a="0.70 0.84" b="0.78 0.82" arrow="amber" />

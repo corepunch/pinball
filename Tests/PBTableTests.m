@@ -142,6 +142,8 @@
 - (void)testCampaignDropBanksScoreAndResetForAnotherRound {
     for (NSString *name in [self allTableNames]) {
         PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:name] highScore:0 seed:17];
+        // Drop banks arrive with the second level; the first teaches fixed stand-ups instead.
+        if (!game.table.dropTargets.count) continue;
         [game requestNewGame]; [game update:1.0 / 60.0];
         XCTAssertEqual(game.table.dropTargets.count, 3u);
         for (int round = 0; round < 2; round++) {
@@ -168,6 +170,8 @@
     for (NSString *name in [self allTableNames]) {
         for (NSNumber *seed in @[ @17, @41, @73 ]) {
             PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:name] highScore:0 seed:seed.unsignedIntValue];
+            // The scoop is introduced on the third level.
+            if (!game.table.saucers.count) continue;
             PBStatsObserver *stats = [PBStatsObserver new]; [game addObserver:stats];
             [game requestNewGame]; [game update:1.0 / 60.0];
             PBSpotDef *scoop = game.table.saucers[0];

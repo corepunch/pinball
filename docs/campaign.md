@@ -3,14 +3,14 @@
 The campaign uses the schematic SpriteKit artwork so dimensions remain quick to edit. Each level
 has its own physical layout, inherited from [base.xml](../Scenes/base.xml): 1.0 × 1.6 board,
 0.03417 ball radius, 0.068 bumper radius, 0.085 drop faces and 0.08125 clear straight lanes.
-The lower kit and physics profile are shared. All three stay on one plane, with catch-and-release
-scoops and no lock, multiball, ramps or extra flippers.
+The lower kit and physics profile are shared. All three stay on one plane, with no lock, multiball,
+ramps or extra flippers. Elements arrive in the order [elements and progression](elements.md) sets.
 
 | Level / source | Main choices and rhythm | Goal / score stars |
 | --- | --- | --- |
-| First Light / [Aurora](../Scenes/tables/aurora.xml) | Upper-right three-pop burst, left drop bank and scoop, right spinner. Broad introduction to scoring. See [the detailed shot plan](aurora.md). | 36,000 points; 90,000 / 150,000 |
-| Crosswind / [Meridian](../Scenes/tables/meridian.xml) | Two upper-left pops leave a different aiming fan toward three staggered right drops. The low-left spinner leads toward the scoop and upper lanes. Collect the bank twice. | 6 drop hits; 92,000 / 130,000 |
-| Undertow / [Tide](../Scenes/tables/tide.xml) | Central staggered pops, a spaced left bank, left-flank/right spinners and a right scoop. Choose between side passes, collection and a deliberate pause. | 13 spinner events; 88,000 / 150,000 |
+| First Light / [Aurora](../Scenes/tables/aurora.xml) | Introduces pops, bonus lanes and stand-ups: an upper-right three-pop burst, a left bank of three stand-ups, a centre pair and both orbits. See [the detailed shot plan](aurora.md). | Bumper hits; stars by score |
+| Crosswind / [Meridian](../Scenes/tables/meridian.xml) | Introduces the drop bank and spinner. Two upper-left pops leave a different aiming fan toward three staggered right drops; the low-left spinner leads to the upper lanes. Collect the bank twice. | 6 drop hits; 92,000 / 130,000 |
+| Undertow / [Tide](../Scenes/tables/tide.xml) | Introduces the scoop and a left-outlane kickback that both stand-ups light. Central staggered pops, a spaced left bank and two spinners return. Choose between side passes, collection and a deliberate pause. | Scoop captures; stars by score |
 
 Spinner progress counts production spinner events, not unique completed passes. Drop progress
 counts individual hits; the bank resets after completion. Stars and unlocks use stable `l01/l02/l03`
@@ -22,9 +22,10 @@ has a configured remote Game Center leaderboard; all three retain local score/st
 | Layout | Feeds and success | Return and next choice | Miss / risk |
 | --- | --- | --- | --- |
 | Meridian right bank | Measured lower-flipper shots hit each angled drop separately; all three complete the bonus/reset group. | Upper two measured routes descend into the right-flipper feed; the lower target route reaches the left feed. | Raised targets deflect; dropped targets open travel. Unplayed lower feeds must drain cleanly. |
-| Meridian left zone | Flipper routes reach both pops, spinner, stand-ups and scoop. Three top lanes exit their compact dividers. | Scoop pauses for 1.1 seconds and ejects down/right; pop/stand-up routes have measured descending feeds on both sides. | Off-centre scoop shots continue; shots above capture speed are not held. No closed pop pocket. |
+| Meridian left zone | Flipper routes reach both pops, the spinner and the stand-ups. Three top lanes exit their compact dividers. | Pop/stand-up routes have measured descending feeds on both sides. | No closed pop pocket. |
 | Tide collection and side passes | Real-flipper routes reach each left drop, both spinners, both stand-ups and all three pops. | Different routes reach left/right descending feed boxes; the open lower centre permits the next cross-field shot. | Narrow timing/approach choices remain live rebounds; a feed box is not proof that a player can catch the ball. |
 | Tide right scoop and top lanes | A flipper shot enters `scoopR`; separate lane probes cross each bar then leave the dividers. | Scoop ejects down/left; its automatic release is checked through normal game updates. | The scoop is a precision alternative, not a mandatory choke point. A failed lower feed has an explicit drain contract. |
+| Tide left-outlane kickback | Completing both stand-ups arms `kickbackL` (`KICKBACK ON`, green arrow lit). | A ball falling into the left outlane is kicked straight back up the lane, once per arming. | Unarmed, the outlane drains as usual. The `outlane-kickback` contract checks the kick. |
 
 [Meridian contracts](../GameData/Analysis/meridian.json) and
 [Tide contracts](../GameData/Analysis/tide.json) check ordered real-flipper contact → device events,

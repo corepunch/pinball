@@ -1,4 +1,4 @@
-<!-- First Light: left scoop/drop bank, upper-right pops and three bonus lanes.
+<!-- First Light, the first level: pops, three bonus lanes, stand-up targets and both orbits.
      Preserve the shared lower kit. Route contracts: GameData/Analysis/aurora.json. -->
 <table id="aurora" name="AURORA" defaultSkin="orbital" base="base">
  <walls>
@@ -12,22 +12,14 @@
   <bumper id="bumperB" x="0.70" y="1.22" r="0.068" />
   <bumper id="bumperC" x="0.63" y="1.0" r="0.068" />
  </bumpers>
- <dropTargets>
-  <!-- Three separate angled hits; the centre remains an open aiming fan. -->
-  <dropTarget id="dropA" a="0.18 1.22" rotation="-guide" length="0.085" arrow="green" />
-  <dropTarget id="dropB" a="0.27 1.10" rotation="-guide" length="0.085" arrow="green" />
-  <dropTarget id="dropC" a="0.36 0.98" rotation="-guide" length="0.085" arrow="green" />
- </dropTargets>
- <saucers>
-  <saucer id="scoopL" x="0.24" y="0.88" r="0.039" captureSpeed="5.5" ejectDirection="0.73 -1" ejectSpeed="1.25" arrow="cyan" />
- </saucers>
  <standups>
+  <!-- Three separate angled stand-ups on the left; the centre remains an open aiming fan. -->
+  <standup id="standC" a="0.18 1.22" rotation="-guide" length="0.085" arrow="green" />
+  <standup id="standD" a="0.27 1.10" rotation="-guide" length="0.085" arrow="green" />
+  <standup id="standE" a="0.36 0.98" rotation="-guide" length="0.085" arrow="green" />
   <standup id="standA" a="0.46 0.81" b="0.54 0.83" arrow="amber" />
   <standup id="standB" a="0.63 0.83" b="0.71 0.81" arrow="amber" />
  </standups>
- <spinners>
-  <spinner id="spinnerR" a="0.75 0.67" b="0.83 0.67" arrow="cyan" />
- </spinners>
  <rollovers>
   <rollover id="laneA" r="0.025" />
   <rollover id="laneB" r="0.025" />
@@ -43,7 +35,7 @@
   <groups>
    <group id="lanes" members="laneA laneB laneC" lamps="lampLaneA lampLaneB lampLaneC" rotateWithFlippers="true" completeScore="10000" actions="bonusX resetGroup" message="BONUS UP" />
    <group id="targets" members="standA standB" lamps="lampStandA lampStandB" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
-   <group id="drops" members="dropA dropB dropC" lamps="lampDropA lampDropB lampDropC" completeScore="7500" actions="addBonus resetDrops" message="TARGETS CLEAR" />
+   <group id="bank" members="standC standD standE" lamps="lampStandC lampStandD lampStandE" completeScore="7500" actions="addBonus resetGroup" message="TARGETS CLEAR" />
   </groups>
  </rules>
 </table>

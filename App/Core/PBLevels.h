@@ -17,6 +17,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, readonly) NSString *skin;
 /// "score", or what to count: "ramps", "bumpers", "drops", "saucers", "spinners", "multiballs", "jackpots", "standups" or "wizards".
 @property (nonatomic, copy, readonly) NSString *goal;
+/// The elements this level introduces, for its intro card; nil when it adds nothing new.
+@property (nonatomic, copy, readonly, nullable) NSString *introduces;
 @property (nonatomic, readonly) int64_t goalCount;
 @property (nonatomic, readonly) int64_t twoStarScore;
 @property (nonatomic, readonly) int64_t threeStarScore;

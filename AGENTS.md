@@ -24,8 +24,10 @@ chat history, machine-specific paths, and unverified test results as project pol
 - Xcode source folders are synchronized: new source files normally need no project edit.
   Change `tools/make_xcodeproj.py` and regenerate when target configuration changes.
 - The shipped campaign has First Light (`aurora`), Crosswind (`meridian`) and Undertow (`tide`),
-  each with its own compact single-plane layout and the shared lower kit. They use enlarged schematic
-  sprites, drop banks, bonus lanes, spinners and catch-and-release scoops, without locks/multiball.
+  each with its own compact single-plane layout and the shared lower kit. The campaign introduces
+  elements step by step ([elements and progression](docs/elements.md)): pops, lanes and stand-ups;
+  then drop banks and a spinner; then a catch-and-release scoop and an outlane kickback. A level
+  never uses an element before it is introduced, and its goal is its new element. No locks/multiball yet.
   Ramps remain deferred. See [the campaign workflow](docs/campaign.md) and
   [First Light's detailed shot plan](docs/aurora.md). Do not restore historical mechanisms from fixtures.
 - `make sprites TABLE=<id>` exports the actual code shapes as a rectangular PNG atlas packed by each

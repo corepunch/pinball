@@ -687,15 +687,37 @@
    "bind": "shootAgain"
   },
   {
-   "id": "lampSpinnerR",
-   "x": 0.79,
-   "y": 0.5732,
+   "id": "lampStandC",
+   "x": 0.206746,
+   "y": 1.095143,
    "size": 0.026,
-   "color": "cyan",
+   "color": "green",
    "icon": 7,
    "shape": "arrow",
    "angle": 90,
-   "arrowFor": "spinnerR"
+   "arrowFor": "standC"
+  },
+  {
+   "id": "lampStandD",
+   "x": 0.296746,
+   "y": 0.975143,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "standD"
+  },
+  {
+   "id": "lampStandE",
+   "x": 0.386746,
+   "y": 0.855143,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "standE"
   },
   {
    "id": "lampStandA",
@@ -718,50 +740,6 @@
    "shape": "arrow",
    "angle": 90,
    "arrowFor": "standB"
-  },
-  {
-   "id": "lampDropA",
-   "x": 0.206746,
-   "y": 1.095143,
-   "size": 0.026,
-   "color": "green",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "dropA"
-  },
-  {
-   "id": "lampDropB",
-   "x": 0.296746,
-   "y": 0.975143,
-   "size": 0.026,
-   "color": "green",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "dropB"
-  },
-  {
-   "id": "lampDropC",
-   "x": 0.386746,
-   "y": 0.855143,
-   "size": 0.026,
-   "color": "green",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "dropC"
-  },
-  {
-   "id": "lampScoopL",
-   "x": 0.24,
-   "y": 0.78552,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "scoopL"
   }
  ],
  "plastics": [
@@ -886,21 +864,21 @@
     "message": "BONUS +"
    },
    {
-    "id": "drops",
+    "id": "bank",
     "members": [
-     "dropA",
-     "dropB",
-     "dropC"
+     "standC",
+     "standD",
+     "standE"
     ],
     "lamps": [
-     "lampDropA",
-     "lampDropB",
-     "lampDropC"
+     "lampStandC",
+     "lampStandD",
+     "lampStandE"
     ],
     "completeScore": 7500,
     "actions": [
      "addBonus",
-     "resetDrops"
+     "resetGroup"
     ],
     "message": "TARGETS CLEAR"
    }
@@ -927,9 +905,9 @@
    "r": 0.068
   }
  ],
- "dropTargets": [
+ "standups": [
   {
-   "id": "dropA",
+   "id": "standC",
    "a": [
     0.18,
     1.22
@@ -941,7 +919,7 @@
    ]
   },
   {
-   "id": "dropB",
+   "id": "standD",
    "a": [
     0.27,
     1.1
@@ -953,7 +931,7 @@
    ]
   },
   {
-   "id": "dropC",
+   "id": "standE",
    "a": [
     0.36,
     0.98
@@ -963,24 +941,7 @@
     0.413492,
     0.913943
    ]
-  }
- ],
- "saucers": [
-  {
-   "id": "scoopL",
-   "x": 0.24,
-   "y": 0.88,
-   "r": 0.039,
-   "captureSpeed": 5.5,
-   "ejectDirection": [
-    0.73,
-    -1
-   ],
-   "ejectSpeed": 1.25,
-   "arrow": "cyan"
-  }
- ],
- "standups": [
+  },
   {
    "id": "standA",
    "a": [
@@ -1006,20 +967,9 @@
    "arrow": "amber"
   }
  ],
- "spinners": [
-  {
-   "id": "spinnerR",
-   "a": [
-    0.75,
-    0.67
-   ],
-   "b": [
-    0.83,
-    0.67
-   ],
-   "arrow": "cyan"
-  }
- ],
+ "dropTargets": [],
+ "spinners": [],
+ "saucers": [],
  "kickbacks": [],
  "magnets": [],
  "captiveBalls": [],

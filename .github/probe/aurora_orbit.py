@@ -19,15 +19,14 @@ SA = '<standup id="standA" a="0.51 0.81" b="0.59 0.83" arrow="amber" />'
 SB = '<standup id="standB" a="0.63 0.83" b="0.71 0.81" arrow="amber" />'
 def sa(ax, bx): return f'<standup id="standA" a="{ax} 0.81" b="{bx} 0.83" arrow="amber" />'
 def sb(ax, bx, ay=.83, by=.81): return f'<standup id="standB" a="{ax} {ay}" b="{bx} {by}" arrow="amber" />'
+BA = '<bumper id="bumperA" x="0.53" y="1.2" r="0.068" />'
+def ba(x, y=1.2): return f'<bumper id="bumperA" x="{x}" y="{y}" r="0.068" />'
 variants = {
-    'current': {},
-    'sb68': {SB: sb(.68, .76)},
-    'sb675': {SB: sb(.675, .755)},
-    'sa46_sb63': {SA: sa(.46, .54)},
-    'sa46_sb64': {SA: sa(.46, .54), SB: sb(.64, .72)},
-    'sa45_sb65': {SA: sa(.45, .53), SB: sb(.65, .73)},
-    'sa47_sb66': {SA: sa(.47, .55), SB: sb(.66, .74)},
-    'sbHigh': {SB: sb(.64, .72, .95, .93)},
+    'sa46': {SA: sa(.46, .54)},
+    'sa46_ba49': {SA: sa(.46, .54), BA: ba(.49)},
+    'sa46_ba48': {SA: sa(.46, .54), BA: ba(.48)},
+    'sa46_ba50': {SA: sa(.46, .54), BA: ba(.495, 1.19)},
+    'sa46_ba49_sbHi': {SA: sa(.46, .54), BA: ba(.49), SB: sb(.64, .72, .87, .85)},
 }
 suite = {'scenarios': [{'id': 'probe', 'mode': 'fixture', 'position': [0.5, 1.0], 'velocity': [0, 0], 'seconds': 0.1, 'seeds': [1]}]}
 Path('/tmp/probe-suite.json').write_text(json.dumps(suite))

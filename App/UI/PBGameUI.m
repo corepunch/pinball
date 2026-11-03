@@ -89,7 +89,7 @@ static NSString *PBScoreString(int64_t score) {
     return [formatter stringFromNumber:@(score)];
 }
 
-/// Nine textured quads give the SceneKit overlay explicit, fixed cap geometry.
+/// Nine textured quads give the SpriteKit overlay explicit, fixed cap geometry.
 @interface PBNineSliceFace : SKNode
 - (instancetype)initWithStates:(NSArray<SKTexture *> *)states insets:(NSArray<NSNumber *> *)insets size:(CGSize)size;
 - (void)setState:(NSUInteger)state;

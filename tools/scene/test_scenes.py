@@ -1,129 +1,35 @@
 #!/usr/bin/env python3
 """Checks for the scene format: run by `make test`, with no Xcode needed."""
+import ast
 import json
 import math
 import sys
 import tempfile
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shim import ROOT, geometry  # noqa: E402
-import mesher  # noqa: E402
-import prefabs  # noqa: E402
+from shim import ROOT  # noqa: E402
+import shapes  # noqa: E402
 import table_xml  # noqa: E402
 import compile_scenes  # noqa: E402
 import check_spacing  # noqa: E402
 
 
-def built(xml, names=None):
-    kit = {e.get('id'): e for e in ET.fromstring(f'<kit>{xml}</kit>')}
-    return prefabs.Builder(kit).build(next(iter(kit)), names)
-
-
-# A button is a circle with modifiers: extruded, bevelled, and every normal points outward.
-button = built('<prefab id="b"><let name="R" value=".5"/><circle radius="{R*2}" role="accent" segments="16"><extrude amount=".2"/><bevel amount=".02"/></circle></prefab>')
-assert abs(max(math.hypot(v[0], v[1]) for v in button.vertices) - 1) < 1e-6, 'expressions size shapes'
-assert abs(max(v[2] for v in button.vertices) - .2) < 1e-6, 'extrude sets height'
-normals = mesher.corner_normals(button)
-for (face, vertex), normal in normals.items():
-    v = button.vertices[vertex]
-    assert normal[0] * v[0] + normal[1] * v[1] + normal[2] * v[2] > 0, 'faces point outward'
-# Modifiers run in order, and prefabs nest with their own variables.
-nested = built('<prefab id="a"><use prefab="c" r="2" at="1,0"/></prefab><prefab id="c"><lathe role="metal" segments="8" points="{r},0 {r},1"/></prefab>')
-assert abs(max(v[0] for v in nested.vertices) - 3) < 1e-6, '<use> passes variables and position'
+# Expressions in scene XML stay arithmetic.
+assert abs(shapes.evaluate(ast.parse('180+slope*2', mode='eval'), {'slope': 25}) - 230) < 1e-9, 'named angles evaluate'
 try:
-    built('<prefab id="x"><blob role="metal"/></prefab>')
-    raise AssertionError('unknown elements must fail')
-except ValueError:
-    pass
-try:
-    built('<prefab id="x"><circle radius="{__import__}" role="metal"/></prefab>')
+    shapes.evaluate(ast.parse('__import__', mode='eval'), {})
     raise AssertionError('expressions must stay arithmetic')
 except (KeyError, ValueError):
     pass
-# Actual fasteners share the centres of the rounded corner arcs, including the
-# acute tip. Verify against the sampled arcs, rather than just an inset value.
-kit = {part.get('id'): part for part in ET.parse(ROOT / 'Scenes/kit.xml').getroot()}
-for part in table_xml.read(ROOT / 'Scenes/base.xml')['plastics']:
-    outline = mesher.ccw(compile_scenes.expand_points(part['points']))
-    mesh = prefabs.Builder(kit).build('slingshot', {'outline': compile_scenes.outline_text(outline), 'lens': 'sling_lens'})
-    connected = {}
-    for face, role in zip(mesh.faces, mesh.roles):
-        if role == 'metal':
-            for vertex in face:
-                connected.setdefault(vertex, set()).update(face)
-    centres = []
-    while connected:
-        pending = [next(iter(connected))]; vertices = set()
-        while pending:
-            vertex = pending.pop()
-            if vertex not in connected:
-                continue
-            vertices.add(vertex); pending.extend(connected.pop(vertex))
-        centres.append(tuple(sum(mesh.vertices[v][axis] for v in vertices) / len(vertices) for axis in (0, 1)))
-    assert len(centres) == 3, f"{part['id']}: exactly three fastener heads"
-    arcs = mesher.filleted(outline, .014)
-    for corner in range(3):
-        arc = arcs[corner * 9:(corner + 1) * 9]
-        matches = [centre for centre in centres if all(abs(math.dist(centre, p) - .014) < 1e-7 for p in arc)]
-        assert len(matches) == 1, f"{part['id']}: bolt must be concentric with rounded corner {corner}"
-    normals = mesher.corner_normals(mesh)
-    tops = [f for f, (face, role) in enumerate(zip(mesh.faces, mesh.roles))
-            if role == 'sling_lens' and len(face) > 4]
-    assert len(tops) == 1, f"{part['id']}: one uninterrupted flat top"
-    for f in tops:
-        top_outline = [mesh.vertices[v][:2] for v in mesh.faces[f]]
-        for centre in centres:
-            assert sum(abs(math.dist(centre, p) - .0115) < 1e-7 for p in top_outline) == 9, f"{part['id']}: top fillet and bolt must share the outer fillet centre"
-        for v in mesh.faces[f]:
-            assert abs(mesh.vertices[v][2] - .037) < 1e-9, f"{part['id']}: top must be level"
-            assert math.dist(normals[(f, v)], (0, 0, 1)) < 1e-9, f"{part['id']}: top normals must not simulate a dome"
-# Guides are two thin plates at half/full height, joined by exactly three tubes.
-for part in table_xml.read(ROOT / 'Scenes/base.xml')['walls']:
-    if part['style'] != 'rail' or not part.get('closed'):
-        continue
-    points = compile_scenes.expand_points(part['points'])
-    original = mesher.raised_outline(points, part['radius'], part['height'])
-    decorated = compile_scenes.walls_part({'walls': [part]}, lambda x, y: (x, y), prefabs.Builder(kit))
-    assert all(role in decorated.roles for role in ('guide_body', 'guide_edge', 'guide_face', 'guide_inlay', 'guide_mark', 'guide_tube')), 'guide has separate plates, painted layers and tubes'
-    plate_tops = [set(decorated.vertices[v][2] for v in face) for face, role in zip(decorated.faces, decorated.roles)
-                  if role == 'guide_face' and len(face) > 20]
-    assert any(len(z) == 1 and abs(next(iter(z)) - part['height'] * .5) < 1e-8 for z in plate_tops), 'lower plate is at 50 percent height'
-    assert any(len(z) == 1 and abs(next(iter(z)) - part['height']) < 1e-8 for z in plate_tops), 'upper plate is at full height'
-    for face, role in zip(decorated.faces, decorated.roles):
-        heights = [decorated.vertices[v][2] for v in face]
-        if role == 'guide_body':
-            assert max(heights) - min(heights) <= .0035 + 1e-8, 'no monolithic side face spans the gap between plates'
-    tubes = {}
-    for face, role in zip(decorated.faces, decorated.roles):
-        if role == 'guide_tube':
-            for v in face: tubes.setdefault(v, set()).update(face)
-    count = 0
-    while tubes:
-        count += 1; pending = [next(iter(tubes))]
-        while pending:
-            v = pending.pop()
-            if v in tubes: pending.extend(tubes.pop(v))
-    assert count == 3, 'exactly three hollow screw tubes connect the guide plates'
-    for axis in range(2):
-        assert min(v[axis] for v in decorated.vertices) >= min(v[axis] for v in original.vertices) - 1e-8, 'guide assembly stays inside its old footprint'
-        assert max(v[axis] for v in decorated.vertices) <= max(v[axis] for v in original.vertices) + 1e-8, 'guide assembly does not narrow a channel'
-    assert max(v[2] for v in decorated.vertices) <= part['height'] + .008 + 1e-8, 'small tube rims project above the upper plate'
-
-flipper = prefabs.Builder(kit).build('flipper', {'base': .16, 'tip': .09})
-for face, role in zip(flipper.faces, flipper.roles):
-    if role in ('pivot_cap', 'pivot_ink'):
-        assert all(math.hypot(*flipper.vertices[v][:2]) <= .16 * .34 + 1e-8 for v in face), 'small pivot detail is centred on the hinge'
-assert 'metal' not in flipper.roles, 'old domed hub and tip screw are removed'
-cap = [flipper.vertices[v] for face, role in zip(flipper.faces, flipper.roles) if role == 'pivot_cap' for v in face]
-assert cap and max(v[2] for v in cap) < .31, 'pivot head is low and flat, not a tall dome'
-assert any(all(abs(flipper.vertices[v][2] - .303) < 1e-8 for v in face) for face, role in zip(flipper.faces, flipper.roles) if role == 'pivot_cap'), 'pivot has a flat top that casts a real shadow'
-
-# Concave polygons triangulate into the same area.
-ell = [(0, 0, 0), (2, 0, 0), (2, 1, 0), (1, 1, 0), (1, 2, 0), (0, 2, 0)]
-area = sum(abs((ell[b][0] - ell[a][0]) * (ell[c][1] - ell[a][1]) - (ell[b][1] - ell[a][1]) * (ell[c][0] - ell[a][0])) * .5 for a, b, c in mesher.triangulate(ell, list(range(6))))
-assert abs(area - 3) < 1e-9, 'concave triangulation covers the outline'
+try:
+    shapes.evaluate(ast.parse('open("x")', mode='eval'), {})
+    raise AssertionError('only whitelisted functions may be called')
+except ValueError:
+    pass
+# Rounded convex outlines keep each arc at its radius from one centre.
+square = shapes.filleted(shapes.ccw([(0, 0), (0, 1), (1, 1), (1, 0)]), .1, 8)
+assert len(square) == 36 and all(-1e-9 <= x <= 1 + 1e-9 and -1e-9 <= y <= 1 + 1e-9 for x, y in square), 'fillets stay inside the outline'
 # Tables survive XML both ways, and the checked-in JSON is what the scenes compile to.
 base = table_xml.read(ROOT / 'Scenes/base.xml')
 for path in table_xml.table_paths():

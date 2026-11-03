@@ -1,8 +1,8 @@
 # Skin artwork and materials
 
 The shipping renderer currently uses schematic code shapes. Export their tightly packed PNGs with
-`make sprites TABLE=aurora`; see [SPRITES.md](SPRITES.md). The illustrated atlases/materials below
-are retained SceneKit references, not the current shape-export pipeline.
+`make sprites TABLE=aurora`; see [SPRITES.md](SPRITES.md). The illustrated atlases below are skin
+source artwork and palettes; the sprite renderer reads their palette colours.
 
 ## Orbital and Abyss
 
@@ -30,30 +30,17 @@ declare their own `file` and `canvas`, which is how separate playfield sources w
 fills the table's height and keeps its proportions, so its sides run off the phone's edges.
 The `inserts` slot is a 4×4 glyph sheet with optional `cellBleed` to exclude its dividers.
 
-Material controls under `materials` are `metalness`, `roughness`, `playfieldReflectivity`, `bloom`,
-`rampOpacity` and `rampGlass` (the ramp's tint; opacity 1 is solid sheet metal). All metal is a tinted MatCap: `matcap` and `rampMatcap` name them (`courtyard`, `studio`, `sunrise`). `rampBlur` (a mip bias) and `rampGloss` (0 to 1) set how satin the channel looks. `capBase` and `capStar` paint the bumper caps. Palette
-`shell` is the opaque walls/apron colour; there is no surrounding 3D cabinet. `accent` controls decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat
-sleeves of skins with no model kit.
-Printed enamel uses a restrained clear coat; metal rims, skirts, rails, and fasteners provide physical
-reflections. `modelKit: "premium"` selects the compiled domed bumper, insert socket, and ramp
-channel meshes; see [MODEL_GUIDE.md](MODEL_GUIDE.md). New decorative meshes do not alter collision
-geometry or scoring.
+The `materials` block and `modelKit` in skin JSON are older 3D settings that `PBSkin` still parses;
+the sprite renderer does not use them. `capBase` and `capStar` paint the bumper caps. Palette
+`shell` is the opaque walls/apron colour; there is no surrounding 3D cabinet. `accent` controls
+decorative metal; `slingLens` the lit sling and arrow lenses; `flipperRubber` the bat sleeves.
 
-To regenerate the compressed runtime JPEGs from the preserved masters, run:
+To check the board with a skin applied, capture the real sprite graph in software:
 
 ```bash
-tools/export_premium_art.sh
+PB_PREVIEW_TABLE=aurora zsh tools/render_ui_preview.sh - /tmp/board
 ```
 
-To validate every skin source and atlas crop and render real SceneKit previews (requires macOS with
-Metal GPU access, no app build required):
-
-```bash
-tools/render_preview.sh "$PWD/Art/Previews" orbital
-tools/render_preview.sh "$PWD/Art/Previews" abyss
-```
-
-Omit the last argument to render all skins. These are actual game scene renders, not concept mockups.
 Run `-PBSkin orbital` or `-PBSkin abyss` to choose a set directly in the iPhone app, or
 tap with three fingers to cycle. Orbital is Aurora's default; saved skin preferences persist.
 

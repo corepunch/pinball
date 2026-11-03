@@ -16,7 +16,7 @@ import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-import prefabs
+import shapes
 
 SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
 
@@ -137,7 +137,7 @@ def merged(under, over):
 
 
 def degrees(value, angles):
-    return prefabs.evaluate(ast.parse(value, mode='eval'), angles) if isinstance(value, str) else value
+    return shapes.evaluate(ast.parse(value, mode='eval'), angles) if isinstance(value, str) else value
 
 
 def stepped(start, rotation, length):

@@ -17,8 +17,7 @@ float PBTableVisibleHeight(simd_float2 size, simd_float2 padding);
 /// Floor-equivalent position seen by the tilted orthographic camera; no perspective growth.
 simd_float2 PBTableProject(simd_float2 size, simd_float2 padding, simd_float2 p, float height);
 
-/// Drawn size of round hardware relative to its table value. Art/Models/manifest.json records
-/// the real model extents, and a test keeps these in step with them.
+/// Drawn size of round hardware relative to its table value, for footprint and spacing checks.
 extern const float PBBumperFootprintScale;
 extern const float PBLampFootprintScale;
 extern const float PBPostFootprintScale;

@@ -47,6 +47,10 @@ and bank scoring/reset over two rounds on every campaign table.
    <id>`. Save useful initial positions, velocities and controls as ordered scenarios in
    `GameData/Analysis/<id>.json`. Include weak/unplayed feeds, reset states and returns; require
    `stuckAtMost: 0` for accepted fixtures. Run the suite with `--strict` before accepting it.
+   After a deliberate lower-kit geometry change, `python3 tools/rerecord_contracts.py <id> --write`
+   re-finds flipper starts for scenarios that no longer meet their own thresholds. It searches the
+   shot playtest's start grid (then the other flipper) and keeps the events, return box, seeds and thresholds; a scenario
+   it cannot satisfy stays failing, which means the layout must change.
 5. Run `make playtest PLAYTEST='--games 60'` for every layout. Inspect per-device coverage, traps,
    game duration and goal completion. Use `--tune` only when intentionally changing goals/stars.
    A bot's coverage is useful evidence, not a substitute for aiming and playing by hand.

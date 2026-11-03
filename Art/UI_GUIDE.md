@@ -27,8 +27,8 @@ outer collider now follows the display sides and rounded top corners instead of 
 The corner radius is an approximation from safe-area insets (UIKit has no public display-radius API).
 There is no Dynamic Island collider. The drain remains open; the lower corners sit behind the apron.
 
-`PBTablePresentation` shares safe-area layout and orthographic projection between SceneKit,
-the HUD and headless checks. The camera looks up-table from the flippers, 20 degrees from overhead.
+`PBTablePresentation` shares safe-area layout and flat overhead projection between the sprite
+playfield, the HUD and headless checks.
 The score and pause follow the reference native title/avatar row: 20-point side margins and a
 76-point centre on the 402-point authoring canvas, shifted together when the top safe area requires it.
 The floating text and pause clear the actual top safe-area inset, including on Dynamic Island phones;
@@ -53,7 +53,7 @@ source geometry. The loader samples those authored regions directly, with no sta
 state synthesis, per-cell correction, or press displacement. Text labels are rendered separately.
 Resizable text-button faces use nine-slicing, with source-pixel cap insets stored in `nineSliceInsets`
 (left, bottom, right, top). Nine SpriteKit patches explicitly preserve corner dimensions in the
-SceneKit overlay: corners scale uniformly to the control height, edges stretch along one axis, and
+overlay: corners scale uniformly to the control height, edges stretch along one axis, and
 the center fills the remaining area. All five authored states share the same patch geometry.
 Each wide cell is uploaded directly from its fixed source rectangle before subdivision, preserving
 its authored pixels and avoiding nested atlas UVs in the overlay.
@@ -101,8 +101,8 @@ The tool exports every screen and smaller-phone previews, and verifies pointer c
 cancellation, gameplay passthrough, extreme-score bounds, gauge progress/reset and Dynamic Island clearance.
 Representative preview scores do not come from a live leaderboard.
 
-Without Metal, run the same real UI-node and input assertions plus a comparison of SceneKit's
-actual camera matrix against the shared 2D projection:
+Without a GPU, run the same real UI-node and input assertions plus a comparison of the live sprite
+positions against the shared 2D projection:
 
 ```bash
 make ui-check

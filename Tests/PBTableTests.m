@@ -431,36 +431,6 @@
     XCTAssertTrue(found, @"hardware must remain inside the physical display");
 }
 
-// Footprints are only honest if they cover the models actually drawn.
-- (void)testFootprintsCoverTheCompiledModels {
-    NSString *path = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../Art/Models/manifest.json"];
-    NSDictionary *assets = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:path] options:0 error:NULL][@"assets"];
-    XCTAssertLessThanOrEqual([assets[@"bumper-base"][@"radius"] floatValue], PBBumperFootprintScale);
-    XCTAssertLessThanOrEqual([assets[@"bumper-cap"][@"radius"] floatValue], PBBumperFootprintScale);
-    XCTAssertLessThanOrEqual([assets[@"insert-bezel"][@"radius"] floatValue], PBLampFootprintScale);
-    XCTAssertLessThanOrEqual([assets[@"post"][@"radius"] floatValue], PBPostFootprintScale);
-    // A missing model would otherwise leave a hole, or fall back to plain procedural parts.
-    NSString *compiled = [[[NSString stringWithUTF8String:__FILE__] stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"../GameData/Models/premium"];
-    for (NSString *name in [self allTableNames]) {
-        PBTableDefinition *table = [self loadTable:name];
-        NSMutableArray<NSString *> *models = [NSMutableArray array];
-        for (PBDecorDef *decor in table.decor) [models addObject:decor.model];
-        for (PBSpotDef *post in table.posts) if (post.model) [models addObject:post.model];
-        for (PBRampDef *ramp in table.ramps) {
-            NSString *model = ramp.model;
-            [models addObject:model];
-            XCTAssertLessThanOrEqual([assets[model][@"triangles"] integerValue], 6000,
-                                     @"%@ exceeds the complete ramp triangle budget", model);
-        }
-        for (NSString *part in @[ @"flipper", @"walls", @"plastics" ]) [models addObject:[@"common-" stringByAppendingString:part]];
-        for (NSString *model in models) {
-            XCTAssertNotNil(assets[model], @"%@: %@ is not built", name, model);
-            NSString *scene = [compiled stringByAppendingFormat:@"/%@.scn", model];
-            XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:scene], @"%@: %@ is not compiled", name, model);
-        }
-    }
-}
-
 - (void)testBallStaysInsideTheTable {
     for (NSString *name in [self allTableNames]) [self checkBallStaysInside:[self loadTable:name]];
 }

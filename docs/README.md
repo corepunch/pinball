@@ -8,12 +8,11 @@ Start with the root documents, then read the guide for the system being changed.
 | [AGENTS](../AGENTS.md) | Current agent instructions, presentation decisions, invariants, resource limits |
 | [Architecture](../ARCHITECTURE.md) | Ownership, dependencies, frame/thread model, coordinates, data pipeline |
 | [Contributing](../CONTRIBUTING.md) | Exact generation/build/test/capture workflow and environment limits |
-| [Scenes](../Art/SCENES.md) | XML format, prefab modifiers, layout rules, shared/base inheritance |
-| [Model guide](../Art/MODEL_GUIDE.md) | Retained 3D reference: materials, deformation and mesh verification |
+| [Scenes](../Art/SCENES.md) | XML format, layout rules, shared/base inheritance |
 | [UI guide](../Art/UI_GUIDE.md) | Overlay/HUD, authored control states, safe areas, input and UI verification |
 | [Sprite export](../Art/SPRITES.md) | Current code-shape PNG export, compact rectangular packing and pivots |
 | [Campaign workflow](campaign.md) | Three compact layouts, shot/return contracts and authoring loop |
-| [Skin guide](../Art/SKIN_GUIDE.md) | Skin assets, atlas resources, palettes, export and render tools |
+| [Skin guide](../Art/SKIN_GUIDE.md) | Skin assets, atlas resources and palettes |
 | [Analysis tools — Russian](analysis-tools.ru.md) | Production-physics probes, reports, heatmaps, persistent runner, comparisons |
 | [Level-design workflow — Russian](level-design-workflow.ru.md) | Shot/return planning, experiments, quality gates, design acceptance |
 | [Layout research](../Art/TABLE_LAYOUT_GUIDE.md) | Reference reasoning and earlier board measurements/proposals |

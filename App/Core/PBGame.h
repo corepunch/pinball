@@ -1,11 +1,11 @@
 //
 //  PBGame.h
-//  Top of the simulation: world + rules + input. No SceneKit, UIKit or AppKit here,
+//  Top of the simulation: world + rules + input. No SpriteKit, UIKit or AppKit here,
 //  so the whole game runs headless in the unit tests.
 //
-//  Threading: -update: runs on SceneKit's render thread (the Fox sample's pattern
-//  of game logic in renderer:updateAtTime:). Input setters may be called from any
-//  thread; they only write atomics that -update: reads.
+//  Threading: -update: runs on the render thread, from the SpriteKit scene's
+//  per-frame update. Input setters may be called from any thread; they only write
+//  atomics that -update: reads.
 //
 
 #import <Foundation/Foundation.h>

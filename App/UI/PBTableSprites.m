@@ -150,13 +150,10 @@ static void InsetTriangle(simd_float2 *p, float distance) {
                 [assembly addChild:plate];
                 CGPathRelease(path);
             }
-            CGMutablePathRef rubber = Line(sling.a, sling.b, PBSlingshotRadius - .0015);
-            SKSpriteNode *band = Sprite(rubber, Tone(@"cyan"), .003, YES);
-            band.zPosition = .1; [assembly addChild:band];
-            CGPathRelease(rubber);
-            // A bolt at the centre of each rounded corner's arc, concentric with it.
+            // A small bolt at the centre of each rounded corner's arc, concentric with it and clear of the
+            // ink edge. The kicker shares the long face and needs no separate band.
             for (NSInteger i = 0; body && i < body.points.count; i++) {
-                float r = body.radius * .42;
+                float r = body.radius * .28;
                 CGPathRef head = CGPathCreateWithEllipseInRect(CGRectMake(-r, -r, r*2, r*2), NULL);
                 SKSpriteNode *bolt = Sprite(head, [SKColor colorWithRed:1 green:.88 blue:.62 alpha:1], .002, YES);
                 CGPathRelease(head);

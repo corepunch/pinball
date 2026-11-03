@@ -58,8 +58,8 @@ chat history, machine-specific paths, and unverified test results as project pol
   concentric trim and correctly positioned bolts.
 - Sprite guides keep the shared collision outline. Flippers keep a small contrasted hinge detail.
   Slingshot triangles are drawn from their colliders: the `body` wall's points are the rounded
-  corners' arc centres, its radius the corner radius (0.012), with a bolt at each arc centre and the
-  kicker capsule on the long face. Aprons likewise sweep corner centres by 0.012, keeping their faces.
+  corners' arc centres, its radius the corner radius (0.016), with a small bolt at each arc centre
+  clear of the edge. The kicker capsule lies on the long face and is not drawn separately. Aprons likewise sweep corner centres by 0.012, keeping their faces.
   Base plastics remain the retained 3D kit's lens outlines only.
   The archived 3D guides retain their two plates and three hollow screw tubes; there is no
   requirement to recreate those assemblies in the sprite renderer.

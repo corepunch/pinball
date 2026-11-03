@@ -1,0 +1,33 @@
+name: Re-record contracts (temporary)
+# Temporary: re-records route contracts on macOS, commits them back, and probes aurora's right orbit.
+on:
+  pull_request:
+permissions:
+  contents: write
+jobs:
+  rerecord:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Aurora right orbit probe
+        run: python3 .github/probe/aurora_orbit.py
+      - name: Re-record contracts
+        run: |
+          for t in aurora meridian tide; do python3 tools/rerecord_contracts.py $t --write || echo "RESULT $t unresolved"; done
+      - name: Verify strict suites
+        run: |
+          for t in aurora meridian tide; do
+            if CLANG_MODULE_CACHE_PATH=/tmp/mc python3 tools/analyze_table.py GameData/Tables/$t.json --suite GameData/Analysis/$t.json --strict --out /tmp/out-$t > /tmp/a.log 2>&1; then echo "STRICT $t PASS"; else echo "STRICT $t FAIL $(grep -o 'analysis: .*' /tmp/a.log)"; fi
+          done
+      - name: Commit re-recorded contracts
+        run: |
+          git add GameData/Analysis
+          if git diff --cached --quiet; then echo "No contract changes"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Re-record route contracts for the rounded slingshots"
+          git push

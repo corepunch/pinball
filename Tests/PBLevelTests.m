@@ -88,7 +88,7 @@
 - (void)testEveryLevelHasItsOwnTable {
     NSMutableSet *tables = [NSMutableSet set];
     for (PBLevelDef *level in [self shippingCatalog].levels) [tables addObject:level.table];
-    XCTAssertGreaterThan([self shippingCatalog].levels.count, 0u);
+    XCTAssertEqual([self shippingCatalog].levels.count, 3u);
     XCTAssertEqual(tables.count, [self shippingCatalog].levels.count);
 }
 

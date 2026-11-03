@@ -1,0 +1,636 @@
+{
+  "scenarios": [
+    {
+      "id": "flipper-bumperA",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5897693239296181,
+        0.2499507453409973
+      ],
+      "velocity": [
+        -0.0,
+        -0.0
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "bumper",
+          "element": "bumperA"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.2,
+        0.19,
+        0.43,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-bumperB",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5735836406918063,
+        0.240977333522537
+      ],
+      "velocity": [
+        -0.90630778703665,
+        -0.4226182617406993
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "bumper",
+          "element": "bumperB"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-dropA",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5142361354864967,
+        0.20807482352151602
+      ],
+      "velocity": [
+        -0.90630778703665,
+        -0.4226182617406993
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "drop",
+          "element": "dropA"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-dropB",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5142361354864967,
+        0.20807482352151602
+      ],
+      "velocity": [
+        -0.90630778703665,
+        -0.4226182617406993
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "drop",
+          "element": "dropB"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-dropC",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.3512068148000681,
+        0.23499505897689682
+      ],
+      "velocity": [
+        1.3594616805549748,
+        -0.6339273926110491
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "left": true
+        },
+        {
+          "at": 0.25,
+          "left": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperL"
+        },
+        {
+          "event": "drop",
+          "element": "dropC"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.2,
+        0.19,
+        0.43,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-standA",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.3242306760703819,
+        0.2499507453409973
+      ],
+      "velocity": [
+        0.0,
+        -0.0
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "left": true
+        },
+        {
+          "at": 0.25,
+          "left": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperL"
+        },
+        {
+          "event": "standup",
+          "element": "standA"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-standB",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.3512068148000681,
+        0.23499505897689682
+      ],
+      "velocity": [
+        1.3594616805549748,
+        -0.6339273926110491
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "left": true
+        },
+        {
+          "at": 0.25,
+          "left": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperL"
+        },
+        {
+          "event": "standup",
+          "element": "standB"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.2,
+        0.19,
+        0.43,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-scoopL",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5708860268188377,
+        0.23948176488612696
+      ],
+      "velocity": [
+        -1.359461680554975,
+        -0.6339273926110489
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 1.2666666666666666,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "saucer",
+          "element": "scoopL"
+        },
+        {
+          "event": "saucerEject",
+          "element": "scoopL"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "flipper-spinnerL",
+      "mode": "fixture",
+      "seconds": 8,
+      "position": [
+        0.5681884129458691,
+        0.23798619624971692
+      ],
+      "velocity": [
+        -1.359461680554975,
+        -0.6339273926110489
+      ],
+      "controls": [
+        {
+          "at": 0,
+          "right": true
+        },
+        {
+          "at": 0.25,
+          "right": false
+        },
+        {
+          "at": 2,
+          "eject": "scoopL"
+        }
+      ],
+      "expect": [
+        {
+          "event": "flipperContact",
+          "element": "flipperR"
+        },
+        {
+          "event": "spinner",
+          "element": "spinnerL"
+        }
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0,
+        "returnsAtLeast": 2
+      },
+      "returnBox": [
+        0.49,
+        0.19,
+        0.72,
+        0.35
+      ]
+    },
+    {
+      "id": "top-laneA",
+      "mode": "fixture",
+      "position": [
+        0.222,
+        1.59
+      ],
+      "velocity": [
+        0,
+        -0.5
+      ],
+      "seconds": 0.28,
+      "seeds": [
+        17
+      ],
+      "expect": [
+        {
+          "event": "rollover",
+          "element": "laneA"
+        },
+        {
+          "id": "lane-exit",
+          "region": [
+            0.187,
+            1.35,
+            0.257,
+            1.42
+          ],
+          "layer": "playfield"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 1,
+        "stuckAtMost": 0
+      }
+    },
+    {
+      "id": "top-laneB",
+      "mode": "fixture",
+      "position": [
+        0.31725,
+        1.59
+      ],
+      "velocity": [
+        0,
+        -0.5
+      ],
+      "seconds": 0.28,
+      "seeds": [
+        17
+      ],
+      "expect": [
+        {
+          "event": "rollover",
+          "element": "laneB"
+        },
+        {
+          "id": "lane-exit",
+          "region": [
+            0.28225,
+            1.35,
+            0.35224999999999995,
+            1.42
+          ],
+          "layer": "playfield"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 1,
+        "stuckAtMost": 0
+      }
+    },
+    {
+      "id": "top-laneC",
+      "mode": "fixture",
+      "position": [
+        0.4125,
+        1.59
+      ],
+      "velocity": [
+        0,
+        -0.5
+      ],
+      "seconds": 0.28,
+      "seeds": [
+        17
+      ],
+      "expect": [
+        {
+          "event": "rollover",
+          "element": "laneC"
+        },
+        {
+          "id": "lane-exit",
+          "region": [
+            0.37749999999999995,
+            1.35,
+            0.4475,
+            1.42
+          ],
+          "layer": "playfield"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 1,
+        "stuckAtMost": 0
+      }
+    },
+    {
+      "id": "unplayed-left-feed-drains",
+      "mode": "fixture",
+      "position": [
+        0.35,
+        0.28
+      ],
+      "velocity": [
+        0,
+        -0.8
+      ],
+      "seconds": 8,
+      "seeds": [
+        17,
+        41
+      ],
+      "expect": [
+        {
+          "event": "drain"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0
+      }
+    },
+    {
+      "id": "unplayed-right-feed-drains",
+      "mode": "fixture",
+      "position": [
+        0.564,
+        0.28
+      ],
+      "velocity": [
+        0,
+        -0.8
+      ],
+      "seconds": 8,
+      "seeds": [
+        17,
+        41
+      ],
+      "expect": [
+        {
+          "event": "drain"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0
+      }
+    }
+  ]
+}

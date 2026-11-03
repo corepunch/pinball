@@ -152,8 +152,11 @@ for path in table_xml.table_paths():
             a, b = check_spacing.lane_bounds(compiled, *lane_faces[lamp['bar']], .43)
             assert abs(lamp['x'] - (a + b) * .5) < 1e-7, f"{lamp['id']}: lamp and rollover centred in clear lane"
             assert b - a > compiled['physics']['ballRadius'] * 2 + .01, 'lower lanes have room beyond the ball diameter'
-    if path.stem == 'aurora':
-        assert not compiled['ramps'], 'First Light stays on one plane; ramps are deferred'
+    if path.stem in ('aurora', 'meridian', 'tide'):
+        assert compiled['size'] == [1.0, 1.6], 'compact sprite board'
+        assert not compiled['ramps'] and compiled['rules']['locksForMultiball'] == 0, 'campaign stays on one plane, without locks'
+        assert all(abs(p['r'] - .068) < 1e-7 for p in compiled['bumpers']), 'match-3 bumper scale'
+        assert all(abs(math.dist(p['a'], p['b']) - .085) < 1e-6 for p in compiled['dropTargets']), 'large readable drop faces (six-decimal compiler precision)'
         # Three top lanes use just two short internal dividers; the outer mouths stay open.
         guides = [w for w in compiled['walls'] if w['id'].startswith('laneGuide')]
         assert len(guides) == 2 and all(math.dist(w['points'][0], w['points'][-1]) <= .09 + 1e-7 for w in guides), 'compact top dividers'

@@ -1,0 +1,1053 @@
+{
+ "size": [
+  1.0,
+  1.6
+ ],
+ "padding": [
+  0.02,
+  0.04
+ ],
+ "id": "tide",
+ "name": "TIDE",
+ "defaultSkin": "orbital",
+ "physics": {
+  "gravity": 2.2,
+  "rampGravity": 4.2,
+  "ballRadius": 0.03417,
+  "drainY": 0.005,
+  "plungerSpeed": 4.4
+ },
+ "plunger": {
+  "x": 0.962,
+  "y": 0.1,
+  "width": 0.05,
+  "travel": 0.07
+ },
+ "apron": {
+  "y": 0.025
+ },
+ "walls": [
+  {
+   "id": "outer",
+   "style": "none",
+   "height": 0.12,
+   "radius": 0.006,
+   "points": [
+    [
+     1.006,
+     -0.01
+    ],
+    [
+     1.006,
+     1.99975124
+    ],
+    [
+     1.00533506,
+     2.01328639
+    ],
+    [
+     1.00334665,
+     2.02669118
+    ],
+    [
+     1.00005391,
+     2.03983652
+    ],
+    [
+     0.995488559,
+     2.05259583
+    ],
+    [
+     0.98969456,
+     2.06484621
+    ],
+    [
+     0.982727714,
+     2.07646969
+    ],
+    [
+     0.974655115,
+     2.08735433
+    ],
+    [
+     0.965554507,
+     2.0973953
+    ],
+    [
+     0.955513532,
+     2.10649591
+    ],
+    [
+     0.944628892,
+     2.11456851
+    ],
+    [
+     0.933005412,
+     2.12153536
+    ],
+    [
+     0.920755032,
+     2.12732935
+    ],
+    [
+     0.907995729,
+     2.13189471
+    ],
+    [
+     0.894850383,
+     2.13518744
+    ],
+    [
+     0.881445591,
+     2.13717586
+    ],
+    [
+     0.867910448,
+     2.1378408
+    ],
+    [
+     0.132089552,
+     2.1378408
+    ],
+    [
+     0.118554409,
+     2.13717586
+    ],
+    [
+     0.105149617,
+     2.13518744
+    ],
+    [
+     0.0920042711,
+     2.13189471
+    ],
+    [
+     0.0792449684,
+     2.12732935
+    ],
+    [
+     0.0669945879,
+     2.12153536
+    ],
+    [
+     0.0553711075,
+     2.11456851
+    ],
+    [
+     0.0444864677,
+     2.10649591
+    ],
+    [
+     0.0344454934,
+     2.0973953
+    ],
+    [
+     0.0253448849,
+     2.08735433
+    ],
+    [
+     0.0172722858,
+     2.07646969
+    ],
+    [
+     0.0103054397,
+     2.06484621
+    ],
+    [
+     0.00451144127,
+     2.05259583
+    ],
+    [
+     -5.39102417e-05,
+     2.03983652
+    ],
+    [
+     -0.00334664797,
+     2.02669118
+    ],
+    [
+     -0.00533506106,
+     2.01328639
+    ],
+    [
+     -0.006,
+     1.99975124
+    ],
+    [
+     -0.006,
+     -0.01
+    ]
+   ]
+  },
+  {
+   "id": "shooterInner",
+   "style": "wall",
+   "height": 0.03,
+   "radius": 0.008,
+   "points": [
+    [
+     0.922,
+     -0.01
+    ],
+    [
+     0.922,
+     1.232
+    ]
+   ]
+  },
+  {
+   "id": "slingBackL",
+   "style": "none",
+   "height": 0.022,
+   "radius": 0.006,
+   "points": [
+    [
+     0.1905,
+     0.585
+    ],
+    [
+     0.1905,
+     0.3636
+    ],
+    [
+     0.305501,
+     0.309974
+    ]
+   ]
+  },
+  {
+   "id": "slingBackR",
+   "style": "none",
+   "height": 0.022,
+   "radius": 0.006,
+   "points": [
+    [
+     0.7235,
+     0.585
+    ],
+    [
+     0.7235,
+     0.3636
+    ],
+    [
+     0.608499,
+     0.309974
+    ]
+   ]
+  },
+  {
+   "id": "inlaneL",
+   "style": "rail",
+   "closed": true,
+   "height": 0.038,
+   "radius": 0.004,
+   "points": [
+    [
+     0.11657,
+     0.30477981
+    ],
+    [
+     0.247727,
+     0.24362
+    ],
+    {
+     "arc": [
+      0.24604,
+      0.23999,
+      0.004,
+      65,
+      -48.578,
+      4
+     ]
+    },
+    {
+     "arc": [
+      0.2725,
+      0.21,
+      0.036,
+      131.422,
+      195.542,
+      12
+     ]
+    },
+    {
+     "arc": [
+      0.23396,
+      0.19928,
+      0.004,
+      15.542,
+      -115,
+      4
+     ]
+    },
+    [
+     0.23227,
+     0.19566
+    ],
+    [
+     0.117001,
+     0.249411
+    ],
+    {
+     "arc": [
+      0.14025,
+      0.29924981,
+      0.055,
+      245,
+      180,
+      8
+     ]
+    },
+    {
+     "arc": [
+      0.09225,
+      0.484,
+      0.007,
+      180,
+      0,
+      6
+     ]
+    },
+    {
+     "arc": [
+      0.12925,
+      0.33196981,
+      0.03,
+      180,
+      245,
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "id": "inlaneR",
+   "style": "rail",
+   "closed": true,
+   "height": 0.038,
+   "radius": 0.004,
+   "points": [
+    [
+     0.79743,
+     0.30477981
+    ],
+    [
+     0.666273,
+     0.24362
+    ],
+    {
+     "arc": [
+      0.66796,
+      0.23999,
+      0.004,
+      115,
+      228.578,
+      4
+     ]
+    },
+    {
+     "arc": [
+      0.6415,
+      0.21,
+      0.036,
+      48.578,
+      -15.542,
+      12
+     ]
+    },
+    {
+     "arc": [
+      0.68004,
+      0.19928,
+      0.004,
+      164.458,
+      295,
+      4
+     ]
+    },
+    [
+     0.68173,
+     0.19566
+    ],
+    [
+     0.796999,
+     0.249411
+    ],
+    {
+     "arc": [
+      0.77375,
+      0.29924981,
+      0.055,
+      -65,
+      0,
+      8
+     ]
+    },
+    {
+     "arc": [
+      0.82175,
+      0.484,
+      0.007,
+      0,
+      180,
+      6
+     ]
+    },
+    {
+     "arc": [
+      0.78475,
+      0.33196981,
+      0.03,
+      0,
+      -65,
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "id": "apronL",
+   "style": "plastic",
+   "part": "slide",
+   "height": 0.018,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.344,
+     0.004
+    ],
+    [
+     -0.034003,
+     0.180266
+    ],
+    [
+     -0.034,
+     -0.03
+    ],
+    [
+     0.344,
+     -0.03
+    ]
+   ]
+  },
+  {
+   "id": "apronR",
+   "style": "plastic",
+   "part": "slide",
+   "height": 0.018,
+   "radius": 0.005,
+   "closed": true,
+   "points": [
+    [
+     0.57,
+     0.004
+    ],
+    [
+     0.922,
+     0.16814
+    ],
+    [
+     0.922,
+     -0.03
+    ],
+    [
+     0.57,
+     -0.03
+    ]
+   ]
+  },
+  {
+   "id": "laneGuideB",
+   "style": "wall",
+   "height": 0.018,
+   "radius": 0.007,
+   "points": [
+    [
+     0.429625,
+     1.44
+    ],
+    [
+     0.429625,
+     1.53
+    ]
+   ]
+  },
+  {
+   "id": "laneGuideC",
+   "style": "wall",
+   "height": 0.018,
+   "radius": 0.007,
+   "points": [
+    [
+     0.524875,
+     1.44
+    ],
+    [
+     0.524875,
+     1.53
+    ]
+   ]
+  }
+ ],
+ "flippers": [
+  {
+   "id": "flipperL",
+   "side": "left",
+   "pivot": [
+    0.2725,
+    0.21
+   ],
+   "length": 0.15,
+   "baseRadius": 0.024,
+   "tipRadius": 0.0135,
+   "restAngle": -25,
+   "activeAngle": 28.0
+  },
+  {
+   "id": "flipperR",
+   "side": "right",
+   "pivot": [
+    0.6415,
+    0.21
+   ],
+   "length": 0.15,
+   "baseRadius": 0.024,
+   "tipRadius": 0.0135,
+   "restAngle": 205,
+   "activeAngle": 152.0
+  }
+ ],
+ "slingshots": [
+  {
+   "id": "slingL",
+   "a": [
+    0.1915,
+    0.585
+   ],
+   "b": [
+    0.3065,
+    0.31
+   ]
+  },
+  {
+   "id": "slingR",
+   "a": [
+    0.6075,
+    0.31
+   ],
+   "b": [
+    0.7225,
+    0.585
+   ]
+  }
+ ],
+ "rollovers": [
+  {
+   "id": "inlaneLeft",
+   "r": 0.025,
+   "x": 0.143875,
+   "y": 0.433,
+   "plate": true
+  },
+  {
+   "id": "inlaneRight",
+   "r": 0.025,
+   "x": 0.770125,
+   "y": 0.433,
+   "plate": true
+  },
+  {
+   "id": "outlaneLeft",
+   "r": 0.025,
+   "x": 0.040625,
+   "y": 0.433,
+   "plate": true
+  },
+  {
+   "id": "outlaneRight",
+   "r": 0.025,
+   "x": 0.873375,
+   "y": 0.433,
+   "plate": true
+  },
+  {
+   "id": "laneA",
+   "r": 0.025,
+   "x": 0.382,
+   "y": 1.485,
+   "plate": true
+  },
+  {
+   "id": "laneB",
+   "r": 0.025,
+   "x": 0.47725,
+   "y": 1.485,
+   "plate": true
+  },
+  {
+   "id": "laneC",
+   "r": 0.025,
+   "x": 0.5725,
+   "y": 1.485,
+   "plate": true
+  }
+ ],
+ "gates": [
+  {
+   "id": "shooterGate",
+   "a": [
+    0.922,
+    1.232
+   ],
+   "b": [
+    1.0,
+    1.295
+   ],
+   "passDirection": [
+    0.0,
+    1.0
+   ]
+  }
+ ],
+ "lamps": [
+  {
+   "id": "lampOutlaneL",
+   "x": 0.040625,
+   "y": 0.508,
+   "size": 0.017,
+   "color": "green",
+   "icon": 12,
+   "bar": "outlaneLeft"
+  },
+  {
+   "id": "lampSpecial",
+   "x": 0.873375,
+   "y": 0.508,
+   "size": 0.017,
+   "color": "red",
+   "icon": 13,
+   "bind": "special",
+   "bar": "outlaneRight"
+  },
+  {
+   "id": "lampInlaneL",
+   "x": 0.143875,
+   "y": 0.508,
+   "size": 0.017,
+   "color": "amber",
+   "icon": 0,
+   "bar": "inlaneLeft"
+  },
+  {
+   "id": "lampInlaneR",
+   "x": 0.770125,
+   "y": 0.508,
+   "size": 0.017,
+   "color": "amber",
+   "icon": 0,
+   "bar": "inlaneRight"
+  },
+  {
+   "id": "lampLaneA",
+   "x": 0.382,
+   "y": 1.56,
+   "size": 0.02,
+   "color": "amber",
+   "icon": 0,
+   "bar": "laneA"
+  },
+  {
+   "id": "lampLaneB",
+   "x": 0.47725,
+   "y": 1.56,
+   "size": 0.02,
+   "color": "amber",
+   "icon": 0,
+   "bar": "laneB"
+  },
+  {
+   "id": "lampLaneC",
+   "x": 0.5725,
+   "y": 1.56,
+   "size": 0.02,
+   "color": "amber",
+   "icon": 0,
+   "bar": "laneC"
+  },
+  {
+   "id": "lampShootAgain",
+   "x": 0.457,
+   "y": 0.31,
+   "size": 0.026,
+   "color": "white",
+   "icon": 1,
+   "bind": "shootAgain"
+  },
+  {
+   "id": "lampSpinnerL",
+   "x": 0.12,
+   "y": 0.7232,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "spinnerL"
+  },
+  {
+   "id": "lampSpinnerR",
+   "x": 0.79,
+   "y": 0.5832,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "spinnerR"
+  },
+  {
+   "id": "lampStandA",
+   "x": 0.41,
+   "y": 0.6712,
+   "size": 0.026,
+   "color": "amber",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "standA"
+  },
+  {
+   "id": "lampStandB",
+   "x": 0.79,
+   "y": 1.2812,
+   "size": 0.026,
+   "color": "amber",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "standB"
+  },
+  {
+   "id": "lampDropA",
+   "x": 0.176746,
+   "y": 1.155143,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "dropA"
+  },
+  {
+   "id": "lampDropB",
+   "x": 0.216746,
+   "y": 0.965143,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "dropB"
+  },
+  {
+   "id": "lampDropC",
+   "x": 0.256746,
+   "y": 0.775143,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "dropC"
+  },
+  {
+   "id": "lampScoopR",
+   "x": 0.74,
+   "y": 0.88552,
+   "size": 0.026,
+   "color": "cyan",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "scoopR"
+  }
+ ],
+ "plastics": [
+  {
+   "id": "plasticSlingL",
+   "height": 0,
+   "points": [
+    [
+     0.1845,
+     0.6
+    ],
+    [
+     0.1845,
+     0.3592
+    ],
+    [
+     0.311501,
+     0.299979
+    ]
+   ]
+  },
+  {
+   "id": "plasticSlingR",
+   "height": 0,
+   "points": [
+    [
+     0.7295,
+     0.6
+    ],
+    [
+     0.7295,
+     0.3592
+    ],
+    [
+     0.602499,
+     0.299979
+    ]
+   ]
+  }
+ ],
+ "rules": {
+  "balls": 3,
+  "ballSaveSeconds": 12,
+  "locksForMultiball": 0,
+  "multiballBalls": 3,
+  "skillShotSeconds": 6,
+  "tiltWarnings": 2,
+  "rampsForExtraBall": 12,
+  "scores": {
+   "bumper": 1000,
+   "sling": 110,
+   "drop": 750,
+   "standup": 500,
+   "rollover": 300,
+   "spinner": 100,
+   "saucer": 2500,
+   "ramp": 5000,
+   "orbit": 3000,
+   "kickback": 1000,
+   "captive": 7500,
+   "jackpot": 100000,
+   "skillShot": 25000,
+   "special": 50000,
+   "inlane": 250,
+   "outlane": 1000,
+   "bonusUnit": 1000,
+   "rampCombo": 15000
+  },
+  "groups": [
+   {
+    "id": "inlanes",
+    "members": [
+     "inlaneLeft",
+     "inlaneRight"
+    ],
+    "lamps": [
+     "lampInlaneL",
+     "lampInlaneR"
+    ],
+    "completeScore": 2500,
+    "actions": [
+     "addBonus",
+     "resetGroup"
+    ],
+    "message": "BONUS +"
+   },
+   {
+    "id": "lanes",
+    "members": [
+     "laneA",
+     "laneB",
+     "laneC"
+    ],
+    "lamps": [
+     "lampLaneA",
+     "lampLaneB",
+     "lampLaneC"
+    ],
+    "rotateWithFlippers": true,
+    "completeScore": 10000,
+    "actions": [
+     "bonusX",
+     "resetGroup"
+    ],
+    "message": "BONUS UP"
+   },
+   {
+    "id": "targets",
+    "members": [
+     "standA",
+     "standB"
+    ],
+    "lamps": [
+     "lampStandA",
+     "lampStandB"
+    ],
+    "completeScore": 5000,
+    "actions": [
+     "addBonus",
+     "resetGroup"
+    ],
+    "message": "BONUS +"
+   },
+   {
+    "id": "drops",
+    "members": [
+     "dropA",
+     "dropB",
+     "dropC"
+    ],
+    "lamps": [
+     "lampDropA",
+     "lampDropB",
+     "lampDropC"
+    ],
+    "completeScore": 7500,
+    "actions": [
+     "addBonus",
+     "resetDrops"
+    ],
+    "message": "TARGETS CLEAR"
+   }
+  ],
+  "skillShotTarget": "laneC"
+ },
+ "bumpers": [
+  {
+   "id": "bumperA",
+   "x": 0.38,
+   "y": 1.25,
+   "r": 0.068
+  },
+  {
+   "id": "bumperB",
+   "x": 0.6,
+   "y": 1.22,
+   "r": 0.068
+  },
+  {
+   "id": "bumperC",
+   "x": 0.48,
+   "y": 1.03,
+   "r": 0.068
+  }
+ ],
+ "dropTargets": [
+  {
+   "id": "dropA",
+   "a": [
+    0.15,
+    1.28
+   ],
+   "arrow": "green",
+   "b": [
+    0.203492,
+    1.213943
+   ]
+  },
+  {
+   "id": "dropB",
+   "a": [
+    0.19,
+    1.09
+   ],
+   "arrow": "green",
+   "b": [
+    0.243492,
+    1.023943
+   ]
+  },
+  {
+   "id": "dropC",
+   "a": [
+    0.23,
+    0.9
+   ],
+   "arrow": "green",
+   "b": [
+    0.283492,
+    0.833943
+   ]
+  }
+ ],
+ "saucers": [
+  {
+   "id": "scoopR",
+   "x": 0.74,
+   "y": 0.98,
+   "r": 0.039,
+   "captureSpeed": 5.5,
+   "ejectDirection": [
+    -0.8,
+    -1
+   ],
+   "ejectSpeed": 1.25,
+   "arrow": "cyan"
+  }
+ ],
+ "standups": [
+  {
+   "id": "standA",
+   "a": [
+    0.37,
+    0.73
+   ],
+   "b": [
+    0.45,
+    0.75
+   ],
+   "arrow": "amber"
+  },
+  {
+   "id": "standB",
+   "a": [
+    0.75,
+    1.36
+   ],
+   "b": [
+    0.83,
+    1.34
+   ],
+   "arrow": "amber"
+  }
+ ],
+ "spinners": [
+  {
+   "id": "spinnerL",
+   "a": [
+    0.08,
+    0.82
+   ],
+   "b": [
+    0.16,
+    0.82
+   ],
+   "arrow": "cyan"
+  },
+  {
+   "id": "spinnerR",
+   "a": [
+    0.75,
+    0.68
+   ],
+   "b": [
+    0.83,
+    0.68
+   ],
+   "arrow": "cyan"
+  }
+ ],
+ "kickbacks": [],
+ "magnets": [],
+ "captiveBalls": [],
+ "flashers": [],
+ "ramps": [],
+ "decor": [],
+ "posts": [],
+ "stoppers": [],
+ "script": []
+}

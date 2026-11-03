@@ -1,5 +1,9 @@
 # Skin artwork and materials
 
+The shipping renderer currently uses schematic code shapes. Export their tightly packed PNGs with
+`make sprites TABLE=aurora`; see [SPRITES.md](SPRITES.md). The illustrated atlases/materials below
+are retained SceneKit references, not the current shape-export pipeline.
+
 ## Orbital and Abyss
 
 Four art directions were explored in `Art/Concepts/premium-directions.png`. Orbital was selected for

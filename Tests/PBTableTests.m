@@ -139,51 +139,56 @@
 
 #pragma mark - Features earned in play
 
-- (void)testAuroraDropBankScoresAndResetsForAnotherRound {
-    PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0 seed:17];
-    [game requestNewGame]; [game update:1.0 / 60.0];
-    XCTAssertEqual(game.table.dropTargets.count, 3u);
-    for (int round = 0; round < 2; round++) {
-        int64_t before = game.rules.score;
-        for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) {
-            PBEdgeDef *target = game.table.dropTargets[i];
-            simd_float2 edge = target.b - target.a;
-            simd_float2 normal = simd_normalize(simd_make_float2(-edge.y, edge.x));
-            [game.world placeBall:0 at:(target.a + target.b) * .5f + normal * .055f velocity:-normal * 2];
-            for (int frame = 0; frame < 2; frame++) [game update:1.0 / 60.0];
-            XCTAssertFalse([game.world isDropTargetUp:(NSInteger)i]);
+- (void)testCampaignDropBanksScoreAndResetForAnotherRound {
+    for (NSString *name in [self allTableNames]) {
+        PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:name] highScore:0 seed:17];
+        [game requestNewGame]; [game update:1.0 / 60.0];
+        XCTAssertEqual(game.table.dropTargets.count, 3u);
+        for (int round = 0; round < 2; round++) {
+            int64_t before = game.rules.score;
+            for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) {
+                PBEdgeDef *target = game.table.dropTargets[i];
+                simd_float2 edge = target.b - target.a;
+                simd_float2 normal = simd_normalize(simd_make_float2(-edge.y, edge.x));
+                [game.world placeBall:0 at:(target.a + target.b) * .5f + normal * .055f velocity:-normal * 2];
+                for (int frame = 0; frame < 2; frame++) [game update:1.0 / 60.0];
+                XCTAssertFalse([game.world isDropTargetUp:(NSInteger)i]);
+            }
+            XCTAssertEqual(game.rules.score - before, 9750, @"three hits plus one bank completion");
+            // Wait on the shooter spring while the real rules timer raises the bank.
+            [game.world placeBall:0 at:game.table.plunger.position velocity:0];
+            for (int frame = 0; frame < 60; frame++) [game update:1.0 / 60.0];
+            for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) XCTAssertTrue([game.world isDropTargetUp:(NSInteger)i]);
         }
-        XCTAssertEqual(game.rules.score - before, 9750, @"three hits plus one bank completion");
-        // Wait on the shooter spring while the real rules timer raises the bank.
-        [game.world placeBall:0 at:game.table.plunger.position velocity:0];
-        for (int frame = 0; frame < 60; frame++) [game update:1.0 / 60.0];
-        for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) XCTAssertTrue([game.world isDropTargetUp:(NSInteger)i]);
+        XCTAssertFalse(game.rules.multiballActive, @"campaign scoops are return shots, without a lock");
     }
-    XCTAssertFalse(game.rules.multiballActive, @"First Light's scoop is a return shot, without a lock");
 }
 
-- (void)testAuroraScoopAutomaticallyEjectsToRightFlipperFeed {
-    for (NSNumber *seed in @[ @17, @41, @73 ]) {
-        PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0 seed:seed.unsignedIntValue];
-        PBStatsObserver *stats = [PBStatsObserver new]; [game addObserver:stats];
-        [game requestNewGame]; [game update:1.0 / 60.0];
-        PBSpotDef *scoop = game.table.saucers[0];
-        [game.world placeBall:0 at:scoop.position velocity:0];
-        [game update:1.0 / 60.0];
-        XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer);
-        XCTAssertEqual(game.rules.score, 2500);
-        for (int frame = 0; frame < 55; frame++) [game update:1.0 / 60.0];
-        XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer, @"readable pause before ejecting");
-        BOOL fedRight = NO;
-        for (int frame = 0; frame < 120; frame++) {
+- (void)testCampaignScoopsAutomaticallyEjectToFlipperFeeds {
+    for (NSString *name in [self allTableNames]) {
+        for (NSNumber *seed in @[ @17, @41, @73 ]) {
+            PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:name] highScore:0 seed:seed.unsignedIntValue];
+            PBStatsObserver *stats = [PBStatsObserver new]; [game addObserver:stats];
+            [game requestNewGame]; [game update:1.0 / 60.0];
+            PBSpotDef *scoop = game.table.saucers[0];
+            [game.world placeBall:0 at:scoop.position velocity:0];
             [game update:1.0 / 60.0];
-            PBBall ball = game.world.balls[0];
-            if (ball.state == PBBallFree && ball.velocity.y < 0 && ball.position.x >= .49 && ball.position.x <= .72 && ball.position.y >= .19 && ball.position.y <= .35) fedRight = YES;
+            XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer);
+            XCTAssertEqual(game.rules.score, 2500);
+            for (int frame = 0; frame < 55; frame++) [game update:1.0 / 60.0];
+            XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer, @"readable pause before ejecting");
+            BOOL fedFlipper = NO;
+            float x0 = scoop.direction.x > 0 ? .49f : .20f, x1 = scoop.direction.x > 0 ? .72f : .43f;
+            for (int frame = 0; frame < 120; frame++) {
+                [game update:1.0 / 60.0];
+                PBBall ball = game.world.balls[0];
+                if (ball.state == PBBallFree && ball.velocity.y < 0 && ball.position.x >= x0 && ball.position.x <= x1 && ball.position.y >= .19 && ball.position.y <= .35) fedFlipper = YES;
+            }
+            XCTAssertTrue(fedFlipper, @"%@ seed %@: scoop eject reaches its descending flipper feed", name, seed);
+            XCTAssertEqual([stats.hits countForObject:[@"saucer:" stringByAppendingString:scoop.identifier]], 1u, @"no immediate recapture");
+            XCTAssertEqual([stats.hits countForObject:[@"saucerEject:" stringByAppendingString:scoop.identifier]], 1u);
+            XCTAssertEqual([stats.hits countForObject:@"stuck"], 0u);
         }
-        XCTAssertTrue(fedRight, @"seed %@: scoop eject reaches the descending right-flipper feed", seed);
-        XCTAssertEqual([stats.hits countForObject:@"saucer:scoopL"], 1u, @"no immediate recapture");
-        XCTAssertEqual([stats.hits countForObject:@"saucerEject:scoopL"], 1u);
-        XCTAssertEqual([stats.hits countForObject:@"stuck"], 0u);
     }
 }
 
@@ -700,9 +705,15 @@
     for (int i = 0; i < 6; i++) [world advanceBy:1.0 / 60.0];
     [world setFlipperGroupLeft:YES pressed:YES];
     float top = 0;
-    for (int i = 0; i < 60; i++) { [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y); }
+    __block BOOL reachedTarget = NO;
+    for (int i = 0; i < 60; i++) {
+        [world advanceBy:1.0 / 60.0]; top = MAX(top, world.balls[index].position.y);
+        [world drainEvents:^(const PBEvent *event) {
+            if (event->position.y > .6f && (event->kind == PBEventBumper || event->kind == PBEventStandup || event->kind == PBEventDropTarget)) reachedTarget = YES;
+        }];
+    }
     // Up the middle it may meet a centred scoop or a target first, which is reaching the playfield too.
-    XCTAssertTrue(top > 0.85f || world.balls[index].state != PBBallFree, @"%@: a full flip should reach the upper playfield, reached %.3f", table.identifier, top);
+    XCTAssertTrue(top > 0.85f || reachedTarget || world.balls[index].state != PBBallFree, @"%@: a full flip should reach the upper playfield or a target on its shot line, reached %.3f", table.identifier, top);
 }
 
 // A table's script says what a cue does; without one, flashers and the like stay quiet.

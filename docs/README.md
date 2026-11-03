@@ -11,6 +11,8 @@ Start with the root documents, then read the guide for the system being changed.
 | [Scenes](../Art/SCENES.md) | XML format, prefab modifiers, layout rules, shared/base inheritance |
 | [Model guide](../Art/MODEL_GUIDE.md) | Retained 3D reference: materials, deformation and mesh verification |
 | [UI guide](../Art/UI_GUIDE.md) | Overlay/HUD, authored control states, safe areas, input and UI verification |
+| [Sprite export](../Art/SPRITES.md) | Current code-shape PNG export, compact rectangular packing and pivots |
+| [Campaign workflow](campaign.md) | Three compact layouts, shot/return contracts and authoring loop |
 | [Skin guide](../Art/SKIN_GUIDE.md) | Skin assets, atlas resources, palettes, export and render tools |
 | [Analysis tools — Russian](analysis-tools.ru.md) | Production-physics probes, reports, heatmaps, persistent runner, comparisons |
 | [Level-design workflow — Russian](level-design-workflow.ru.md) | Shot/return planning, experiments, quality gates, design acceptance |
@@ -19,7 +21,7 @@ Start with the root documents, then read the guide for the system being changed.
 | [Space Cadet reference](space-cadet-reference.md) | Measured JP VPX lane/flipper proportions, launcher sensors, and scripted board logic |
 
 The research/workflow documents contain historical examples and proposed tooling. Check current
-source and supported commands before using them: only `aurora` is shipped today, and old table
+source and supported commands before using them: the current campaign is `aurora`, `meridian`, `tide`, and other old table
 names, measurements, or a referenced tool may no longer exist. Current user instructions and
 implemented contracts in AGENTS/ARCHITECTURE take precedence over historical proposals.
 

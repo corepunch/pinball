@@ -25,8 +25,14 @@ chat history, machine-specific paths, and unverified test results as project pol
   mappings directly. `Tests/Fixtures/features.json` is a test fixture, not a shipped level.
 - Xcode source folders are synchronized: new source files normally need no project edit.
   Change `tools/make_xcodeproj.py` and regenerate when target configuration changes.
-- The current shipped level is `aurora` (First Light), with Orbital: three upper-right bumpers, three bonus lanes, a right spinner, two stand-ups, a left three-drop bank and a catch-and-release scoop, all on one plane. The scoop has no lock/multiball. Ramps are deferred for now. See
-  [the shot plan](docs/aurora.md). Do not restore historical mechanisms from concepts or fixtures.
+- The shipped campaign has First Light (`aurora`), Crosswind (`meridian`) and Undertow (`tide`),
+  each with its own compact single-plane layout and the shared lower kit. They use enlarged schematic
+  sprites, drop banks, bonus lanes, spinners and catch-and-release scoops, without locks/multiball.
+  Ramps remain deferred. See [the campaign workflow](docs/campaign.md) and
+  [First Light's detailed shot plan](docs/aurora.md). Do not restore historical mechanisms from fixtures.
+- `make sprites TABLE=<id>` exports the actual code shapes as a tightly packed rectangular PNG atlas
+  and pivot manifest. Keep the long shooter divider intact; trim transparent margins and share identical
+  images. See [the sprite export guide](Art/SPRITES.md).
 
 ## Ownership and behavior
 

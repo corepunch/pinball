@@ -19,7 +19,7 @@
   <dropTarget id="dropC" a="0.36 0.98" rotation="-guide" length="0.085" arrow="green" />
  </dropTargets>
  <saucers>
-  <saucer id="scoopL" x="0.24" y="0.88" r="0.039" captureSpeed="5.5" ejectDirection="0.65 -1" ejectSpeed="1.25" arrow="cyan" />
+  <saucer id="scoopL" x="0.24" y="0.88" r="0.039" captureSpeed="5.5" ejectDirection="0.73 -1" ejectSpeed="1.25" arrow="cyan" />
  </saucers>
  <standups>
   <standup id="standA" a="0.51 0.81" b="0.59 0.83" arrow="amber" />

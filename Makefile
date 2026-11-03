@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes models spacing playtest shots
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes models spacing playtest shots sprites
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -23,6 +23,7 @@ help:
 	@echo "simulator      - Build for the iOS Simulator"
 	@echo "simulator-run  - Build, install and launch in the Simulator (SIMULATOR='iPhone 17')"
 	@echo "scenes         - Build sprite-table data from Scenes/*.xml"
+	@echo "sprites        - Export shipping code shapes as PNG + pivot manifest (TABLE=aurora)"
 	@echo "spacing        - List parts too close together on screen"
 	@echo "playtest       - Play every level headlessly and list problems (--tune via PLAYTEST=)"
 	@echo "shots          - Fire flipper shots at level 1 and list what each reaches (no Xcode)"
@@ -34,6 +35,10 @@ help:
 
 scenes:
 	python3 tools/scene/compile_scenes.py --tables-only
+
+SPRITE_OUT ?= $(CURDIR)/Art/Sprites/$(TABLE)
+sprites: scenes
+	PB_PREVIEW_TABLE="$(TABLE)" zsh tools/render_ui_preview.sh - "$(SPRITE_OUT)" --export-sprites
 
 # Retained SceneKit reference tooling, outside the shipping sprite pipeline.
 models:
@@ -101,13 +106,17 @@ simulator-run: simulator
 
 test:
 	python3 tools/scene/test_scenes.py
-	python3 tools/playtest/run_shots.py
-	CLANG_MODULE_CACHE_PATH="$(CURDIR)/Build/ModuleCache.noindex" python3 tools/analyze_table.py GameData/Tables/aurora.json --suite GameData/Analysis/aurora.json --strict --out Build/Analysis/aurora-routes
+	python3 tools/playtest/run_shots.py aurora meridian tide
+	@for table in aurora meridian tide; do \
+		CLANG_MODULE_CACHE_PATH="$(CURDIR)/Build/ModuleCache.noindex" python3 tools/analyze_table.py GameData/Tables/$$table.json --suite GameData/Analysis/$$table.json --strict --out Build/Analysis/$$table-routes || exit $$?; \
+	done
 	xcodebuild -project $(PROJECT) -scheme PinballCoreTests -destination platform=macOS -derivedDataPath Build/Mac test
 	$(MAKE) ui-check
 
 ui-check:
-	zsh tools/render_ui_preview.sh - "$(CURDIR)/Build/UICheck" --check-only
+	@for table in aurora meridian tide; do \
+		PB_PREVIEW_TABLE=$$table zsh tools/render_ui_preview.sh - "$(CURDIR)/Build/UICheck" --check-only || exit $$?; \
+	done
 
 previews:
 	tools/render_preview.sh "$(CURDIR)/Art/Previews"

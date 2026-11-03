@@ -1,0 +1,46 @@
+<!-- Undertow: staggered upper pops, two spinner approaches and a right return cup. -->
+<table id="tide" name="TIDE" defaultSkin="orbital" base="base">
+ <walls>
+  <wall id="laneGuideB" style="wall" height="0.018" radius="0.007" points="0.429625,1.44 0.429625,1.53" />
+  <wall id="laneGuideC" style="wall" height="0.018" radius="0.007" points="0.524875,1.44 0.524875,1.53" />
+ </walls>
+ <bumpers>
+  <bumper id="bumperA" x="0.38" y="1.25" r="0.068" />
+  <bumper id="bumperB" x="0.60" y="1.22" r="0.068" />
+  <bumper id="bumperC" x="0.48" y="1.03" r="0.068" />
+ </bumpers>
+ <dropTargets>
+  <dropTarget id="dropA" a="0.15 1.28" rotation="-guide" length="0.085" arrow="green" />
+  <dropTarget id="dropB" a="0.19 1.09" rotation="-guide" length="0.085" arrow="green" />
+  <dropTarget id="dropC" a="0.23 0.90" rotation="-guide" length="0.085" arrow="green" />
+ </dropTargets>
+ <saucers>
+  <saucer id="scoopR" x="0.74" y="0.98" r="0.039" captureSpeed="5.5" ejectDirection="-0.8 -1" ejectSpeed="1.25" arrow="cyan" />
+ </saucers>
+ <standups>
+  <standup id="standA" a="0.37 0.73" b="0.45 0.75" arrow="amber" />
+  <standup id="standB" a="0.75 1.36" b="0.83 1.34" arrow="amber" />
+ </standups>
+ <spinners>
+  <spinner id="spinnerL" a="0.08 0.82" b="0.16 0.82" arrow="cyan" />
+  <spinner id="spinnerR" a="0.75 0.68" b="0.83 0.68" arrow="cyan" />
+ </spinners>
+ <rollovers>
+  <rollover id="laneA" r="0.025" />
+  <rollover id="laneB" r="0.025" />
+  <rollover id="laneC" r="0.025" />
+ </rollovers>
+ <lamps>
+  <lamp id="lampLaneA" x="0.382" y="1.56" size="0.02" color="amber" icon="0" bar="laneA" />
+  <lamp id="lampLaneB" x="0.47725" y="1.56" size="0.02" color="amber" icon="0" bar="laneB" />
+  <lamp id="lampLaneC" x="0.5725" y="1.56" size="0.02" color="amber" icon="0" bar="laneC" />
+  <lamp id="lampShootAgain" x="0.457" y="0.31" size="0.026" color="white" icon="1" bind="shootAgain" />
+ </lamps>
+ <rules skillShotTarget="laneC" locksForMultiball="0">
+  <groups>
+   <group id="lanes" members="laneA laneB laneC" lamps="lampLaneA lampLaneB lampLaneC" rotateWithFlippers="true" completeScore="10000" actions="bonusX resetGroup" message="BONUS UP" />
+   <group id="targets" members="standA standB" lamps="lampStandA lampStandB" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
+   <group id="drops" members="dropA dropB dropC" lamps="lampDropA lampDropB lampDropC" completeScore="7500" actions="addBonus resetDrops" message="TARGETS CLEAR" />
+  </groups>
+ </rules>
+</table>

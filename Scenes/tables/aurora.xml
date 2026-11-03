@@ -9,7 +9,7 @@
  </walls>
  <bumpers>
   <bumper id="bumperA" x="0.53" y="1.2" r="0.068" />
-  <bumper id="bumperB" x="0.74" y="1.2" r="0.068" />
+  <bumper id="bumperB" x="0.70" y="1.22" r="0.068" />
   <bumper id="bumperC" x="0.63" y="1.0" r="0.068" />
  </bumpers>
  <dropTargets>
@@ -23,7 +23,7 @@
  </saucers>
  <standups>
   <standup id="standA" a="0.51 0.81" b="0.59 0.83" arrow="amber" />
-  <standup id="standB" a="0.71 0.83" b="0.79 0.81" arrow="amber" />
+  <standup id="standB" a="0.63 0.83" b="0.71 0.81" arrow="amber" />
  </standups>
  <spinners>
   <spinner id="spinnerR" a="0.75 0.67" b="0.83 0.67" arrow="cyan" />

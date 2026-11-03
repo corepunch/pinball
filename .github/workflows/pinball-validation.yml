@@ -20,6 +20,13 @@ jobs:
       - name: Native analyzer integration and benchmark
         if: always()
         run: python3 tools/test_analysis_native.py
+      - name: Shot playtest and strict route contracts
+        if: always()
+        run: |
+          python3 tools/playtest/run_shots.py aurora meridian tide
+          for table in aurora meridian tide; do
+            python3 tools/analyze_table.py GameData/Tables/$table.json --suite GameData/Analysis/$table.json --strict --out Build/Analysis/reports/$table-routes
+          done
       - name: Build iPhone app without signing
         run: xcodebuild -project Pinball.xcodeproj -scheme Pinball -configuration Debug -destination generic/platform=iOS -derivedDataPath Build/App CODE_SIGNING_ALLOWED=NO build
       - name: Reports

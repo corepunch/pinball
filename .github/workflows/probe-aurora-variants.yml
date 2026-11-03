@@ -1,0 +1,28 @@
+name: Probe aurora right-orbit variants (temporary)
+# Temporary: shot playtest and strict route analysis for candidate aurora layouts in probe/.
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  variants:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shots and analysis per variant
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          sys.path.insert(0, 'tools/playtest'); import run_shots
+          run_shots.build()
+          for v in sorted(__import__('glob').glob('probe/aurora-v*.json')):
+              r = json.loads(subprocess.run([str(run_shots.BINARY), v], capture_output=True, text=True, check=True).stdout)
+              parts = []
+              for f, fan in sorted(r.items()):
+                  t = fan['shots']; parts.append(f"{f}: orbitR {fan['reached'].get('orbit right',0)}/{t} orbitL {fan['reached'].get('orbit left',0)}/{t} scoop {fan['reached'].get('hole scoopL',0)} drops {fan['reached'].get('drops',0)} stand {fan['reached'].get('standups',0)} bump {fan['reached'].get('bumpers',0)}")
+              print('SHOTS', v, ' | '.join(parts), flush=True)
+          PY
+          for v in probe/aurora-v*.json; do
+            if CLANG_MODULE_CACHE_PATH="$PWD/Build/ModuleCache.noindex" python3 tools/analyze_table.py "$v" --suite GameData/Analysis/aurora.json --strict --out "Build/Analysis/$(basename $v .json)" > /tmp/a.log 2>&1; then echo "ANALYSIS $v PASS"; else echo "ANALYSIS $v FAIL: $(tail -3 /tmp/a.log | tr '\n' ' ')"; fi
+          done

@@ -9,6 +9,7 @@ exact starting points stop reproducing their routes. For every scenario that now
 `require` thresholds, this searches the same grid the shot playtest fires (40 contact points,
 roll 0/0.5/1/1.5 along the flipper) with the scenario's flipper, controls, expected events,
 return box, seeds and thresholds unchanged, and keeps the passing start nearest the old one.
+If the recorded flipper has none, it tries the other flipper (presses and expected contact mirrored).
 A scenario with no passing start is reported and left as it was, so the suite still fails: the
 layout, not the contract, must then change. Runs production physics; requires macOS.
 """
@@ -49,6 +50,16 @@ def flipper_of(scenario, table):
     return next(f for f in table['flippers'] if f['side'] == side)
 
 
+def mirrored(scenario, table):
+    """The same scenario fired by the other flipper: presses and the expected flipper contact swap."""
+    ids = {f['side']: f['id'] for f in table['flippers']}
+    swap = {ids['left']: ids['right'], ids['right']: ids['left']}
+    controls = [{('right' if k == 'left' else 'left' if k == 'right' else k): v for k, v in c.items()} for c in scenario.get('controls', [])]
+    expect = [dict(g, element=swap[g['element']]) if g.get('event') == 'flipperContact' and g.get('element') in swap else g
+              for g in scenario.get('expect', [])]
+    return dict(scenario, controls=controls, expect=expect)
+
+
 def start(flipper, ball, contact, roll):
     angle = math.radians(flipper['restAngle'])
     along = (math.cos(angle), math.sin(angle))
@@ -73,26 +84,30 @@ def main():
         require = scenario.get('require', {})
         if passes(report['scenarios'][scenario['id']], require):
             continue
-        flipper = flipper_of(scenario, table)
-        if flipper is None:
+        if flipper_of(scenario, table) is None:
             unresolved.append(scenario['id'] + ' (not a flipper fixture)')
             continue
-        candidates = []
-        for contact in CONTACTS:
-            for roll in ROLLS:
-                position, velocity = start(flipper, table['physics']['ballRadius'], contact, roll)
-                trial = dict(scenario, id=f'c{len(candidates)}', position=position, velocity=velocity)
-                candidates.append((trial, contact, roll))
-        result = analyze(table_path, {'scenarios': [c[0] for c in candidates]})
-        old = scenario['position']
-        good = [(math.dist(t['position'], old) + abs(math.hypot(*t['velocity']) - math.hypot(*scenario['velocity'])) * .1, t, c, r)
-                for t, c, r in candidates if passes(result['scenarios'][t['id']], require)]
+        # The recorded flipper first; if no start there works, the other flipper's cross-field shot.
+        for variant in (scenario, mirrored(scenario, table)):
+            flipper = flipper_of(variant, table)
+            candidates = []
+            for contact in CONTACTS:
+                for roll in ROLLS:
+                    position, velocity = start(flipper, table['physics']['ballRadius'], contact, roll)
+                    trial = dict(variant, id=f'c{len(candidates)}', position=position, velocity=velocity)
+                    candidates.append((trial, contact, roll))
+            result = analyze(table_path, {'scenarios': [c[0] for c in candidates]})
+            old = scenario['position']
+            good = [(math.dist(t['position'], old) + abs(math.hypot(*t['velocity']) - math.hypot(*scenario['velocity'])) * .1, t, c, r)
+                    for t, c, r in candidates if passes(result['scenarios'][t['id']], require)]
+            if good:
+                break
         if not good:
             unresolved.append(scenario['id'])
             continue
         _, best, contact, roll = min(good, key=lambda g: g[0])
-        suite['scenarios'][index] = dict(scenario, position=best['position'], velocity=best['velocity'])
-        changed.append(f"{scenario['id']}: contact {contact:.2f} roll {roll:.1f} ({len(good)} passing starts)")
+        suite['scenarios'][index] = dict(variant, position=best['position'], velocity=best['velocity'])
+        changed.append(f"{scenario['id']}: {flipper['id']} contact {contact:.2f} roll {roll:.1f} ({len(good)} passing starts)")
     for line in changed:
         print(f'{name} re-recorded {line}')
     for line in unresolved:

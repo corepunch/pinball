@@ -90,7 +90,10 @@ Autopilot previews skip Game Center entirely.
 At game over, the final score (including bonus) is submitted to the table's classic leaderboard.
 Only games started and finished with the same authenticated Game Center player qualify. Signed-out
 games still work and retain the existing local high score. Failed submissions persist as the best
-pending score per player/table and retry on authentication, foregrounding, or the next completed game.
+pending score per player/table and retry on authentication, foregrounding, connectivity restoration,
+the next completed game, and every 60 seconds while the app is active. A connectivity signal does not
+guarantee that Apple is reachable; failed uploads remain queued.
+Signing out or switching players invalidates the live run, even when the original player returns.
 An account switch never uploads another player's pending scores.
 
 Before testing live services:
@@ -112,6 +115,18 @@ Unsigned builds verify compilation but cannot validate Game Center authenticatio
 Apple's [Game Center setup guide](https://developer.apple.com/documentation/gamekit/initializing-and-configuring-game-center)
 and [leaderboard configuration guide](https://developer.apple.com/help/app-store-connect/configure-game-center/manage-leaderboards/)
 cover the account-side configuration.
+
+Run `make game-center-check` for portable configuration checks, and on the signing Mac:
+
+```bash
+make test
+make iphone TEAM=<team-id>
+python3 tools/check_game_center.py --app Build/Device/Build/Products/Release-iphoneos/Pinball.app
+make iphone-deploy TEAM=<team-id>
+```
+
+See [Game Center release verification](docs/game-center-release.md) for the account configuration
+and required device evidence. Passing these checks does not validate Apple server integration.
 
 ## Architecture
 

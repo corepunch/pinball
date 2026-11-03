@@ -10,8 +10,8 @@ DEVICE   ?=
 TEAM     ?=
 SIMULATOR ?= iPhone 17
 
-DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
-SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
+DEVICE_APP    = Build/Device/Build/Products/$(CONFIG)-iphoneos/Pinball.app
+SIMULATOR_APP = Build/Sim/Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
 .PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes spacing playtest shots sprites
@@ -126,3 +126,7 @@ analysis:
 analysis-test:
 	python3 -m unittest discover -s tools -p 'test_analysis.py' -v
 	python3 tools/test_analysis_native.py
+
+.PHONY: game-center-check
+game-center-check:
+	python3 tools/check_game_center.py

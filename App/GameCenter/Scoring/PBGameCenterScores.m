@@ -14,6 +14,10 @@ static NSString *const kPendingScoresKey = @"PBGameCenter.PendingScores.v1";
 
 - (void)beginGameForPlayer:(NSString *)playerID { _sessionPlayerID = [playerID copy]; }
 
+- (void)playerDidChange:(NSString *)playerID {
+    if (![_sessionPlayerID isEqualToString:playerID]) _sessionPlayerID = nil;
+}
+
 - (void)finishGameWithScore:(int64_t)score leaderboardID:(NSString *)leaderboardID playerID:(NSString *)playerID {
     BOOL eligible = _sessionPlayerID.length && [_sessionPlayerID isEqualToString:playerID];
     _sessionPlayerID = nil;

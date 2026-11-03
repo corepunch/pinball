@@ -34,7 +34,7 @@ TARGETS = [
              "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
              "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
              "CODE_SIGN_ENTITLEMENTS": "Config/Pinball.entitlements",
-             "OTHER_LDFLAGS": '("$(inherited)", "-framework", GameKit, "-framework", SpriteKit)',
+             "OTHER_LDFLAGS": '("$(inherited)", "-framework", GameKit, "-framework", SpriteKit, "-framework", Network, "-framework", CoreText)',
          }),
     dict(name="PinballCoreTests", product="PinballCoreTests.xctest", type="com.apple.product-type.bundle.unit-test",
          groups=["App/Core", "App/GameCenter/Scoring", "App/UI/Model", "Tests"], resources=False,

@@ -72,4 +72,29 @@
     XCTAssertEqual([self.scores pendingScoresForPlayer:@"alice"].count, 0u);
 }
 
+- (void)testSwitchingAwayAndBackInvalidatesLiveGame {
+    [self.scores beginGameForPlayer:@"alice"];
+    [self.scores playerDidChange:@"bob"];
+    [self.scores playerDidChange:@"alice"];
+    [self.scores finishGameWithScore:12000 leaderboardID:@"aurora" playerID:@"alice"];
+    XCTAssertEqual([self.scores pendingScoresForPlayer:@"alice"].count, 0u);
+}
+
+- (void)testSigningOutAndBackInvalidatesLiveGameButPreservesPendingScores {
+    [self.scores beginGameForPlayer:@"alice"];
+    [self.scores finishGameWithScore:5000 leaderboardID:@"aurora" playerID:@"alice"];
+    [self.scores beginGameForPlayer:@"alice"];
+    [self.scores playerDidChange:nil];
+    [self.scores playerDidChange:@"alice"];
+    [self.scores finishGameWithScore:12000 leaderboardID:@"aurora" playerID:@"alice"];
+    XCTAssertEqualObjects([self.scores pendingScoresForPlayer:@"alice"][@"aurora"], @5000);
+}
+
+- (void)testRepeatedAuthenticationForSamePlayerPreservesLiveGame {
+    [self.scores beginGameForPlayer:@"alice"];
+    [self.scores playerDidChange:@"alice"];
+    [self.scores finishGameWithScore:12000 leaderboardID:@"aurora" playerID:@"alice"];
+    XCTAssertEqualObjects([self.scores pendingScoresForPlayer:@"alice"][@"aurora"], @12000);
+}
+
 @end

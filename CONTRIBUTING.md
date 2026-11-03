@@ -18,7 +18,7 @@ to override it. `CONFIG=Debug` changes the default Release device build.
 
 1. Inspect the existing diff; preserve unrelated work.
 2. Edit the owning source. For table/hardware geometry, change `Scenes/` and run `make scenes`.
-   Include regenerated table JSON. Use `make models` only for retained 3D reference geometry.
+   Include regenerated table JSON.
 3. Add meaningful regressions for changed behavior. Prefer production game-update paths over
    isolated helper assertions; timing/motion tests must sample full display frames.
 4. After code or scene changes, run these sequentially:
@@ -64,10 +64,6 @@ flipper, gate, drop and lamp state. This is a software capture, not a GPU/simula
 `make ui-check` runs node/input/projection checks without writing captures. Set `PB_PREVIEW_TABLE`
 to select another table. Keep useful final evidence in `Art/Previews/` and temporary captures in `/tmp`.
 
-The retained `tools/render_preview.sh` renders the archived SceneKit renderer and needs Metal and
-compiled 3D assets (`make models`). Its isometric, gate, rubber and shadow options remain useful for
-reference work; they do not exercise the shipping SpriteKit host.
-
 ## Run on a device
 
 ```sh
@@ -93,10 +89,10 @@ edit `tools/make_xcodeproj.py`, run `python3 tools/make_xcodeproj.py`, and revie
 Preserve signing entitlements, GameKit settings, and the graphics-free test target boundaries.
 
 Use one authored atlas for an icon set and its visual states. Retain licences/notices, including
-those under `GameData/Fonts/`. For mesh/material edits, work in source rather than repainting an
-image of the part. Detailed ownership and artwork rules are in the Art guides.
+those under `GameData/Fonts/`. For shape edits, work in source rather than repainting an image of
+the part. Detailed ownership and artwork rules are in the Art guides.
 
-Native tests, `scntool`, signing, and Metal previews may need access to macOS services unavailable
+Native tests, signing, and simulator or device runs may need access to macOS services unavailable
 inside a restricted sandbox. Use the supported permission mechanism when appropriate. Report the
 specific blocked check; do not silently substitute stale assets, unsigned build claims, or concepts
 for a real render. Avoid running Xcode test and app builds concurrently against shared build output.

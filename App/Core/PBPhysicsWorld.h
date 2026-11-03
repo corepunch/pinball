@@ -2,7 +2,7 @@
 //  PBPhysicsWorld.h
 //  Hand-written 2.5D pinball physics at a fixed 960 Hz.
 //
-//  SCNPhysicsWorld is deliberately not used: a generic rigid-body step at 60 Hz
+//  A framework physics engine is deliberately not used: a generic rigid-body step at 60 Hz
 //  tunnels through flippers, and pinball feel depends on exact control of bounce
 //  and kick. At this rate a ball moves under a third of its radius per step, so
 //  plain overlap tests are enough even at the speed clamp.

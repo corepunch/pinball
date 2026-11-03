@@ -1,8 +1,8 @@
 # Architecture
 
 Pinball is a portrait iPhone application in Objective-C with a custom simulation, a SpriteKit
-playfield and HUD, and synthesized audio. The shipping view is `SKView`; it creates no SceneKit
-world, cameras, lights, shadow maps or reflections. Retained SceneKit modules are reference tooling.
+playfield and HUD, and synthesized audio. The shipping view is `SKView`; there is no 3D renderer,
+camera, lighting, shadow map or reflection pass.
 
 See [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [docs/README.md](docs/README.md).
 
@@ -12,11 +12,10 @@ See [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [docs/README
 | --- | --- | --- |
 | `App/` | UIKit lifecycle, composition, game updates | `PBGameViewController`, `PBGameController` |
 | `App/Core/` | Physics, rules, atomic input, levels, projection, validation | `PBGame`, `PBPhysicsWorld`, `PBRuleEngine`, `PBTablePresentation` |
-| `App/UI/` | Sprite playfield, HUD, menus, effects, pointer routing | `PBTableSprites`, `PBGameUI`, `PBGameHUD` |
+| `App/UI/` | Sprite playfield, HUD, menus, effects, pointer routing, palette loading | `PBTableSprites`, `PBGameUI`, `PBGameHUD`, `PBSkin` |
 | `App/UI/Model/` | Graphics-free navigation | `PBMenuFlow` |
 | `App/Audio/` | Synthesized audio | `PBSoundEngine` |
 | `App/GameCenter/` | Authentication, score submission and persistence | `PBGameCenter`, `PBGameCenterScores` |
-| `App/Scene/` | Retained 3D reference renderer and palette loading | `PBTableScene`, `PBSkin`, `PBModelLibrary` |
 
 `App/Core` uses Foundation, Core Graphics and SIMD, independently of UI and rendering frameworks.
 Both the game and analysis tools run production physics; SpriteKit physics is unused.
@@ -74,10 +73,8 @@ licence and notice remain included.
 ## Authoring and verification
 
 `Scenes/base.xml` defines shared hardware and physics; `Scenes/tables/*.xml` add level pieces.
-`make scenes` compiles the runtime JSON using `compile_scenes.py --tables-only`; sprite builds need
-no `.scn` import. `make models` retains the optional legacy mesh generation and `scntool` workflow.
-The legacy kit's geometry regressions remain available, but its materials and lighting are not
-shipping sprite requirements. New source files are picked up by synchronized Xcode groups.
+`make scenes` compiles the runtime JSON with `tools/scene/compile_scenes.py`; the sprites are drawn
+from that JSON at table load. New source files are picked up by synchronized Xcode groups.
 
 The campaign ships First Light (`aurora`), Crosswind (`meridian`) and Undertow (`tide`), each with
 its own upper-field layout and collection/scoring goal. Shared physics and the lower kit stay fixed.

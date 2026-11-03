@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shim import ROOT  # noqa: E402
 import compile_scenes  # noqa: E402
-import mesher  # noqa: E402
+import shapes  # noqa: E402
 import table_xml  # noqa: E402
 
 # Same tilted orthographic projection as PBTablePresentation / PBLayoutValidator.
@@ -160,7 +160,7 @@ def gap(p, q, limit=.08):
 
 
 def parts_of(table):
-    """Every visible part, sized as PBTableScene places the kit's models."""
+    """Every visible part, sized as the sprite renderer draws it."""
     set_view(table)
     parts = []
 
@@ -180,8 +180,8 @@ def parts_of(table):
         # Invisible display bounds have no visual footprint. Lane-width checks
         # below still use their physical contour, as the native validator does.
     for plastic in table['plastics']:
-        # Rounded as the slingshot prefab rounds it: its corners reach less far than its outline's.
-        points = mesher.filleted(mesher.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
+        # Plastic outlines with 0.014 round corners: their corners reach less far than the outline's.
+        points = shapes.filleted(shapes.ccw(compile_scenes.expand_points(plastic['points'])), .014, 8)
         add(plastic['id']).line(points + points[:1], .002, 0, .037)
     for flipper in table['flippers']:
         if upstairs(flipper):

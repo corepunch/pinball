@@ -1,6 +1,5 @@
-name: Probe aurora regressions (temporary)
-# Temporary: strict route analysis per table before/after #8, and the shots that reached aurora's
-# right orbit before #8 compared with the same shots now.
+name: Probe slingshot corner radius (temporary)
+# Temporary: strict route analysis and shot playtest for each candidate slingshot corner radius.
 on:
   pull_request:
 permissions:
@@ -11,26 +10,15 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Strict analysis per commit
+      - name: Analysis and shots per variant
         run: |
-          for commit in db85bd4 7ce6e37 8791d3f 3468c0d; do
-            rm -rf /tmp/p && git worktree add -f /tmp/p $commit >/dev/null 2>&1
+          python3 -c "import sys; sys.path.insert(0,'tools/playtest'); import run_shots; run_shots.build()"
+          for v in orig r008 r010 r012 r014 r016; do
+            line="$v:"
             for t in aurora meridian tide; do
-              if (cd /tmp/p && CLANG_MODULE_CACHE_PATH=/tmp/mc python3 tools/analyze_table.py GameData/Tables/$t.json --suite GameData/Analysis/$t.json --strict --out /tmp/out-$t > /tmp/a.log 2>&1); then echo "ANALYSIS $commit $t PASS"; else echo "ANALYSIS $commit $t FAIL: $(grep -o 'analysis: .*' /tmp/a.log | head -1)"; fi
+              if CLANG_MODULE_CACHE_PATH=/tmp/mc python3 tools/analyze_table.py probe/$v/$t.json --suite GameData/Analysis/$t.json --strict --out /tmp/out-$v-$t > /tmp/a.log 2>&1; then a=pass; else a="FAIL($(grep -o 'analysis: .*' /tmp/a.log | head -1 | grep -o 'requires' | wc -l | tr -d ' '))"; fi
+              s=$(./Build/shots probe/$v/$t.json | python3 -c "import json,sys; r=json.load(sys.stdin); m=set().union(*[set(f['reached']) for f in r.values()]); print('orbits ' + ','.join(o for o in ('orbit left','orbit right') if o in m))")
+              line="$line  $t analysis=$a $s;"
             done
-            git worktree remove --force /tmp/p
-          done
-      - name: Right-orbit shots before and after
-        run: |
-          for commit in db85bd4 7ce6e37; do
-            rm -rf /tmp/p && git worktree add -f /tmp/p $commit >/dev/null 2>&1
-            (cd /tmp/p && python3 tools/playtest/run_shots.py --fan aurora > /tmp/fan-$commit.txt 2>&1 || true)
-            git worktree remove --force /tmp/p
-          done
-          echo "--- db85bd4 shots reaching orbit right:"; grep "orbit right" /tmp/fan-db85bd4.txt | grep heading || true
-          for h in $(grep "orbit right" /tmp/fan-db85bd4.txt | grep heading | awk '{print $2}' | sort -u); do
-            echo "--- heading $h before:"; grep -E "heading +$h " /tmp/fan-db85bd4.txt
-            echo "--- heading $h after (7ce6e37):"; grep -E "heading +$h " /tmp/fan-7ce6e37.txt
+            echo "RESULT $line"
           done

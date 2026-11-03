@@ -145,6 +145,22 @@ for path in table_xml.table_paths():
     assert not (crowded := check_spacing.problems(compiled)), f'{path.stem}: run tools/scene/check_spacing.py: {crowded}'
     widths = check_spacing.lower_lane_widths(compiled)
     assert len(widths) == 4 and all(abs(w - .08125) < 1e-7 for w in widths.values()), 'all four lower lanes share the same physical clearance'
+    # A slingshot's sprite is its collider: a convex body wall, whose points are the corner-arc centres
+    # (and bolt positions), swept by its corner radius, with the kicker capsule on the long face.
+    walls = {w['id']: w for w in compiled['walls']}
+    for sling in compiled['slingshots']:
+        body = walls[sling['body']]
+        p, r = body['points'], body['radius']
+        assert len(p) == 3 and r >= .012 - 1e-9, f"{sling['id']}: rounded triangle body large enough for bolts"
+        long_face = (p[2][0] - p[0][0], p[2][1] - p[0][1])
+        normal = (long_face[1], -long_face[0]) if long_face[1] < 0 else (-long_face[1], long_face[0])
+        normal = (normal[0] / math.hypot(*normal), normal[1] / math.hypot(*normal))
+        if (p[1][0] - p[0][0]) * normal[0] + (p[1][1] - p[0][1]) * normal[1] > 0:
+            normal = (-normal[0], -normal[1])
+        for end, corner in ((sling['a'], p[0]), (sling['b'], p[2])) if sling['a'][1] > sling['b'][1] else ((sling['b'], p[0]), (sling['a'], p[2])):
+            offset = ((end[0] - corner[0]) * normal[0] + (end[1] - corner[1]) * normal[1], math.dist(end, corner))
+            assert abs(offset[0] - (r - .008)) < 2e-6 and abs(offset[1] - (r - .008)) < 2e-6, \
+                f"{sling['id']}: kicker face coincides with the body face and its caps stay within the corner arcs"
     lane_faces = {'outlaneLeft': ('outer', 'inlaneL'), 'inlaneLeft': ('inlaneL', 'slingBackL'),
                   'inlaneRight': ('slingBackR', 'inlaneR'), 'outlaneRight': ('inlaneR', 'shooterInner')}
     for lamp in compiled['lamps']:

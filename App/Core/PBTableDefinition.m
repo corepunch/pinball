@@ -123,6 +123,7 @@ static PBEdgeDef *PBParseEdge(NSDictionary *json) {
     if (json[@"passDirection"]) edge.passDirection = PBVec2(json[@"passDirection"]);
     edge.vari = [json[@"vari"] boolValue];
     edge.layers = PBParseLayers(json[@"layers"]);
+    edge.body = json[@"body"];
     return edge;
 }
 

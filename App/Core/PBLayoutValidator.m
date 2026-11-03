@@ -199,7 +199,7 @@ static BOOL PBCapsulesAttach(PBCapsule x, PBCapsule y) {
     for (PBEdgeDef *sling in t.slingshots) {
         PBPart *part = [self addPart:sling.identifier role:PBPartStructure];
         part.solid = YES;
-        [self addUprightTo:part from:sling.a to:sling.b radius:0.008f height:0.04f];
+        [self addUprightTo:part from:sling.a to:sling.b radius:PBSlingshotRadius height:0.04f];
     }
     for (PBFlipperDef *flipper in t.flippers) {
         if (flipper.layers & PBLayerDeck) continue;

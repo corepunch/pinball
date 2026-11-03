@@ -1,0 +1,23 @@
+name: Probe right orbit (temporary)
+# Temporary diagnostic: runs the shot playtest at the commit before #8 and at each #8 commit that
+# changed physics, to find where aurora's right orbit became unreachable. Delete with its PR.
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Shot playtest per commit
+        run: |
+          for commit in db85bd4 7ce6e37 8791d3f 3468c0d; do
+            echo "=================== $commit: $(git log -1 --format=%s $commit)"
+            rm -rf /tmp/probe && git worktree add -f /tmp/probe $commit >/dev/null 2>&1
+            (cd /tmp/probe && python3 tools/playtest/run_shots.py --fan aurora meridian tide) || echo "RESULT $commit: some shot unreachable"
+            git worktree remove --force /tmp/probe
+          done

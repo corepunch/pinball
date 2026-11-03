@@ -27,6 +27,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) NSInteger selectedLevel;
 @property (nonatomic, copy, nullable) NSString *levelName, *levelGoal;
 @property (nonatomic, copy, nullable) NSString *levelGoalKind;
+/// What the level introduces, shown on its intro card as puzzle games present a new element.
+@property (nonatomic, copy, nullable) NSString *levelIntroduces;
 @property (nonatomic) int64_t levelTarget, levelProgress;
 @property (nonatomic) int64_t levelTwoStarScore, levelThreeStarScore, levelBest;
 @property (nonatomic) NSInteger resultStars;

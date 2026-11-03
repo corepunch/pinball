@@ -489,7 +489,9 @@ static const NSInteger kLevelsPerPage = 12;
 }
 
 - (void)renderLevelIntro {
-    [self heading:_levelName.uppercaseString subtitle:[NSString stringWithFormat:@"LEVEL %ld", (long)_selectedLevel + 1] height:560];
+    NSString *subtitle = [NSString stringWithFormat:@"LEVEL %ld", (long)_selectedLevel + 1];
+    if (_levelIntroduces.length) subtitle = [NSString stringWithFormat:@"%@  ·  NEW: %@", subtitle, _levelIntroduces.uppercaseString];
+    [self heading:_levelName.uppercaseString subtitle:subtitle height:560];
     [self label:@"YOUR GOAL" size:11 x:0 y:112 color:PBBrass() parent:_menu];
     [self label:_levelGoal size:30 x:0 y:80 color:PBIvory() parent:_menu];
     NSInteger earned = _selectedLevel < (NSInteger)_levelStars.count ? MAX(_levelStars[(NSUInteger)_selectedLevel].integerValue, 0) : 0;

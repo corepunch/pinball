@@ -24,6 +24,7 @@ static NSError *PBLevelError(NSString *message) {
 
 @interface PBLevelDef ()
 @property (nonatomic, copy) NSString *identifier, *name, *table, *skin, *goal;
+@property (nonatomic, copy, nullable) NSString *introduces;
 @property (nonatomic) int64_t goalCount, twoStarScore, threeStarScore;
 @end
 
@@ -59,6 +60,7 @@ static NSError *PBLevelError(NSString *message) {
             level.table = item[@"table"];
             level.skin = item[@"skin"];
             level.goal = item[@"goal"];
+            level.introduces = [item[@"introduces"] isKindOfClass:NSString.class] ? item[@"introduces"] : nil;
             level.goalCount = [item[@"count"] longLongValue];
             NSArray *stars = item[@"stars"];
             BOOL valid = level.identifier.length && level.name.length && level.table.length && level.skin.length && level.goalCount > 0

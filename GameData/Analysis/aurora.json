@@ -205,7 +205,7 @@
       }
     },
     {
-      "id": "flipper-drop-dropA",
+      "id": "flipper-standC",
       "mode": "fixture",
       "position": [
         0.32827709687983486,
@@ -232,8 +232,8 @@
           "element": "flipperL"
         },
         {
-          "event": "drop",
-          "element": "dropA"
+          "event": "standup",
+          "element": "standC"
         }
       ],
       "seeds": [
@@ -253,7 +253,7 @@
       }
     },
     {
-      "id": "flipper-drop-dropB",
+      "id": "flipper-standD",
       "mode": "fixture",
       "position": [
         0.5014224695898958,
@@ -280,8 +280,8 @@
           "element": "flipperR"
         },
         {
-          "event": "drop",
-          "element": "dropB"
+          "event": "standup",
+          "element": "standD"
         }
       ],
       "seeds": [
@@ -301,7 +301,7 @@
       }
     },
     {
-      "id": "flipper-drop-dropC",
+      "id": "flipper-standE",
       "mode": "fixture",
       "position": [
         0.34513718358588874,
@@ -328,8 +328,8 @@
           "element": "flipperL"
         },
         {
-          "event": "drop",
-          "element": "dropC"
+          "event": "standup",
+          "element": "standE"
         }
       ],
       "seeds": [
@@ -341,62 +341,6 @@
         0.19,
         0.72,
         0.35
-      ],
-      "require": {
-        "successesAtLeast": 2,
-        "returnsAtLeast": 2,
-        "stuckAtMost": 0
-      }
-    },
-    {
-      "id": "flipper-scoopL",
-      "mode": "fixture",
-      "position": [
-        0.33502113156225644,
-        0.2439684707953571
-      ],
-      "velocity": [
-        0.45315389351832497,
-        -0.21130913087034972
-      ],
-      "seconds": 8,
-      "controls": [
-        {
-          "at": 0,
-          "left": true
-        },
-        {
-          "at": 0.25,
-          "left": false
-        },
-        {
-          "at": 1.659375,
-          "eject": "scoopL"
-        }
-      ],
-      "expect": [
-        {
-          "event": "flipperContact",
-          "element": "flipperL"
-        },
-        {
-          "event": "saucer",
-          "element": "scoopL"
-        },
-        {
-          "event": "saucerEject",
-          "element": "scoopL"
-        }
-      ],
-      "returnBox": [
-        0.49,
-        0.19,
-        0.72,
-        0.35
-      ],
-      "seeds": [
-        17,
-        41
       ],
       "require": {
         "successesAtLeast": 2,

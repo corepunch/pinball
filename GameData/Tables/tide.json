@@ -764,6 +764,18 @@
    "arrowFor": "dropC"
   },
   {
+   "id": "lampKickbackL",
+   "x": 0.040625,
+   "y": 0.1862,
+   "size": 0.026,
+   "color": "green",
+   "icon": 7,
+   "shape": "arrow",
+   "angle": 90,
+   "arrowFor": "kickbackL",
+   "bind": "kickback"
+  },
+  {
    "id": "lampScoopR",
    "x": 0.74,
    "y": 0.88552,
@@ -892,9 +904,10 @@
     "completeScore": 5000,
     "actions": [
      "addBonus",
+     "armKickback",
      "resetGroup"
     ],
-    "message": "BONUS +"
+    "message": "KICKBACK ON"
    },
    {
     "id": "drops",
@@ -991,6 +1004,17 @@
    "arrow": "cyan"
   }
  ],
+ "kickbacks": [
+  {
+   "id": "kickbackL",
+   "x": 0.040625,
+   "y": 0.29,
+   "r": 0.035,
+   "speed": 4.2,
+   "arrow": "green",
+   "arrowBind": "kickback"
+  }
+ ],
  "standups": [
   {
    "id": "standA",
@@ -1043,7 +1067,6 @@
    "arrow": "cyan"
   }
  ],
- "kickbacks": [],
  "magnets": [],
  "captiveBalls": [],
  "flashers": [],

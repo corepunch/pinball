@@ -751,17 +751,6 @@
    "shape": "arrow",
    "angle": 90,
    "arrowFor": "dropC"
-  },
-  {
-   "id": "lampScoopL",
-   "x": 0.27,
-   "y": 0.78552,
-   "size": 0.026,
-   "color": "cyan",
-   "icon": 7,
-   "shape": "arrow",
-   "angle": 90,
-   "arrowFor": "scoopL"
   }
  ],
  "plastics": [
@@ -959,21 +948,6 @@
    ]
   }
  ],
- "saucers": [
-  {
-   "id": "scoopL",
-   "x": 0.27,
-   "y": 0.88,
-   "r": 0.039,
-   "captureSpeed": 5.5,
-   "ejectDirection": [
-    0.65,
-    -1
-   ],
-   "ejectSpeed": 1.25,
-   "arrow": "cyan"
-  }
- ],
  "standups": [
   {
    "id": "standA",
@@ -1014,6 +988,7 @@
    "arrow": "cyan"
   }
  ],
+ "saucers": [],
  "kickbacks": [],
  "magnets": [],
  "captiveBalls": [],

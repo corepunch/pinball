@@ -9,8 +9,8 @@ For contributors and agents, start with [AGENTS.md](AGENTS.md), [ARCHITECTURE.md
 and [CONTRIBUTING.md](CONTRIBUTING.md). The [documentation map](docs/README.md) links specialist guides.
 
 Author tables in `Scenes/` XML, then run `make scenes` to compile runtime JSON. The shipping game
-uses custom physics and SpriteKit for both board and HUD. First Light has three bumpers, three bonus
-lanes, three drop targets, two stand-ups, a spinner and a timed scoop above the shared lower kit.
+uses custom physics and SpriteKit for both board and HUD. The campaign introduces pinball elements step by
+step: First Light has three bumpers, three bonus lanes and five stand-ups above the shared lower kit.
 Ramps, locks and multiball are absent. Sound is synthesized.
 
 ```bash
@@ -138,11 +138,12 @@ SpriteKit provides rendering; it does not run the ball physics.
 ## Levels
 
 `GameData/Levels.json` is the level list: each entry pairs a table and skin with a goal and two star scores.
-Three compact, single-plane layouts use the larger schematic sprites:
+Three compact, single-plane layouts use the larger schematic sprites. Each introduces new elements
+([elements and progression](docs/elements.md)):
 
-- **First Light** (`aurora`): upper-right pops, left drop bank/scoop and a right spinner; score 36,000.
-- **Crosswind** (`meridian`): upper-left pops and a staggered right bank; hit six drops.
-- **Undertow** (`tide`): central pops, two side spinners and a right scoop; collect 13 spinner events.
+- **First Light** (`aurora`): introduces pops, bonus lanes and stand-ups; hit the bumpers.
+- **Crosswind** (`meridian`): introduces the drop bank and spinner; hit six drops.
+- **Undertow** (`tide`): introduces the scoop and an outlane kickback; make scoop shots.
 
 All share the lower kit and physics. See [campaign shot plans and authoring workflow](docs/campaign.md)
 and [First Light's detailed plan](docs/aurora.md). `Tests/Fixtures/features.json` exercises advanced

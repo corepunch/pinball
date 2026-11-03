@@ -123,4 +123,17 @@ assert abs(check_spacing.lane_width(lanes, 'l', 'm', .5) - .08) < 1e-9 and abs(c
 raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
 assert check_spacing.gap(near[0], raised) < 0, 'flat sprites overlap regardless of legacy elevation'
 assert abs(raised.capsules[0][0][0]) < 1e-9 and abs(raised.capsules[0][0][1] - (1 + .2 * math.tan(check_spacing.TILT))) < 1e-9, 'orthographic height shifts up-table without sideways growth'
+# Campaign progression: each level introduces its own elements and keeps those taught before it.
+levels = json.loads((ROOT / 'GameData/Levels.json').read_text())['levels']
+INTRODUCES = {'l01': {'bumpers', 'standups', 'rollovers'}, 'l02': {'dropTargets', 'spinners'}, 'l03': {'saucers', 'kickbacks'}}
+GOALS = {'l01': 'bumpers', 'l02': 'drops', 'l03': 'saucers'}
+taught = set()
+for level in levels:
+    shipped = json.loads((ROOT / 'GameData/Tables' / f"{level['table']}.json").read_text())
+    present = {k for k in ('bumpers', 'standups', 'rollovers', 'dropTargets', 'spinners', 'saucers', 'kickbacks', 'magnets', 'captiveBalls', 'stoppers', 'ramps') if shipped.get(k)}
+    new = INTRODUCES.get(level['id'], set())
+    assert new <= present, f"{level['id']}: introduces {sorted(new - present)} but does not contain them"
+    assert present <= taught | new, f"{level['id']}: uses {sorted(present - taught - new)} before they are introduced"
+    assert level['goal'] == GOALS.get(level['id'], level['goal']), f"{level['id']}: the goal is the new element"
+    taught |= new
 print('SCENES PASSED')

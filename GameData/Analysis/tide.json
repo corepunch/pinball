@@ -735,6 +735,46 @@
         "successesAtLeast": 2,
         "stuckAtMost": 0
       }
+    },
+    {
+      "id": "outlane-kickback",
+      "mode": "fixture",
+      "position": [
+        0.040625,
+        0.46
+      ],
+      "velocity": [
+        0,
+        -0.8
+      ],
+      "seconds": 2,
+      "kickbacks": [
+        "kickbackL"
+      ],
+      "seeds": [
+        17,
+        41
+      ],
+      "expect": [
+        {
+          "event": "kickback",
+          "element": "kickbackL"
+        },
+        {
+          "id": "kicked-back-up",
+          "region": [
+            0.0,
+            0.6,
+            0.12,
+            1.2
+          ],
+          "layer": "playfield"
+        }
+      ],
+      "require": {
+        "successesAtLeast": 2,
+        "stuckAtMost": 0
+      }
     }
   ]
 }

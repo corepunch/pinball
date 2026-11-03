@@ -216,6 +216,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     _interface.levelName = level.name;
     _interface.levelGoal = level.goalText;
     _interface.levelGoalKind = level.goal;
+    _interface.levelIntroduces = level.introduces;
     _interface.levelTarget = level.goalCount;
     _interface.levelProgress = _session ? _session.progress : 0;
     _interface.levelTwoStarScore = level.twoStarScore;

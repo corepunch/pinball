@@ -7,6 +7,25 @@
 @end
 
 @implementation PBPresentationTests
+- (void)testMiniPinballScaleIsConsistentAcrossPhoneSizes {
+    NSString *root = [[@(__FILE__) stringByDeletingLastPathComponent] stringByDeletingLastPathComponent];
+    PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:
+        [NSData dataWithContentsOfFile:[root stringByAppendingPathComponent:@"GameData/Tables/aurora.json"]] error:NULL];
+    XCTAssertEqualWithAccuracy(table.size.y,1.6,.00001);
+    const CGSize phones[] = {{320,568},{375,667},{402,874},{440,956}};
+    for (NSUInteger i=0;i<4;i++) {
+        CGSize size = phones[i]; CGFloat top=i<2?20:62, bottom=i<2?0:34;
+        CGPoint a=PBTableScreenPoint(table.size,size,top,bottom,0,0);
+        CGPoint b=PBTableScreenPoint(table.size,size,top,bottom,simd_make_float2(table.ballRadius*2,0),0);
+        XCTAssertEqualWithAccuracy((b.x-a.x)/size.width,1.0/15,.002,@"ball remains readable on every phone");
+        for (PBEdgeDef *target in table.dropTargets) {
+            CGPoint start=PBTableScreenPoint(table.size,size,top,bottom,target.a,0);
+            CGPoint end=PBTableScreenPoint(table.size,size,top,bottom,target.b,0);
+            XCTAssertGreaterThanOrEqual(hypot(end.x-start.x,end.y-start.y)/size.width,.08);
+        }
+    }
+}
+
 - (void)testPhonesUseTheFullWidthWithoutReservingSpaceForTheHUD {
     const CGSize sizes[] = {{320, 568}, {375, 667}, {390, 844}, {402, 874}, {440, 956}};
     const CGFloat tops[] = {20, 20, 47, 62, 62};
@@ -52,7 +71,7 @@
         CGPoint raisedB = PBTableScreenPoint(board, view, 59, 34, simd_make_float2(.3, y), .2);
         XCTAssertEqualWithAccuracy(b.x - a.x, raisedB.x - raisedA.x, .0001);
         XCTAssertEqualWithAccuracy(a.x, raisedA.x, .0001);
-        XCTAssertLessThan(raisedA.y, a.y, @"viewed from the flipper end: raised pieces shift up the screen");
+        XCTAssertEqualWithAccuracy(raisedA.y, a.y, .001, @"flat sprite projection ignores height");
         simd_float2 projected = PBTableProject(board, simd_make_float2(.02, .04), simd_make_float2(.2, y), .2);
         CGPoint equivalent = PBTableScreenPoint(board, view, 59, 34, projected, 0);
         XCTAssertEqualWithAccuracy(equivalent.y, raisedA.y, .0001, @"authoring and runtime use the same camera");

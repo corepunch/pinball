@@ -4,7 +4,7 @@
 
 #import "PBGameViewController.h"
 #import <CoreMotion/CoreMotion.h>
-#import <SceneKit/SceneKit.h>
+#import <SpriteKit/SpriteKit.h>
 #import "PBGameController.h"
 
 static const double kNudgeThreshold = 1.9;  // In g. A deliberate shove, not a normal grip shift.
@@ -26,7 +26,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 }
 
 - (void)loadView {
-    SCNView *view = [[SCNView alloc] initWithFrame:CGRectZero options:nil];
+    SKView *view = [[SKView alloc] initWithFrame:CGRectZero];
     view.multipleTouchEnabled = YES;
     view.backgroundColor = UIColor.blackColor;
     self.view = view;
@@ -35,7 +35,7 @@ static const NSTimeInterval kHapticMinInterval = 0.06;
 - (void)viewDidLoad {
     [super viewDidLoad];
     _gameplayTouches = [NSMutableSet set];
-    _controller = [[PBGameController alloc] initWithView:(SCNView *)self.view];
+    _controller = [[PBGameController alloc] initWithView:(SKView *)self.view];
     [_controller addGameObserver:self];
 
     _flipperHaptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleRigid];

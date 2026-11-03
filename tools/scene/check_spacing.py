@@ -19,7 +19,7 @@ import mesher  # noqa: E402
 import table_xml  # noqa: E402
 
 # Same tilted orthographic projection as PBTablePresentation / PBLayoutValidator.
-TILT = math.radians(20)  # PBTableCameraTilt
+TILT = math.radians(0)  # PBTableCameraTilt
 PHONE_ASPECT = 2.17
 VIEW = {'size': (1, 1.9), 'padding': (0, 0)}
 

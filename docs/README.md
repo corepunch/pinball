@@ -9,7 +9,7 @@ Start with the root documents, then read the guide for the system being changed.
 | [Architecture](../ARCHITECTURE.md) | Ownership, dependencies, frame/thread model, coordinates, data pipeline |
 | [Contributing](../CONTRIBUTING.md) | Exact generation/build/test/capture workflow and environment limits |
 | [Scenes](../Art/SCENES.md) | XML format, prefab modifiers, layout rules, shared/base inheritance |
-| [Model guide](../Art/MODEL_GUIDE.md) | Hardware/material roles, ball deformation, gate geometry, mesh verification |
+| [Model guide](../Art/MODEL_GUIDE.md) | Retained 3D reference: materials, deformation and mesh verification |
 | [UI guide](../Art/UI_GUIDE.md) | Overlay/HUD, authored control states, safe areas, input and UI verification |
 | [Skin guide](../Art/SKIN_GUIDE.md) | Skin assets, atlas resources, palettes, export and render tools |
 | [Analysis tools — Russian](analysis-tools.ru.md) | Production-physics probes, reports, heatmaps, persistent runner, comparisons |

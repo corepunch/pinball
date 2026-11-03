@@ -3,10 +3,10 @@
 //
 
 #import "PBGameController.h"
-#import "PBBackdropBlur.h"
+#import "PBTablePresentation.h"
 #import "PBSkin.h"
 #import "PBSoundEngine.h"
-#import "PBTableScene.h"
+#import "PBTableSprites.h"
 #import "PBGameUI.h"
 #import "PBLevels.h"
 #import <stdatomic.h>
@@ -20,10 +20,10 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 @end
 
 @implementation PBGameController {
-    __weak SCNView *_view;
-    SCNTechnique *_backdropBlur;
+    __weak SKView *_view;
+    NSRecursiveLock *_gameLock;
     PBTableDefinition *_table;
-    PBTableScene *_tableScene;
+    PBTableSprites *_tableScene;
     PBSoundEngine *_sound;
     NSTimeInterval _lastTime;
     NSArray<NSString *> *_skins;
@@ -49,9 +49,10 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     PBLevelSession *_previousSession;
 }
 
-- (instancetype)initWithView:(SCNView *)view {
+- (instancetype)initWithView:(SKView *)view {
     if ((self = [super init])) {
         _view = view;
+        _gameLock = [NSRecursiveLock new];
         _applicationActive = YES;
         _gameCenter = [[PBGameCenter alloc] initWithBundle:NSBundle.mainBundle];
         _gameCenter.showsAccessPoint = NO;
@@ -94,7 +95,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         _menuFlow = [PBMenuFlow new];
         _menuFlow.usesLevelMap = _catalog != nil;
         _interface = [[PBGameUI alloc] initWithBundle:bundle];
-        _interface.hidden = _game.autopilot;
+        _interface.hidesInterface = _game.autopilot;
         _interface.actionHandler = ^(PBUIAction action) { [weakSelf performUIAction:action]; };
         _interface.popupHandler = ^(BOOL shown) {
             dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf setBackdropBlurred:shown]; });
@@ -103,16 +104,16 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
         [_interface updateScore:0 best:_game.rules.highScore ball:0 ballCount:_table.rules.balls];
         [_interface showScreen:PBMenuHome];
         _menuPaused = !_game.autopilot;
-        view.overlaySKScene = _interface;
+        _interface.frameHandler = ^(NSTimeInterval time) { [weakSelf updateAtTime:time]; };
+        _tableScene.zPosition = -100;
+        [_interface addChild:_tableScene];
+        [view presentScene:_interface];
         _interface.deferChanges = YES;
         [self viewDidResize];
 
-        view.delegate = self;
-        view.antialiasingMode = SCNAntialiasingModeMultisampling4X;
+        view.ignoresSiblingOrder = NO;
         view.preferredFramesPerSecond = 60;
-        view.rendersContinuously = YES;
-        view.playing = YES;
-        view.showsStatistics = [NSUserDefaults.standardUserDefaults boolForKey:@"PBStats"];
+        view.showsFPS = [NSUserDefaults.standardUserDefaults boolForKey:@"PBStats"];
     }
     return self;
 }
@@ -122,7 +123,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     [_game addObserver:observer];
 }
 
-/// Replaces the game when the table changes. The render thread reads it, hence the lock.
+/// Serialize table replacement with the SpriteKit game update.
 - (void)useTableNamed:(NSString *)name {
     if ([_table.identifier isEqualToString:name] && _game) return;
     NSError *error;
@@ -133,10 +134,10 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     [game addObserver:self];
     [game addObserver:_sound];
     for (id<PBGameObserver> observer in _gameObservers) [game addObserver:observer];
-    [SCNTransaction lock];
+    [_gameLock lock];
     _table = table;
     _game = game;
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 /// Makes this level the one on the table, behind whichever menu is showing.
@@ -148,12 +149,12 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     NSString *skin = _forcedSkin ?: level.skin;
     if (_table != previous || ![_skinName isEqualToString:skin]) [self loadSkin:skin];
     PBLevelSession *session = [[PBLevelSession alloc] initWithLevel:level];
-    [SCNTransaction lock];
+    [_gameLock lock];
     _session = session;
     [_game removeObserver:_previousSession];
     _previousSession = session;
     [_game addObserver:session];
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 - (void)loadSkin:(NSString *)name {
@@ -161,16 +162,21 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     NSAssert(skin, @"No valid skin available for %@", _table.identifier);
     _skinName = skin.identifier;
     _skin = skin;
-    PBTableScene *scene = [[PBTableScene alloc] initWithTable:_table skin:skin];
-    // The render thread reads _tableScene; the transaction lock keeps the swap atomic.
-    [SCNTransaction lock];
-    if (_tableScene) [_game removeObserver:_tableScene];
-    [_game addObserver:scene];
+    PBTableSprites *scene = [[PBTableSprites alloc] initWithTable:_table];
+    scene.zPosition = -100;
+    if (![skin.identifier isEqualToString:@"orbital"]) {
+        simd_float3 tint = skin.accentColor;
+        [scene setPlayfieldColor:[SKColor colorWithRed:.025+tint.x*.10 green:.065+tint.y*.16 blue:.08+tint.z*.18 alpha:1]];
+    }
+    [_gameLock lock];
+    [scene syncWithGame:_game];
+    PBTableSprites *previous = _tableScene;
     _tableScene = scene;
-    SCNView *view = _view;
-    view.scene = scene.scene;
-    view.pointOfView = scene.cameraNode;
-    [SCNTransaction unlock];
+    [_gameLock unlock];
+    if (_interface) [_interface applyChange:^{
+        [previous removeFromParent];
+        [self->_interface addChild:scene];
+    }];
     [self viewDidResize];
 }
 
@@ -186,9 +192,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 }
 
 - (void)setBackdropBlurred:(BOOL)blurred {
-    if (_game.autopilot) return;
-    if (!_backdropBlur) _backdropBlur = [PBBackdropBlur techniqueForDevice:_view.device];
-    _view.technique = blurred ? _backdropBlur : nil;
+    [_interface applyChange:^{ self->_tableScene.alpha = blurred ? .45 : 1; }];
 }
 
 - (void)configureInterface {
@@ -312,23 +316,26 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 - (void)viewDidResize {
     CGSize size = _view.bounds.size;
     UIEdgeInsets insets = _view.safeAreaInsets;
-    [SCNTransaction lock];
-    [_game.world fitDisplayBoundaryToViewSize:size topInset:insets.top bottomInset:insets.bottom];
-    [_tableScene fitCameraToViewSize:size topInset:insets.top bottomInset:insets.bottom];
-    [SCNTransaction unlock];
+    // Always acquire the UI queue before the game lock, including during resize.
+    [_interface applyChange:^{
+        [self->_gameLock lock];
+        [self->_game.world fitDisplayBoundaryToViewSize:size topInset:insets.top bottomInset:insets.bottom];
+        [self->_tableScene layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
+        [self->_gameLock unlock];
+    }];
     [_interface layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
 }
 
-#pragma mark - SCNSceneRendererDelegate
+#pragma mark - Frame update
 
-- (void)renderer:(id<SCNSceneRenderer>)renderer updateAtTime:(NSTimeInterval)time {
+- (void)updateAtTime:(NSTimeInterval)time {
     if (self.isPaused) { _lastTime = 0; return; }
     BOOL resetClock = atomic_exchange(&_resetFrameClock, NO);
     double elapsed = _lastTime > 0 && !resetClock ? time - _lastTime : 1.0 / 60.0;
     _lastTime = time;
-    [SCNTransaction lock];
+    [_gameLock lock];
     [_game update:elapsed];
-    [_tableScene syncWithGame:_game elapsed:elapsed];
+    [_tableScene syncWithGame:_game];
     [self showImpacts];
     if (!_game.autopilot && time - _lastUISnapshot > 0.1) {
         _lastUISnapshot = time;
@@ -347,7 +354,7 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
             }
         });
     }
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 #pragma mark - PBGameObserver
@@ -382,14 +389,14 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
     NSInteger sparks = _impactSparks;
     _impactSparks = 0;
     if (_game.autopilot || _game.rules.phase != PBGamePhasePlaying) return;
-    SCNVector3 world = [_tableScene worldPointAt:_impactPosition height:0.04f];
-    SCNVector3 screen = [_view projectPoint:world];
-    simd_float3 tone = [_tableScene impactColorForEvent:_impactKind];
-    SKColor *color = [SKColor colorWithRed:tone.x green:tone.y blue:tone.z alpha:1];
+    CGSize size = _view.bounds.size;
+    UIEdgeInsets insets = _view.safeAreaInsets;
+    CGPoint screen = PBTableScreenPoint(_table.size, size, insets.top, insets.bottom, _impactPosition, 0);
+    SKColor *color = SKColor.orangeColor;
     // Spinners and passing rollovers score too often for every number to be worth showing.
     int64_t points = gained >= 250 ? gained : 0;
     if (sparks == 0 && points == 0) return;
-    CGPoint point = CGPointMake(screen.x, screen.y);
+    CGPoint point = screen;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self->_interface showImpactAtPoint:point color:color sparks:sparks points:points];
     });

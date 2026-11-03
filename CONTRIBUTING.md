@@ -18,7 +18,7 @@ to override it. `CONFIG=Debug` changes the default Release device build.
 
 1. Inspect the existing diff; preserve unrelated work.
 2. Edit the owning source. For table/hardware geometry, change `Scenes/` and run `make scenes`.
-   Include regenerated tables, COLLADA, manifest, and compiled SceneKit models in the change.
+   Include regenerated table JSON. Use `make models` only for retained 3D reference geometry.
 3. Add meaningful regressions for changed behavior. Prefer production game-update paths over
    isolated helper assertions; timing/motion tests must sample full display frames.
 4. After code or scene changes, run these sequentially:
@@ -29,13 +29,13 @@ to override it. `CONFIG=Debug` changes the default Release device build.
    ```
 
 5. For presentation changes, inspect actual renders at gameplay size and relevant phone sizes.
-   Geometry needs an oblique/isometric check; animation needs a normal-speed check.
+   Sprite geometry must agree with the colliders; animation needs a normal-speed check.
 6. Run `git diff --check`, update affected documentation, and report verification/limitations.
    Documentation-only edits need consistency and local-link checks; they do not require a build.
 
 `make test` runs scene/compiler checks, native flipper-shot probes, strict Aurora route contracts, macOS XCTest, and
-`make ui-check`. The last command exercises actual UI nodes, touch routing, materials, camera,
-and mesh transforms without requiring a graphics device. It does not capture screenshots.
+`make ui-check`. The last command exercises actual UI nodes, touch routing, sprite states, projection,
+and live transforms without requiring a graphics device. It does not capture screenshots.
 
 Use `make analysis-test` when changing analysis code. For level/layout changes, also use
 `make spacing`, `make shots`, and the relevant `make playtest` or `make analysis TABLE=aurora`
@@ -44,35 +44,21 @@ workflow. Read the analysis/level guides before treating exploratory results as 
 
 ## Real captures
 
-The native render scripts compile production source and read working assets through a resource
-bundle. They need no app build or installation. Run from the repository root:
+The shipping sprite preview reads working assets and production source without an app install:
 
 ```sh
-zsh tools/render_preview.sh /tmp/pinball-world orbital
 zsh tools/render_ui_preview.sh - /tmp/pinball-ui
 ```
 
-`-` selects live working assets for the UI tool. Supply an app/resource bundle path instead to
-inspect that bundle. Set `PB_PREVIEW_TABLE=<id>` for another compiled table and pass a skin name
-such as `orbital` or `abyss` to the world renderer.
+The preview composites actual sprite texture pixels, transforms, crop masks and node ordering in
+software. It produces `mini-pinball.png` and a normal-speed sprite capture, and checks live ball,
+flipper, gate, drop and lamp state. This is a software capture, not a GPU/simulator/device screenshot.
+`make ui-check` runs node/input/projection checks without writing captures. Set `PB_PREVIEW_TABLE`
+to select another table. Keep useful final evidence in `Art/Previews/` and temporary captures in `/tmp`.
 
-| World-render option | Purpose |
-| --- | --- |
-| `--ball-realtime` | Normal-speed gameplay framing and close-up through regular game updates |
-| `--ball-deformation` | Enlarged 4× slow motion and material comparison; secondary evidence |
-| `--gate-physics` | Real plunge with fixed hinge, planar gate swing, passage/closure checks |
-| `--shadow-compare` | Controlled 2K/4K/off captures and shadow-coverage verification |
-
-For example:
-
-```sh
-zsh tools/render_preview.sh /tmp/pinball-ball orbital --ball-realtime
-```
-
-Normal-speed GIFs use matching 0.02-second simulation/playback intervals (50 Hz, exact GIF timing).
-Tests separately check live updates at 30/60/120 Hz. Premium world renders also export left/right
-triangle isometry and fastener close-ups. Do not replace these with ImageGen concepts as proof.
-Save useful final evidence in `Art/Previews/`; keep routine intermediates in temporary output folders.
+The retained `tools/render_preview.sh` renders the archived SceneKit renderer and needs Metal and
+compiled 3D assets (`make models`). Its isometric, gate, rubber and shadow options remain useful for
+reference work; they do not exercise the shipping SpriteKit host.
 
 ## Run on a device
 

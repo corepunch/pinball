@@ -1,7 +1,7 @@
 #import "PBTablePresentation.h"
 #import "PBTableDefinition.h"
 
-const float PBTableCameraTilt = 20.0f;
+const float PBTableCameraTilt = 0.0f;
 
 static CGSize PBValidViewSize(CGSize view) {
     return isfinite(view.width) && isfinite(view.height) && view.width > 0 && view.height > 0 ? view : CGSizeMake(402, 874);

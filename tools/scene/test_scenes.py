@@ -157,7 +157,7 @@ for path in table_xml.table_paths():
         # Three top lanes use just two short internal dividers; the outer mouths stay open.
         guides = [w for w in compiled['walls'] if w['id'].startswith('laneGuide')]
         assert len(guides) == 2 and all(math.dist(w['points'][0], w['points'][-1]) <= .09 + 1e-7 for w in guides), 'compact top dividers'
-        a, b = check_spacing.lane_bounds(compiled, 'laneGuideB', 'laneGuideC', 1.765)
+        a, b = check_spacing.lane_bounds(compiled, 'laneGuideB', 'laneGuideC', 1.485)
         assert abs(b - a - .08125) < 1e-7, 'middle top lane clear width'
         bar = next(r for r in compiled['rollovers'] if r['id'] == 'laneB')
         assert abs(bar['x'] - (a + b) * .5) < 1e-7, 'middle rollover centred in physical faces'
@@ -196,6 +196,6 @@ assert any(f[1] == 'slope angles' for f in check_spacing.unmatched_angles(crooke
 lanes = {'walls': [dict(id='l', points=[[0, 0], [0, 1]], radius=.01), dict(id='m', points=[[.1, 0], [.1, 1]], radius=.01), dict(id='r', points=[[.3, 0], [.3, 1]], radius=.01)]}
 assert abs(check_spacing.lane_width(lanes, 'l', 'm', .5) - .08) < 1e-9 and abs(check_spacing.lane_width(lanes, 'm', 'r', .5) - .18) < 1e-9, 'lanes are measured between wall faces'
 raised = check_spacing.Part('r', 'part').disc(0, 1, .03, .2)
-assert check_spacing.gap(near[0], raised) > 0, 'height can visually separate parts under the tilted camera'
+assert check_spacing.gap(near[0], raised) < 0, 'flat sprites overlap regardless of legacy elevation'
 assert abs(raised.capsules[0][0][0]) < 1e-9 and abs(raised.capsules[0][0][1] - (1 + .2 * math.tan(check_spacing.TILT))) < 1e-9, 'orthographic height shifts up-table without sideways growth'
 print('SCENES PASSED')

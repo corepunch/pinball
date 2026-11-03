@@ -1,4 +1,4 @@
-#import <SceneKit/SceneKit.h>
+
 #import "PBGameUI.h"
 #import "PBGameHUD.h"
 #import "PBTablePresentation.h"
@@ -354,7 +354,7 @@ static const NSInteger kLevelsPerPage = 12;
     [self render];
 }
 
-/// SceneKit draws this overlay on its render thread, and SCNTransaction's lock doesn't cover it: a node
+/// SpriteKit draws on its update thread: a node
 /// changed from the main thread mid-frame crashes SpriteKit's renderer (SKCRenderer). So once running,
 /// changes queue here and are applied by -update:, which runs on that thread just before each draw.
 - (void)applyChange:(dispatch_block_t)change {
@@ -374,6 +374,7 @@ static const NSInteger kLevelsPerPage = 12;
     NSArray *changes = _changes.copy;
     [_changes removeAllObjects];
     for (dispatch_block_t change in changes) change();
+    if (self.frameHandler) self.frameHandler(currentTime);
     _applyingChanges = NO;
     [_changesLock unlock];
 }
@@ -383,6 +384,7 @@ static const NSInteger kLevelsPerPage = 12;
 }
 
 - (void)rebuildNodes {
+    _root.hidden = self.hidesInterface;
     [_root removeAllChildren];
     [_keys removeAllObjects];
     _hud = nil;

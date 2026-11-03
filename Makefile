@@ -14,7 +14,7 @@ DEVICE_APP    = Build/Products/$(CONFIG)-iphoneos/Pinball.app
 SIMULATOR_APP = Build/Products/Debug-iphonesimulator/Pinball.app
 
 .DEFAULT_GOAL := help
-.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes spacing playtest shots
+.PHONY: help iphone iphone-deploy iphone-device list-devices simulator simulator-run test ui-check previews scenes models spacing playtest shots
 
 help:
 	@echo "iphone         - Build a signed app for iPhone (CONFIG=Release, TEAM=...)"
@@ -22,7 +22,7 @@ help:
 	@echo "list-devices   - List paired devices and simulators"
 	@echo "simulator      - Build for the iOS Simulator"
 	@echo "simulator-run  - Build, install and launch in the Simulator (SIMULATOR='iPhone 17')"
-	@echo "scenes         - Build tables and meshes from Scenes/*.xml"
+	@echo "scenes         - Build sprite-table data from Scenes/*.xml"
 	@echo "spacing        - List parts too close together on screen"
 	@echo "playtest       - Play every level headlessly and list problems (--tune via PLAYTEST=)"
 	@echo "shots          - Fire flipper shots at level 1 and list what each reaches (no Xcode)"
@@ -33,6 +33,10 @@ help:
 	@echo "analysis-test  - Reporter and production-physics integration tests"
 
 scenes:
+	python3 tools/scene/compile_scenes.py --tables-only
+
+# Retained SceneKit reference tooling, outside the shipping sprite pipeline.
+models:
 	python3 tools/scene/compile_scenes.py
 	tools/compile_models.sh
 

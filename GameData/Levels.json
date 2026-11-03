@@ -6,10 +6,10 @@
    "table": "aurora",
    "skin": "orbital",
    "goal": "bumpers",
-   "count": 40,
+   "count": 8,
    "stars": [
-    90000,
-    150000
+    92000,
+    130000
    ],
    "introduces": "Pop bumpers + bonus lanes"
   },
@@ -19,10 +19,10 @@
    "table": "meridian",
    "skin": "orbital",
    "goal": "drops",
-   "count": 6,
+   "count": 5,
    "stars": [
-    92000,
-    130000
+    62000,
+    110000
    ],
    "introduces": "Drop targets + spinner"
   },
@@ -32,10 +32,10 @@
    "table": "tide",
    "skin": "orbital",
    "goal": "saucers",
-   "count": 4,
+   "count": 2,
    "stars": [
-    88000,
-    150000
+    78000,
+    140000
    ],
    "introduces": "Scoop + kickback"
   }

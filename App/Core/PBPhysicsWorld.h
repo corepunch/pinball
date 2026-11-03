@@ -9,8 +9,10 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <simd/simd.h>
 #import "PBTableDefinition.h"
+#import "PBSoftBall.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -34,6 +36,10 @@ typedef NS_ENUM(NSInteger, PBEventKind) {
     PBEventPlungerRelease,
     PBEventGate,
     PBEventBallStuck,
+    PBEventPlungerCoil,  // One turn of the spring as it is drawn; magnitude is the pull so far.
+    PBEventFlipperContact,
+    PBEventRampRollback,
+    PBEventMagnetRelease,
 };
 
 typedef struct {
@@ -42,13 +48,18 @@ typedef struct {
     int16_t ball;
     float magnitude;     // Impact speed; plunger release uses applied pull (0...1).
     simd_float2 position;
+    uint64_t tick;       // Fixed physics tick, including events emitted outside stepping.
 } PBEvent;
+
+FOUNDATION_EXPORT NSString *PBEventName(PBEventKind kind);
+FOUNDATION_EXPORT NSString *PBEventElementIdentifier(PBEvent event, PBTableDefinition *table);
 
 typedef NS_ENUM(uint8_t, PBBallState) {
     PBBallInactive,
     PBBallFree,
     PBBallInSaucer,
     PBBallHeldByMagnet,
+    PBBallInTransit,  // Underground, between a drop hole and where it comes up.
 };
 
 typedef struct {
@@ -58,6 +69,7 @@ typedef struct {
     float zVelocity;
     simd_quatf orientation;  // Visual rolling only.
     float stuckTime;
+    int stuckCount;
     simd_float2 stuckAnchor;
     float holdTimer;
     int16_t holder;       // Saucer or magnet index while held.
@@ -66,6 +78,7 @@ typedef struct {
     PBLayerMask layers;
     PBBallState state;
     BOOL captive;
+    float saucerCooldown;
 } PBBall;
 
 @interface PBPhysicsWorld : NSObject
@@ -75,6 +88,14 @@ typedef struct {
 @property (nonatomic, readonly) float plungerPull;  // 0...1, for drawing.
 
 - (instancetype)initWithTable:(PBTableDefinition *)table;
+- (instancetype)initWithTable:(PBTableDefinition *)table seed:(uint32_t)seed;
+@property (nonatomic, readonly) uint64_t tick;
+/// Disable rescue in strict design trials; PBEventBallStuck still reports the defect.
+@property (nonatomic) BOOL automaticBallSearch;
+/// Call under the game/render lock when the viewport changes. No island collider.
+- (void)fitDisplayBoundaryToViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom;
+/// One exact production physics step, for headless fixtures; drain events after each step.
+- (void)advanceOneTick;
 
 /// Advances by real elapsed time, running as many fixed steps as fit. Long hitches are clamped.
 - (void)advanceBy:(double)elapsed;
@@ -84,6 +105,8 @@ typedef struct {
 
 #pragma mark Balls
 - (const PBBall *)balls;
+/// Elastic presentation state driven by real contacts; never changes collision radius.
+- (PBSoftBall)softBallAtIndex:(NSInteger)index;
 /// Number of live non-captive balls.
 - (NSInteger)activeBallCount;
 - (NSInteger)spawnBallAtPlunger;
@@ -95,6 +118,7 @@ typedef struct {
 #pragma mark Controls
 - (void)setFlipperGroupLeft:(BOOL)left pressed:(BOOL)pressed;
 - (void)setPlungerPulled:(BOOL)pulled;
+- (void)cancelPlungerPull;
 - (void)autoPlunge;
 - (void)nudge:(simd_float2)impulse;
 - (void)setFlippersEnabled:(BOOL)enabled;
@@ -109,12 +133,17 @@ typedef struct {
 #pragma mark State for drawing
 - (float)flipperAngle:(NSInteger)index;
 - (float)spinnerAngle:(NSInteger)index;
+/// Actual opening angle in radians, shared by the moving wire collider and mesh.
 - (float)gateAngle:(NSInteger)index;
 - (float)dropTargetDrop:(NSInteger)index;
 /// Seconds since a bumper, sling or stand-up last fired, for animation.
 - (float)bumperFlash:(NSInteger)index;
 - (float)slingFlash:(NSInteger)index;
+- (void)setStopper:(NSInteger)index up:(BOOL)up;
+- (BOOL)isStopperUp:(NSInteger)index;
+- (float)standupFlash:(NSInteger)index;
 
 @end
 
 NS_ASSUME_NONNULL_END
+

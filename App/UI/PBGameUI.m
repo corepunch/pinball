@@ -1,5 +1,7 @@
-#import <SceneKit/SceneKit.h>
+
 #import "PBGameUI.h"
+#import "PBGameHUD.h"
+#import "PBTablePresentation.h"
 #import <ImageIO/ImageIO.h>
 
 static CGImageRef PBCreateImageAtURL(NSURL *url) {
@@ -42,7 +44,27 @@ static SKColor *PBBrass(void) { return [SKColor colorWithRed:0.65 green:0.49 blu
 static SKColor *PBMuted(void) { return [SKColor colorWithRed:0.49 green:0.59 blue:0.60 alpha:1]; }
 static SKColor *PBRed(void) { return [SKColor colorWithRed:0.88 green:0.23 blue:0.14 alpha:1]; }
 
-static SKShapeNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
+/// A CoreGraphics path as a sprite, its fill and stroke drawn into a texture.
+static SKSpriteNode *PBPathSprite(CGPathRef path, CGSize size, SKColor *fill, SKColor *stroke, CGFloat lineWidth) {
+    const CGFloat scale = 3;
+    size_t width = (size_t)ceil(size.width * scale), height = (size_t)ceil(size.height * scale);
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef c = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(space);
+    CGContextScaleCTM(c, scale, scale);
+    CGContextTranslateCTM(c, size.width * .5, size.height * .5);
+    CGContextAddPath(c, path);
+    if (fill) { CGContextSetFillColorWithColor(c, fill.CGColor); CGContextDrawPath(c, kCGPathFill); }
+    CGContextAddPath(c, path);
+    if (stroke && lineWidth > 0) { CGContextSetStrokeColorWithColor(c, stroke.CGColor); CGContextSetLineWidth(c, lineWidth); CGContextSetLineJoin(c, kCGLineJoinRound); CGContextDrawPath(c, kCGPathStroke); }
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    SKSpriteNode *sprite = [SKSpriteNode spriteNodeWithTexture:[SKTexture textureWithCGImage:image] size:size];
+    CGImageRelease(image);
+    CGContextRelease(c);
+    return sprite;
+}
+
+static SKSpriteNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
     CGMutablePathRef path = CGPathCreateMutable();
     for (int i = 0; i < 10; i++) {
         CGFloat r = i % 2 ? radius * 0.42 : radius, a = M_PI_2 + i * M_PI / 5;
@@ -50,12 +72,9 @@ static SKShapeNode *PBStar(CGFloat radius, CGPoint position, BOOL earned) {
         else CGPathAddLineToPoint(path, NULL, r * cos(a), r * sin(a));
     }
     CGPathCloseSubpath(path);
-    SKShapeNode *star = [SKShapeNode shapeNodeWithPath:path];
+    SKSpriteNode *star = PBPathSprite(path, CGSizeMake(radius * 2 + 4, radius * 2 + 4), earned ? [SKColor colorWithRed:1.0 green:0.76 blue:0.28 alpha:1] : [PBInk() colorWithAlphaComponent:0.9], PBBrass(), 0.8);
     CGPathRelease(path);
     star.position = position;
-    star.lineWidth = 0.8;
-    star.strokeColor = PBBrass();
-    star.fillColor = earned ? [SKColor colorWithRed:1.0 green:0.76 blue:0.28 alpha:1] : [PBInk() colorWithAlphaComponent:0.9];
     return star;
 }
 
@@ -135,6 +154,11 @@ static NSString *PBScoreString(int64_t score) {
 
 @implementation PBUIKey
 - (void)refresh {
+    PBGameUI *ui = (PBGameUI *)self.scene;
+    if ([ui isKindOfClass:PBGameUI.class] && ![ui onRenderThread]) {
+        [ui applyChange:^{ [self refresh]; }];
+        return;
+    }
     NSUInteger state = !self.enabled ? 4 : self.pressed ? 2 : self.selected ? 1 : 0;
     if (self.slicedFace) [self.slicedFace setState:state];
     else self.face.texture = self.states[state];
@@ -142,6 +166,7 @@ static NSString *PBScoreString(int64_t score) {
 @end
 
 @implementation PBGameUI {
+    BOOL _popupShown;
     SKNode *_root, *_menu;
     SKTexture *_titleArt;
     NSDictionary<NSString *, NSArray<SKTexture *> *> *_textures;
@@ -152,15 +177,20 @@ static NSString *PBScoreString(int64_t score) {
     CGFloat _logicalHeight, _topInset, _bottomInset;
     CGSize _inputViewSize;
     int64_t _score, _best;
-    SKLabelNode *_scoreLabel, *_ballLabel, *_messageLabel;
+    PBGameHUD *_hud;
+    NSInteger _liveEffects;
     NSString *_message;
     NSInteger _ball, _ballCount, _levelPage;
+    NSRecursiveLock *_changesLock;
+    NSMutableArray<dispatch_block_t> *_changes;
+    BOOL _applyingChanges;
 }
 
 static const NSInteger kLevelsPerPage = 12;
 
 - (instancetype)initWithBundle:(NSBundle *)bundle {
     if ((self = [super initWithSize:CGSizeMake(402, 874)])) {
+        [PBGameHUD registerFontsInBundle:bundle];
         self.backgroundColor = SKColor.clearColor;
         self.scaleMode = SKSceneScaleModeResizeFill;
         self.userInteractionEnabled = NO;
@@ -172,6 +202,8 @@ static const NSInteger kLevelsPerPage = 12;
         _logicalHeight = 874;
         _inputViewSize = CGSizeMake(402, 874);
         _keys = [NSMutableArray array];
+        _changesLock = [NSRecursiveLock new];
+        _changes = [NSMutableArray array];
         _pressedKeys = [NSMapTable strongToStrongObjectsMapTable];
         _capturedPointers = [NSHashTable hashTableWithOptions:NSHashTableStrongMemory];
         _root = [SKNode node];
@@ -222,13 +254,15 @@ static const NSInteger kLevelsPerPage = 12;
 - (void)layoutForViewSize:(CGSize)size topInset:(CGFloat)top bottomInset:(CGFloat)bottom {
     if (size.width <= 0 || size.height <= 0) return;
     _inputViewSize = size;
-    self.size = size;
     CGFloat scale = size.width / 402.0;
-    _root.xScale = _root.yScale = scale;
     _logicalHeight = size.height / scale;
     _topInset = top / scale;
     _bottomInset = bottom / scale;
-    [self render];
+    [self applyChange:^{
+        self.size = size;
+        self->_root.xScale = self->_root.yScale = scale;
+        [self rebuildNodes];
+    }];
 }
 
 - (void)didChangeSize:(CGSize)oldSize {
@@ -252,17 +286,15 @@ static const NSInteger kLevelsPerPage = 12;
     return label;
 }
 
-- (SKShapeNode *)panel:(CGSize)size at:(CGPoint)position parent:(SKNode *)parent {
-    SKShapeNode *panel = [SKShapeNode shapeNodeWithRectOfSize:size cornerRadius:12];
+- (SKNode *)panel:(CGSize)size at:(CGPoint)position parent:(SKNode *)parent {
+    CGPathRef outer = CGPathCreateWithRoundedRect(CGRectMake(-size.width * .5, -size.height * .5, size.width, size.height), 12, 12, NULL);
+    SKSpriteNode *panel = PBPathSprite(outer, CGSizeMake(size.width + 4, size.height + 4), PBInk(), PBBrass(), 1.2);
+    CGPathRelease(outer);
     panel.position = position;
-    panel.fillColor = PBInk();
-    panel.strokeColor = PBBrass();
-    panel.lineWidth = 1.2;
     [parent addChild:panel];
-    SKShapeNode *inner = [SKShapeNode shapeNodeWithRectOfSize:CGSizeMake(size.width - 10, size.height - 10) cornerRadius:8];
-    inner.strokeColor = [PBBrass() colorWithAlphaComponent:0.28];
-    inner.lineWidth = 0.7;
-    [panel addChild:inner];
+    CGPathRef line = CGPathCreateWithRoundedRect(CGRectMake(-size.width * .5 + 5, -size.height * .5 + 5, size.width - 10, size.height - 10), 8, 8, NULL);
+    [panel addChild:PBPathSprite(line, size, nil, [PBBrass() colorWithAlphaComponent:0.28], 0.7)];
+    CGPathRelease(line);
     return panel;
 }
 
@@ -307,24 +339,57 @@ static const NSInteger kLevelsPerPage = 12;
     if (subtitle) [self label:subtitle size:11 x:0 y:height * 0.5 - 114 color:PBMuted() parent:_menu];
 }
 
+- (void)setPopupHandler:(void (^)(BOOL))popupHandler {
+    _popupHandler = [popupHandler copy];
+    if (_popupHandler) _popupHandler(_popupShown);  // A screen may already be up.
+}
+
 - (void)showScreen:(PBMenuScreen)screen {
+    BOOL popup = screen != PBMenuPlaying;
+    if (popup != _popupShown) {
+        _popupShown = popup;
+        if (self.popupHandler) self.popupHandler(popup);
+    }
     _screen = screen;
     [self render];
 }
 
-/// SceneKit draws this overlay on its render thread, so the node tree only changes under its lock.
+/// SpriteKit draws on its update thread: a node
+/// changed from the main thread mid-frame crashes SpriteKit's renderer (SKCRenderer). So once running,
+/// changes queue here and are applied by -update:, which runs on that thread just before each draw.
+- (void)applyChange:(dispatch_block_t)change {
+    [_changesLock lock];
+    if (!_deferChanges || _applyingChanges) change();
+    else [_changes addObject:[change copy]];
+    [_changesLock unlock];
+}
+
+- (BOOL)onRenderThread {
+    return !_deferChanges || _applyingChanges;
+}
+
+- (void)update:(NSTimeInterval)currentTime {
+    [_changesLock lock];
+    _applyingChanges = YES;
+    NSArray *changes = _changes.copy;
+    [_changes removeAllObjects];
+    for (dispatch_block_t change in changes) change();
+    if (self.frameHandler) self.frameHandler(currentTime);
+    _applyingChanges = NO;
+    [_changesLock unlock];
+}
+
 - (void)render {
-    [SCNTransaction lock];
-    [self rebuildNodes];
-    [SCNTransaction unlock];
+    [self applyChange:^{ [self rebuildNodes]; }];
 }
 
 - (void)rebuildNodes {
+    _root.hidden = self.hidesInterface;
     [_root removeAllChildren];
     [_keys removeAllObjects];
-    _scoreLabel = _ballLabel = _messageLabel = nil;
+    _hud = nil;
     if (_screen == PBMenuPlaying) { [self renderHUD]; return; }
-    SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.84]
+    SKSpriteNode *scrim = [SKSpriteNode spriteNodeWithColor:[PBInk() colorWithAlphaComponent:0.3]
                                                      size:CGSizeMake(402, _logicalHeight)];
     scrim.position = CGPointMake(201, _logicalHeight * 0.5);
     [_root addChild:scrim];
@@ -341,8 +406,9 @@ static const NSInteger kLevelsPerPage = 12;
     [self panel:CGSizeMake(362, height) at:CGPointZero parent:_menu];
     // Small cabinet fasteners, part of the panel construction rather than UI symbols.
     for (NSNumber *x in @[@-167, @167]) for (NSNumber *sign in @[@-1, @1]) {
-        SKShapeNode *rivet = [SKShapeNode shapeNodeWithCircleOfRadius:2];
-        rivet.fillColor = PBBrass(); rivet.strokeColor = SKColor.clearColor;
+        CGPathRef dot = CGPathCreateWithEllipseInRect(CGRectMake(-2, -2, 4, 4), NULL);
+        SKSpriteNode *rivet = PBPathSprite(dot, CGSizeMake(6, 6), PBBrass(), nil, 0);
+        CGPathRelease(dot);
         rivet.position = CGPointMake(x.doubleValue, sign.doubleValue * (height * 0.5 - 14));
         [_menu addChild:rivet];
     }
@@ -479,8 +545,8 @@ static const NSInteger kLevelsPerPage = 12;
 
 - (void)renderHelp {
     [self heading:@"HOW TO PLAY" subtitle:@"LAUNCH. AIM. KEEP IT ALIVE." height:620];
-    NSArray *steps = @[@[@"01  LAUNCH", @"Hold the right side. Release to launch."],
-                       @[@"02  FLIP", @"Touch the left or right half to flip that side."],
+    NSArray *steps = @[@[@"01  LAUNCH", @"Hold anywhere to charge. Release to launch."],
+                       @[@"02  FLIP", @"Tap anywhere. The ball chooses the flipper."],
                        @[@"03  NUDGE", @"Give your phone a shove. Too much will tilt."],
                        @[@"04  BUILD YOUR SCORE", @"Complete lanes & targets. Chase multiball."],
                        @[@"05  KEEP GOING", @"Three balls. Bonus is counted after each drain."]];
@@ -538,38 +604,110 @@ static const NSInteger kLevelsPerPage = 12;
     [self key:@"secondary" title:@"KEEP PLAYING" action:PBUICancel x:0 y:-119 width:320 parent:_menu];
 }
 
+/// A round texture from three grey levels and their alphas, brightest at centre. CoreGraphics, so it builds for Mac previews too.
+static SKTexture *PBRadialTexture(size_t pixels, const CGFloat tones[6], CGPoint centre) {
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef c = CGBitmapContextCreate(NULL, pixels, pixels, 8, 0, space, kCGImageAlphaPremultipliedLast);
+    CGFloat stops[12];
+    for (int i = 0; i < 3; i++) {
+        stops[i * 4] = stops[i * 4 + 1] = stops[i * 4 + 2] = tones[i * 2];
+        stops[i * 4 + 3] = tones[i * 2 + 1];
+    }
+    CGGradientRef gradient = CGGradientCreateWithColorComponents(space, stops, NULL, 3);
+    CGContextAddEllipseInRect(c, CGRectMake(0, 0, pixels, pixels));
+    CGContextClip(c);
+    CGContextDrawRadialGradient(c, gradient, CGPointMake(pixels * centre.x, pixels * centre.y), 0, CGPointMake(pixels * .5, pixels * .5), pixels * .62, 0);
+    CGImageRef image = CGBitmapContextCreateImage(c);
+    SKTexture *texture = [SKTexture textureWithCGImage:image];
+    CGImageRelease(image);
+    CGGradientRelease(gradient);
+    CGContextRelease(c);
+    CGColorSpaceRelease(space);
+    return texture;
+}
+
 - (void)renderHUD {
-    // Small indicators either side of the camera cutout, and the news just below it.
-    CGFloat y = _logicalHeight - MAX(_topInset - 30, 30);
-    [self key:@"pause" title:nil action:PBUIPause x:338 y:y width:34 parent:_root];
-    _scoreLabel = [self label:@"" size:13 x:60 y:y color:PBIvory() parent:_root];
-    _scoreLabel.fontName = @"Menlo-Bold";
-    _scoreLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeLeft;
-    _ballLabel = [self label:@"" size:11 x:315 y:y color:PBIvory() parent:_root];
-    _ballLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeRight;
-    _messageLabel = [self label:@"" size:11 x:201 y:_logicalHeight - MAX(_topInset, 30) + 2 color:PBMuted() parent:_root];
+    _hud = [PBGameHUD node];
+    _hud.table = self.tableDefinition;
+    [_hud layoutForViewSize:CGSizeMake(402, _logicalHeight) topInset:_topInset bottomInset:_bottomInset];
+    [_root addChild:_hud];
+    PBGameViewLayout layout = PBGameViewLayoutMake(CGSizeMake(402, _logicalHeight), _topInset, _bottomInset);
+    PBUIKey *pause = [self key:@"pause" title:nil action:PBUIPause
+                            x:CGRectGetMidX(layout.pause) y:_logicalHeight - CGRectGetMidY(layout.pause)
+                        width:44 parent:_root];
+    pause.face.size = CGSizeMake(44, 44);
+    [pause refresh];
+    pause.name = @"hud.pause";
+    CGFloat hitSize = MAX(44, 44 * 402 / _inputViewSize.width);
+    pause.hitRect = CGRectMake(-hitSize * .5, -hitSize * .5, hitSize, hitSize);
+    pause.zPosition = 10;
     [self updateScore:_score best:_best ball:_ball ballCount:_ballCount];
-    [self showMessage:_message];
+}
+
+- (void)showImpactAtPoint:(CGPoint)point color:(SKColor *)color sparks:(NSInteger)sparks points:(int64_t)points {
+    if (_screen != PBMenuPlaying || _liveEffects > 14) return;
+    CGPoint at = [self logicalPoint:point];
+    [self applyChange:^{
+    self->_liveEffects++;
+    __weak PBGameUI *weakSelf = self;
+    SKAction *finish = [SKAction runBlock:^{ PBGameUI *me = weakSelf; if (me) me->_liveEffects--; }];
+    SKNode *effect = [SKNode node];
+    effect.position = at;
+    effect.zPosition = 40;
+    [_root addChild:effect];
+
+    if (sparks > 0) {
+        static SKTexture *dot;
+        static dispatch_once_t once;
+        dispatch_once(&once, ^{
+            const CGFloat glow[6] = { 1, 1, 1, .85, 1, 0 };
+            dot = PBRadialTexture(32, glow, CGPointMake(.5, .5));
+        });
+        SKEmitterNode *emitter = [SKEmitterNode new];
+        emitter.particleTexture = dot;
+        emitter.numParticlesToEmit = sparks;
+        emitter.particleBirthRate = sparks * 40;
+        emitter.particleLifetime = .38;
+        emitter.particleLifetimeRange = .2;
+        emitter.particleSpeed = 170;
+        emitter.particleSpeedRange = 110;
+        emitter.emissionAngleRange = 2 * M_PI;
+        emitter.yAcceleration = -220;
+        emitter.particleScale = .21;
+        emitter.particleScaleRange = .1;
+        emitter.particleScaleSpeed = -.4;
+        emitter.particleAlphaSpeed = -1.8;
+        emitter.particleColor = color;
+        // A tint toward the part's colour, on a white-hot core. Additive blending over the
+        // overlay's transparent background greys the particles out into smoke.
+        emitter.particleColorBlendFactor = .55;
+        emitter.particleBlendMode = SKBlendModeAlpha;
+        [effect addChild:emitter];
+    }
+    if (points > 0) {
+        SKSpriteNode *number = [PBGameHUD flyingScoreForPoints:points];
+        [number setScale:.5];
+        [effect addChild:number];
+        SKAction *pop = [SKAction sequence:@[ [SKAction scaleTo:1.15 duration:.1], [SKAction scaleTo:1 duration:.08] ]];
+        SKAction *rise = [SKAction moveByX:0 y:58 duration:.85];
+        rise.timingMode = SKActionTimingEaseOut;
+        SKAction *fade = [SKAction sequence:@[ [SKAction waitForDuration:.5], [SKAction fadeOutWithDuration:.35] ]];
+        [number runAction:[SKAction group:@[ pop, rise, fade ]]];
+    }
+    [effect runAction:[SKAction sequence:@[ [SKAction waitForDuration:.95], finish, [SKAction removeFromParent] ]]];
+    }];
 }
 
 - (void)showMessage:(NSString *)message {
-    [SCNTransaction lock];
     _message = message;
-    _messageLabel.text = message ?: _levelGoal ?: @"";
-    _messageLabel.fontColor = message ? _messageColor : PBMuted();
-    [SCNTransaction unlock];
 }
 
 - (void)updateScore:(int64_t)score best:(int64_t)best ball:(NSInteger)ball
          ballCount:(NSInteger)ballCount {
-    [SCNTransaction lock];
     _score = score; _best = best; _ball = ball; _ballCount = ballCount;
-    _scoreLabel.text = PBScoreString(score);
-    _scoreLabel.xScale = 1;
-    if (_scoreLabel.frame.size.width > 68) _scoreLabel.xScale = 68 / _scoreLabel.frame.size.width;
-    NSString *balls = [NSString stringWithFormat:@"%ld/%ld", (long)MAX(1, ball), (long)ballCount];
-    _ballLabel.text = _bonusMultiplier > 1 ? [NSString stringWithFormat:@"X%ld  %@", (long)_bonusMultiplier, balls] : balls;
-    [SCNTransaction unlock];
+    [self applyChange:^{
+    [self->_hud updateScore:score goal:self.levelTarget progress:self.levelProgress kind:self.levelGoalKind ?: @"score"];
+    }];
 }
 
 - (CGPoint)logicalPoint:(CGPoint)point {
@@ -584,13 +722,19 @@ static const NSInteger kLevelsPerPage = 12;
 - (BOOL)pointerBegan:(id)pointer atPoint:(CGPoint)point {
     if (self.hidden) return NO;
     CGPoint logical = [self logicalPoint:point];
-    for (PBUIKey *key in _keys.reverseObjectEnumerator) {
-        if (key.enabled && [self key:key contains:logical]) {
-            [_capturedPointers addObject:pointer];
-            [_pressedKeys setObject:key forKey:pointer];
-            key.pressed = YES; [key refresh];
-            return YES;
-        }
+    // The render thread replaces these keys when it rebuilds a screen.
+    [_changesLock lock];
+    NSArray<PBUIKey *> *keys = _keys.copy;
+    PBUIKey *pressed = nil;
+    for (PBUIKey *key in keys.reverseObjectEnumerator) {
+        if (key.enabled && [self key:key contains:logical]) { pressed = key; break; }
+    }
+    [_changesLock unlock];
+    if (pressed) {
+        [_capturedPointers addObject:pointer];
+        [_pressedKeys setObject:pressed forKey:pointer];
+        pressed.pressed = YES; [pressed refresh];
+        return YES;
     }
     if (_screen != PBMenuPlaying) { [_capturedPointers addObject:pointer]; return YES; }
     return NO;
@@ -621,7 +765,10 @@ static const NSInteger kLevelsPerPage = 12;
 }
 
 - (void)cancelPointers {
-    for (PBUIKey *key in _keys) { key.pressed = NO; [key refresh]; }
+    [_changesLock lock];
+    NSArray<PBUIKey *> *keys = _keys.copy;
+    [_changesLock unlock];
+    for (PBUIKey *key in keys) { key.pressed = NO; [key refresh]; }
     [_pressedKeys removeAllObjects];
     [_capturedPointers removeAllObjects];
 }

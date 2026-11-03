@@ -1,0 +1,49 @@
+<!-- First Light: left scoop/drop bank, upper-right pops and three bonus lanes.
+     Preserve the shared lower kit. Route contracts: GameData/Analysis/aurora.json. -->
+<table id="aurora" name="AURORA" defaultSkin="orbital" base="base">
+ <walls>
+  <!-- Two short internal separators; outer lanes flare into open board.
+       0.09525 between centres minus two 0.007 faces = 0.08125 clear. -->
+  <wall id="laneGuideB" style="wall" height="0.018" radius="0.007" points="0.579625,1.44 0.579625,1.53" />
+  <wall id="laneGuideC" style="wall" height="0.018" radius="0.007" points="0.674875,1.44 0.674875,1.53" />
+ </walls>
+ <bumpers>
+  <bumper id="bumperA" x="0.53" y="1.2" r="0.068" />
+  <bumper id="bumperB" x="0.74" y="1.2" r="0.068" />
+  <bumper id="bumperC" x="0.63" y="1.0" r="0.068" />
+ </bumpers>
+ <dropTargets>
+  <!-- Three separate angled hits; the centre remains an open aiming fan. -->
+  <dropTarget id="dropA" a="0.18 1.22" rotation="-guide" length="0.085" arrow="green" />
+  <dropTarget id="dropB" a="0.27 1.10" rotation="-guide" length="0.085" arrow="green" />
+  <dropTarget id="dropC" a="0.36 0.98" rotation="-guide" length="0.085" arrow="green" />
+ </dropTargets>
+ <saucers>
+  <saucer id="scoopL" x="0.24" y="0.88" r="0.039" captureSpeed="5.5" ejectDirection="0.73 -1" ejectSpeed="1.25" arrow="cyan" />
+ </saucers>
+ <standups>
+  <standup id="standA" a="0.51 0.81" b="0.59 0.83" arrow="amber" />
+  <standup id="standB" a="0.71 0.83" b="0.79 0.81" arrow="amber" />
+ </standups>
+ <spinners>
+  <spinner id="spinnerR" a="0.75 0.67" b="0.83 0.67" arrow="cyan" />
+ </spinners>
+ <rollovers>
+  <rollover id="laneA" r="0.025" />
+  <rollover id="laneB" r="0.025" />
+  <rollover id="laneC" r="0.025" />
+ </rollovers>
+ <lamps>
+  <lamp id="lampLaneA" x="0.532" y="1.56" size="0.02" color="amber" icon="0" bar="laneA" />
+  <lamp id="lampLaneB" x="0.62725" y="1.56" size="0.02" color="amber" icon="0" bar="laneB" />
+  <lamp id="lampLaneC" x="0.7225" y="1.56" size="0.02" color="amber" icon="0" bar="laneC" />
+  <lamp id="lampShootAgain" x="0.457" y="0.31" size="0.026" color="white" icon="1" bind="shootAgain" />
+ </lamps>
+ <rules skillShotTarget="laneB" locksForMultiball="0">
+  <groups>
+   <group id="lanes" members="laneA laneB laneC" lamps="lampLaneA lampLaneB lampLaneC" rotateWithFlippers="true" completeScore="10000" actions="bonusX resetGroup" message="BONUS UP" />
+   <group id="targets" members="standA standB" lamps="lampStandA lampStandB" completeScore="5000" actions="addBonus resetGroup" message="BONUS +" />
+   <group id="drops" members="dropA dropB dropC" lamps="lampDropA lampDropB lampDropC" completeScore="7500" actions="addBonus resetDrops" message="TARGETS CLEAR" />
+  </groups>
+ </rules>
+</table>

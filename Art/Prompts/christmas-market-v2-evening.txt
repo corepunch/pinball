@@ -1,0 +1,13 @@
+Tool: built-in image_gen (not CLI).
+Output: Art/Concepts/christmas-market-v2-evening.png
+Edit target: Art/Concepts/christmas-market-v1.png
+Type: AI-generated concept, not an engine capture or implementation.
+User direction: darker playfield, like an evening Christmas market; supersedes the light mint palette for this concept.
+Estimated additional local footprint: under 20 MB, no dependency or model downloads.
+
+Use case: lighting-weather / ui-mockup.
+Edit this existing Christmas market mobile pinball concept. User direction: the playfield itself should be darker, like an evening Christmas market. Change the lighting, palette and atmosphere of the SAME screen, keeping its composition and all gameplay objects intact.
+Make the entire central playable surface a rich, softly illuminated evening teal-blue / deep sage blue, several stops darker than the original pale mint, with a gentle midnight-petrol gradient toward the outer edges and a subtle cooler blue moonlit sheen. This is snowy blue hour, already after sunset, a cozy Christmas evening. The large open middle must clearly look like an EVENING surface, not a daylight mint field. Retain a smooth quiet low-contrast surface, no scene clutter, no dark black holes, no texture noise, no starfield.
+Darken the upper sky to a rich dusk indigo with a restrained mauve horizon. Snow on roofs, trees and bottom corners takes cool blue evening shadows. Market stalls and Christmas tree lights emit welcoming amber-gold illumination, with soft small light pools fading into the upper playfield. Strengthen the magical contrast between warm festive lamps and the darker cool playfield. A few sparse gently falling snowflakes can catch the warm lights, but keep gameplay area uncluttered.
+Invariants: preserve exactly this portrait framing, Dynamic Island, floating score 4,000, LEVEL 1, BALL 2/3 and pause button, three market stalls and upper-left tree, original geometry and placement of both flippers, both triangular slingshots, silver guides, four indicator lights, shooter lane and plunger, lower decoration. Preserve the warm coral-orange opaque resin ball, keep it clearly visible with a soft highlight. Hardware cream/brass surfaces remain readable in the evening through soft local warm lighting. Preserve lit amber and green lamps and dim red lamp; preserve partly lit roof garlands. Do not add mechanisms, targets, bumpers, ramps, icons or HUD elements. Do not change perspective, shape or layout. Full-bleed illustration, no cabinet or added border.
+This is one integrated concept illustration, not an engine capture. Render all visible UI artwork together in the same image. No watermark.

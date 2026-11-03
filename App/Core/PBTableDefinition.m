@@ -81,6 +81,7 @@ static PBLayerMask PBParseLayers(NSArray<NSString *> *names) {
         if ([name isEqualToString:@"playfield"]) mask |= PBLayerPlayfield;
         if ([name isEqualToString:@"ramp"]) mask |= PBLayerRamp;
         if ([name isEqualToString:@"captive"]) mask |= PBLayerCaptive;
+        if ([name isEqualToString:@"deck"]) mask |= PBLayerDeck;
     }
     return mask;
 }
@@ -98,12 +99,19 @@ static PBSpotDef *PBParseSpot(NSDictionary *json) {
     spot.identifier = json[@"id"];
     spot.position = simd_make_float2([json[@"x"] floatValue], [json[@"y"] floatValue]);
     spot.radius = [json[@"r"] floatValue];
+    spot.hasPlate = json[@"plate"] ? [json[@"plate"] boolValue] : YES;
     spot.speed = [(json[@"speed"] ?: json[@"ejectSpeed"] ?: json[@"flingSpeed"]) floatValue];
     spot.captureSpeed = [json[@"captureSpeed"] floatValue];
     spot.holdSeconds = [json[@"holdSeconds"] floatValue];
     spot.color = json[@"color"];
     spot.model = json[@"model"];
     if (json[@"ejectDirection"]) spot.direction = simd_normalize(PBVec2(json[@"ejectDirection"]));
+    spot.layers = PBParseLayers(json[@"layers"]);
+    if (json[@"comesUpAt"]) {
+        spot.hasExit = YES;
+        spot.exit = PBVec2(json[@"comesUpAt"]);
+        spot.transitSeconds = [json[@"transitSeconds"] ?: @0.7f floatValue];
+    }
     return spot;
 }
 
@@ -113,6 +121,9 @@ static PBEdgeDef *PBParseEdge(NSDictionary *json) {
     edge.a = PBVec2(json[@"a"]);
     edge.b = PBVec2(json[@"b"]);
     if (json[@"passDirection"]) edge.passDirection = PBVec2(json[@"passDirection"]);
+    edge.vari = [json[@"vari"] boolValue];
+    edge.layers = PBParseLayers(json[@"layers"]);
+    edge.body = json[@"body"];
     return edge;
 }
 
@@ -157,6 +168,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _name = json[@"name"];
         _defaultSkin = json[@"defaultSkin"];
         _size = PBVec2(json[@"size"]);
+        _padding = json[@"padding"] ? PBVec2(json[@"padding"]) : simd_make_float2(0, 0);
 
         NSDictionary *physics = json[@"physics"];
         _gravity = [physics[@"gravity"] floatValue];
@@ -169,6 +181,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _apronY = [apron[@"y"] floatValue];
 
         NSDictionary *plunger = json[@"plunger"];
+        _deckHeight = [json[@"deck"][@"height"] floatValue];
         _plunger = [PBPlungerDef new];
         _plunger.position = simd_make_float2([plunger[@"x"] floatValue], [plunger[@"y"] floatValue]);
         _plunger.width = [plunger[@"width"] floatValue];
@@ -182,6 +195,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             wall.radius = [item[@"radius"] floatValue];
             wall.closed = [item[@"closed"] boolValue];
             wall.layers = PBParseLayers(item[@"layers"]);
+            wall.isDeck = [item[@"part"] isEqualToString:@"deck"];
             wall.points = PBParsePath(item[@"points"]);
             return wall;
         });
@@ -192,6 +206,7 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _rollovers = PBMap(json[@"rollovers"], spots);
         _saucers = PBMap(json[@"saucers"], spots);
         _kickbacks = PBMap(json[@"kickbacks"], spots);
+        _stoppers = PBMap(json[@"stoppers"], spots);
         _magnets = PBMap(json[@"magnets"], spots);
         _captiveBalls = PBMap(json[@"captiveBalls"], spots);
         _flashers = PBMap(json[@"flashers"], spots);
@@ -211,17 +226,39 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
             flipper.tipRadius = [item[@"tipRadius"] floatValue];
             flipper.restAngle = PBRadians([item[@"restAngle"] floatValue]);
             flipper.activeAngle = PBRadians([item[@"activeAngle"] floatValue]);
+            flipper.layers = PBParseLayers(item[@"layers"]);
             return flipper;
         });
         _ramps = PBMap(json[@"ramps"], ^id(NSDictionary *item) {
             PBRampDef *ramp = [PBRampDef new];
             ramp.identifier = item[@"id"];
+            ramp.model = item[@"model"];
             ramp.width = [item[@"width"] floatValue];
+            NSDictionary *authoring = item[@"authoring"];
+            ramp.wallHeight = [authoring[@"wall_height"] ?: @0.055f floatValue];
+            ramp.railWidth = [authoring[@"rail_width"] ?: @0.008f floatValue];
+            float flare = [authoring[@"flare"] ?: @1.18f floatValue];
+            ramp.entranceFlare = [authoring[@"entrance"] isEqualToString:@"FLARED"] ? flare : 1;
+            ramp.exitFlare = [authoring[@"exit"] isEqualToString:@"FLARED"] ? flare : 1;
+            ramp.transitionLength = [authoring[@"end_length"] ?: @0.055f floatValue];
+            ramp.supportColumns = authoring[@"columns"] ?: @[];
+            ramp.supportRadius = [authoring[@"support_radius"] ?: @0.004f floatValue];
+            ramp.supportBase = [authoring[@"base_height"] floatValue];
             ramp.mouthA = PBVec2(item[@"mouth"][0]);
             ramp.mouthB = PBVec2(item[@"mouth"][1]);
             ramp.plasticUntil = [item[@"plasticUntil"] integerValue];
-            ramp.pointData = PBSmoothRampPath(item[@"points"]);
-            ramp.plasticUntil *= kRampSubdivisions;
+            ramp.exitLayer = item[@"exitLayer"] ? PBParseLayers(@[ item[@"exitLayer"] ]) : PBLayerPlayfield;
+            if ([authoring[@"path_sampled"] boolValue]) {
+                NSMutableData *path = [NSMutableData data];
+                for (NSArray *p in item[@"points"]) {
+                    simd_float3 v = simd_make_float3([p[0] floatValue], [p[1] floatValue], [p[2] floatValue]);
+                    [path appendBytes:&v length:sizeof(v)];
+                }
+                ramp.pointData = path;
+            } else {
+                ramp.pointData = PBSmoothRampPath(item[@"points"]);
+                ramp.plasticUntil *= kRampSubdivisions;
+            }
             return ramp;
         });
         _lamps = PBMap(json[@"lamps"], ^id(NSDictionary *item) {
@@ -269,6 +306,10 @@ static NSArray *PBMap(NSArray *input, id (^transform)(id)) {
         _rules.rampsForExtraBall = [rules[@"rampsForExtraBall"] integerValue];
         _rules.scores = rules[@"scores"];
         _rules.skillShotTarget = rules[@"skillShotTarget"] ?: @"";
+        NSMutableDictionary *script = [NSMutableDictionary dictionary];
+        for (NSDictionary *cue in rules[@"script"]) script[cue[@"cue"]] = cue[@"actions"] ?: @[];
+        _rules.script = script;
+        _rules.wizard = [rules[@"wizard"] boolValue];
         _rules.groups = PBMap(rules[@"groups"], ^id(NSDictionary *item) {
             PBRuleGroupDef *group = [PBRuleGroupDef new];
             group.identifier = item[@"id"];

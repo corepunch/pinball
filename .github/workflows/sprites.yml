@@ -1,0 +1,39 @@
+name: Sprite atlases
+# The atlases are drawn by the real SpriteKit sprite graph, which needs macOS. When a pull request
+# from this repository changes what they are drawn from, regenerate them and commit the result.
+on:
+  pull_request:
+    paths:
+      - 'App/**'
+      - 'Scenes/**'
+      - 'GameData/Tables/**'
+      - 'tools/PBTableSpriteExport.h'
+      - 'tools/PBSpriteSnapshot.h'
+      - 'tools/render_ui_preview.*'
+      - '.github/workflows/sprites.yml'
+permissions:
+  contents: write
+concurrency:
+  group: sprites-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  export:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Check sprite nodes, input and projection
+        run: make ui-check
+      - name: Export atlases
+        run: for table in aurora meridian tide; do make sprites TABLE=$table; done
+      - name: Commit regenerated atlases
+        run: |
+          git add Art/Sprites
+          if git diff --cached --quiet; then echo "Atlases are up to date"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Regenerate sprite atlases"
+          git push

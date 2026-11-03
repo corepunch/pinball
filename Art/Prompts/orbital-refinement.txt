@@ -1,0 +1,9 @@
+Tool: built-in image_gen (image edit, opaque output)
+Output: Art/Concepts/orbital-refinement-v2.png
+Edit target: first redesign of the supplied iPhone screenshot, generated in this chat.
+The image is a design study; the implemented Blender geometry and native previews are authoritative.
+The follow-up instruction fixes the channel cross section as a rounded-square U, with planar floor,
+upright walls and local corner radii. Shot paths and hardware positions remain unchanged.
+
+Final ImageGen edit prompt:
+Edit this pinball redesign mockup. Preserve exact table composition, flat silver sheet-metal channel ramps and all existing shot paths, background and hardware placements. Make the circular insert rims, especially 2X, 3X, 5X and star, visibly THICKER: wide raised beveled champagne brass bezels with a bright inner lip and darker outer edge, restrained mechanical jewelry. Keep their original outer sizes, widen the border inward so icons remain readable. Other circular lamps receive matching substantial brass bezels. Keep ramp rails slim and sparse mounting brackets. Correct HUD layout to avoid the top red and cyan circular lamps: place score at x approximately 25% of screen, small ball count at 63%, pause at 75%; all below camera safe area at y approximately 4%; place compact goal text on centered second row above the ramp crowns. Do not put text over lamps. Remove edge gold bars completely. Physically achievable mobile 3D game mockup, no new icons or assets, no altered underlying illustration.

@@ -124,6 +124,25 @@
     [world drainEvents:^(const PBEvent *event) { XCTFail(@"Resting ball emitted %ld", (long)event->kind); }];
 }
 
+- (void)testDrawingThePlungerWindsTheSpringThenStops {
+    PBPhysicsWorld *world = [self worldWithJSON:[self emptyTableJSON]];
+    [world spawnBallAtPlunger];
+    [world setPlungerPulled:YES];
+    __block NSInteger coils = 0;
+    __block float last = 0;
+    for (NSInteger frame = 0; frame < 120; frame++) {
+        [world advanceBy:1.0 / 60.0];
+        [world drainEvents:^(const PBEvent *event) {
+            if (event->kind != PBEventPlungerCoil) return;
+            XCTAssertGreaterThan(event->magnitude, last);
+            last = event->magnitude;
+            coils++;
+        }];
+    }
+    XCTAssertEqual(coils, 15);
+    XCTAssertEqual(last, 1.0f);
+}
+
 - (void)testLaunchMagnitudeMatchesAppliedPullAndBallSpeed {
     for (NSNumber *frames in @[ @12, @60 ]) {
         PBPhysicsWorld *world = [self worldWithJSON:[self emptyTableJSON]];

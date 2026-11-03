@@ -1,0 +1,197 @@
+"""A table's XML and the dictionary the game's JSON is written from, in both directions.
+
+Attributes hold values, and lists are written out: `a="0.1 0.2"`, `points="0.1,0.2 0.3,0.4"`,
+with `arc(cx,cy,r,from,to,steps)` in a point list. Lists of things are a container of elements.
+
+A line's next point can be a rotation and a length from the point before it: `dir(rotation,length)`,
+in degrees anticlockwise from +x. An edge such as a gate takes `a`, `rotation` and `length` in place
+of `b`. A rotation may use the names in `<angles>`, as in `dir(180+slope,.14)` or `restAngle="-slope"`,
+so that lines meant to be parallel share one number. They all become plain numbers when read.
+
+A table in Scenes/tables starts from Scenes/base.xml, the parts every table must have, and takes
+`kits="<kit> <kit>"` from Scenes/ramps.xml. It adds to those, and replaces any element by its id.
+"""
+import ast
+import math
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import prefabs
+
+SCENES = Path(__file__).resolve().parents[2] / 'Scenes'
+
+WORDS = {'layers', 'members', 'lamps', 'actions'}             # Lists of names.
+NUMBERS = {'a', 'b', 'pivot', 'passDirection', 'ejectDirection', 'comesUpAt'}  # Lists of numbers.
+POINTS = {'points', 'mouth', 'columns'}                        # Lists of points.
+ROTATIONS = {'restAngle', 'activeAngle', 'rotation'}           # Degrees, which may use named angles.
+CONTAINERS = {'walls': 'wall', 'flippers': 'flipper', 'bumpers': 'bumper', 'slingshots': 'slingshot',
+              'dropTargets': 'dropTarget', 'standups': 'standup', 'rollovers': 'rollover', 'spinners': 'spinner',
+              'saucers': 'saucer', 'gates': 'gate', 'kickbacks': 'kickback', 'magnets': 'magnet',
+              'captiveBalls': 'captiveBall', 'flashers': 'flasher', 'ramps': 'ramp', 'lamps': 'lamp',
+              'plastics': 'plastic', 'decor': 'item', 'posts': 'post', 'groups': 'group', 'stoppers': 'stopper', 'script': 'on'}
+
+
+def number(text):
+    return int(text) if text.lstrip('-').isdigit() else float(text)
+
+
+def scalar_text(value):
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    return repr(value) if isinstance(value, float) else str(value)
+
+
+def points_text(points):
+    out = []
+    for p in points:
+        if isinstance(p, dict):
+            out.append('arc(' + ','.join(scalar_text(c) for c in p['arc']) + ')')
+        else:
+            out.append(','.join(scalar_text(c) for c in p))
+    return ' '.join(out)
+
+
+def points_value(text):
+    out = []
+    for word in text.split():
+        if word.startswith('arc('):
+            out.append({'arc': [number(c) for c in word[4:-1].split(',')]})
+        elif word.startswith('dir('):
+            rotation, length = word[4:-1].split(',')
+            out.append({'dir': [rotation, number(length)]})
+        else:
+            out.append([number(c) for c in word.split(',')])
+    return out
+
+
+def to_element(tag, item):
+    element = ET.Element(tag)
+    for key, value in item.items():
+        if isinstance(value, list) and value and isinstance(value[0], dict) and 'arc' not in value[0]:
+            container = ET.SubElement(element, key)
+            for child in value:
+                container.append(to_element(CONTAINERS[key], child))
+        elif key in POINTS:
+            element.set(key, points_text(value))
+        elif key in WORDS or key in NUMBERS or (tag == 'table' and key in ('size', 'padding')):
+            element.set(key, ' '.join(scalar_text(v) for v in value))
+        elif isinstance(value, dict):
+            element.append(to_element(key, value))
+        elif isinstance(value, list):
+            container = ET.SubElement(element, key)
+            for child in value:
+                container.append(to_element(CONTAINERS[key], child))
+        else:
+            element.set(key, scalar_text(value))
+    return element
+
+
+def attribute_value(tag, key, text):
+    if key in POINTS:
+        return points_value(text)
+    if key in WORDS:
+        return text.split()
+    if key in NUMBERS or (tag == 'table' and key in ('size', 'padding')):
+        return [number(c) for c in text.split()]
+    if text in ('true', 'false'):
+        return text == 'true'
+    try:
+        return number(text)
+    except ValueError:
+        return text
+
+
+def from_element(element):
+    item = {key: attribute_value(element.tag, key, text) for key, text in element.attrib.items()}
+    for child in element:
+        if child.tag in CONTAINERS:
+            item[child.tag] = [from_element(entry) for entry in child]
+        else:
+            item[child.tag] = from_element(child)
+    return item
+
+
+def write(table, path):
+    root = to_element('table', table)
+    ET.indent(root, space=' ')
+    ET.ElementTree(root).write(path, encoding='unicode')
+    with open(path, 'a') as handle:
+        handle.write('\n')
+
+
+def merged(under, over):
+    """`over` on top of `under`: lists join, by id, and dictionaries merge."""
+    out = dict(under)
+    for key, value in over.items():
+        if value == []:
+            continue
+        if isinstance(value, list) and value and isinstance(value[0], dict) and 'id' in value[0]:
+            mine = {item['id']: item for item in value}
+            kept = [mine.pop(item['id'], item) for item in out.get(key, [])]
+            out[key] = kept + list(mine.values())
+        elif isinstance(value, dict) and 'arc' not in value:
+            out[key] = merged(out.get(key, {}), value)
+        else:
+            out[key] = value
+    return out
+
+
+def degrees(value, angles):
+    return prefabs.evaluate(ast.parse(value, mode='eval'), angles) if isinstance(value, str) else value
+
+
+def stepped(start, rotation, length):
+    """The point a rotation and a length from `start`."""
+    turn = math.radians(rotation)
+    return [round(start[0] + length * math.cos(turn), 6), round(start[1] + length * math.sin(turn), 6)]
+
+
+def resolve(item, angles):
+    """Turns rotations and `dir` steps into the plain numbers the game reads."""
+    for key, value in item.items():
+        if key in ROTATIONS:
+            item[key] = degrees(value, angles)
+        elif key == 'points':
+            out = []
+            for entry in value:
+                if isinstance(entry, dict) and 'dir' in entry:
+                    if not out or isinstance(out[-1], dict):
+                        raise ValueError(f"{item.get('id')}: dir() needs a plain point before it")
+                    out.append(stepped(out[-1], degrees(entry['dir'][0], angles), entry['dir'][1]))
+                else:
+                    out.append(entry)
+            item[key] = out
+        elif isinstance(value, dict) and 'arc' not in value:
+            resolve(value, angles)
+        elif isinstance(value, list):
+            for child in value:
+                if isinstance(child, dict) and 'arc' not in child:
+                    resolve(child, angles)
+    if 'rotation' in item and 'a' in item:
+        item['b'] = stepped(item['a'], item.pop('rotation'), item.pop('length'))
+
+
+def finished(table):
+    resolve(table, table.pop('angles', {}))
+    return table
+
+
+def read(path):
+    table = from_element(ET.parse(path).getroot())
+    if 'base' not in table:
+        return finished(table)
+    out = from_element(ET.parse(SCENES / f"{table.pop('base')}.xml").getroot())
+    kits = {kit.get('id'): from_element(kit) for kit in ET.parse(SCENES / 'ramps.xml').getroot()}
+    for name in table.pop('kits', '').split():
+        kit = dict(kits[name])
+        kit.pop('id')
+        out = merged(out, kit)
+    out = merged(out, table)
+    for key in CONTAINERS:
+        if key != 'groups':
+            out.setdefault(key, [])
+    return finished(out)
+
+
+def table_paths():
+    return sorted((SCENES / 'tables').glob('*.xml'))

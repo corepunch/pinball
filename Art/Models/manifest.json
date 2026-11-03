@@ -1,162 +1,143 @@
 {
-  "generator": "tools/build_hardware_models.py",
-  "transport": "Blender MCP",
+  "generator": "tools/scene/compile_scenes.py",
   "assets": {
     "bumper-base": {
-      "objects": 30,
-      "triangles": 3540,
-      "radius": 1.06,
-      "bytes": 236747
+      "objects": 1,
+      "triangles": 704,
+      "radius": 0.88,
+      "bytes": 48934
     },
     "bumper-cap": {
-      "objects": 20,
-      "triangles": 3360,
-      "radius": 0.93,
-      "bytes": 229878
+      "objects": 1,
+      "triangles": 1664,
+      "radius": 1.0,
+      "bytes": 113147
+    },
+    "beacon": {
+      "objects": 1,
+      "triangles": 832,
+      "radius": 1.0,
+      "bytes": 60366
     },
     "insert-bezel": {
-      "objects": 3,
-      "triangles": 1168,
+      "objects": 1,
+      "triangles": 992,
       "radius": 1.1,
-      "bytes": 78934
+      "bytes": 65941
     },
     "insert-arrow": {
-      "objects": 3,
-      "triangles": 399,
-      "radius": 1.0606,
-      "bytes": 33568
+      "objects": 1,
+      "triangles": 189,
+      "radius": 1.0676,
+      "bytes": 17180
     },
     "post": {
-      "objects": 2,
-      "triangles": 188,
-      "radius": 0.62,
-      "bytes": 14297
+      "objects": 1,
+      "triangles": 216,
+      "radius": 1.0,
+      "bytes": 15576
     },
     "target": {
-      "objects": 2,
-      "triangles": 26,
-      "radius": 0.6278,
-      "bytes": 5909
+      "objects": 1,
+      "triangles": 20,
+      "radius": 0.5632,
+      "bytes": 5844
+    },
+    "spot-target": {
+      "objects": 1,
+      "triangles": 384,
+      "radius": 1.0,
+      "bytes": 28711
+    },
+    "rollover-plate": {
+      "objects": 1,
+      "triangles": 484,
+      "radius": 1.0425,
+      "bytes": 34020
     },
     "flasher-cage": {
-      "objects": 2,
+      "objects": 1,
       "triangles": 640,
       "radius": 1.05,
-      "bytes": 42815
+      "bytes": 42833
     },
     "bullet-cyan": {
-      "objects": 4,
+      "objects": 1,
       "triangles": 1000,
       "radius": 1.0,
-      "bytes": 64611
+      "bytes": 64677
     },
     "bullet-amber": {
-      "objects": 4,
+      "objects": 1,
       "triangles": 1000,
       "radius": 1.0,
-      "bytes": 64668
+      "bytes": 64734
     },
     "stud": {
-      "objects": 2,
+      "objects": 1,
       "triangles": 304,
       "radius": 1.0,
-      "bytes": 21144
+      "bytes": 21146
     },
     "arrow-lens": {
-      "objects": 2,
+      "objects": 1,
       "triangles": 273,
-      "radius": 1.0657,
-      "bytes": 22325
+      "radius": 1.0468,
+      "bytes": 22427
     },
     "arrow-stack": {
-      "objects": 4,
+      "objects": 1,
       "triangles": 546,
-      "radius": 1.0059,
-      "bytes": 41331
+      "radius": 0.9964,
+      "bytes": 41489
     },
     "mech-bracket": {
-      "objects": 8,
+      "objects": 1,
       "triangles": 804,
       "radius": 1.0591,
-      "bytes": 54562
+      "bytes": 54583
     },
     "mech-piston": {
-      "objects": 9,
+      "objects": 1,
       "triangles": 408,
       "radius": 1.0427,
-      "bytes": 29754
+      "bytes": 29626
     },
     "mech-stud": {
-      "objects": 3,
+      "objects": 1,
       "triangles": 360,
       "radius": 1.0,
-      "bytes": 24399
+      "bytes": 24419
     },
     "mech-tower": {
-      "objects": 3,
-      "triangles": 396,
+      "objects": 1,
+      "triangles": 240,
       "radius": 1.0,
-      "bytes": 26038
+      "bytes": 16981
     },
-    "aurora-flipper": {
-      "objects": 9,
-      "triangles": 1051,
+    "common-flipper": {
+      "objects": 1,
+      "triangles": 743,
       "radius": 1.09,
-      "bytes": 80836
+      "bytes": 66614
+    },
+    "common-walls": {
+      "objects": 1,
+      "triangles": 2388,
+      "radius": 1.0567,
+      "bytes": 198131
+    },
+    "common-plastics": {
+      "objects": 1,
+      "triangles": 1394,
+      "radius": 1.1217,
+      "bytes": 103377
     },
     "aurora-walls": {
-      "objects": 64,
-      "triangles": 3644,
-      "radius": 1.231,
-      "bytes": 252376
-    },
-    "aurora-plastics": {
-      "objects": 32,
-      "triangles": 2426,
-      "radius": 0.931,
-      "bytes": 169574
-    },
-    "aurora-rampL": {
-      "objects": 104,
-      "triangles": 17122,
-      "radius": 1.0061,
-      "bytes": 1312736
-    },
-    "aurora-rampR": {
-      "objects": 140,
-      "triangles": 23114,
-      "radius": 0.9577,
-      "bytes": 1762912
-    },
-    "meridian-flipper": {
-      "objects": 9,
-      "triangles": 1051,
-      "radius": 1.09,
-      "bytes": 80838
-    },
-    "meridian-walls": {
-      "objects": 64,
-      "triangles": 3644,
-      "radius": 1.231,
-      "bytes": 252220
-    },
-    "meridian-plastics": {
-      "objects": 32,
-      "triangles": 2426,
-      "radius": 0.931,
-      "bytes": 169603
-    },
-    "meridian-rampL": {
-      "objects": 140,
-      "triangles": 23686,
-      "radius": 1.0101,
-      "bytes": 1823107
-    },
-    "meridian-rampR": {
-      "objects": 104,
-      "triangles": 16966,
-      "radius": 0.9932,
-      "bytes": 1289218
+      "objects": 1,
+      "triangles": 176,
+      "radius": 0.8845,
+      "bytes": 13200
     }
   }
 }

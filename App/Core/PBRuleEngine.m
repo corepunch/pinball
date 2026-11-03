@@ -22,7 +22,19 @@ static const double kBallAddDelay = 0.8;
 @end
 @implementation PBGroupState @end
 
+static const NSInteger kBumpersForSuper = 25;
+static const double kPlayfieldSeconds = 20.0;
+static const double kWizardSeconds = 30.0;
+static const double kHurryUpStart = 100000.0, kHurryUpEnd = 20000.0, kHurryUpSeconds = 16.0;
+static const double kStopperSeconds = 20.0;
+static const int64_t kMysteryPoints = 25000;
+static const double kSuperBumperSeconds = 15.0;
+static const double kRampComboSeconds = 8.0;
+
 @implementation PBRuleEngine {
+    NSInteger _bumperHits, _superBumperGeneration, _comboChain, _comboGeneration, _lastRamp;
+    int _superBumperTime;
+    BOOL _comboOpen;
     PBPhysicsWorld *_world;
     PBTableDefinition *_table;
     PBRulesDef *_rules;
@@ -53,6 +65,17 @@ static const double kBallAddDelay = 0.8;
     BOOL _magnetArmed;
     BOOL _orbitHot;
     BOOL _shootAgain;
+    NSInteger _playfieldX;
+    double _playfieldTime;
+    BOOL _mysteryLit;
+    uint32_t _mysterySeed;
+    BOOL _bonusHeld;
+    double _hurryUp;  // What the next ramp or scoop collects, counting down. Zero when not running.
+    double _stopperTime;
+    NSMutableSet<NSString *> *_groupsDone;
+    BOOL _wizardPlayed;
+    NSMutableDictionary<NSString *, NSNumber *> *_rolloverMembers;
+    NSUInteger _targetGroupCount;
 
     NSInteger _tiltWarnings;
     double _tiltDecay;
@@ -70,6 +93,9 @@ static const double kBallAddDelay = 0.8;
         _highScore = highScore;
         _phase = PBGamePhaseAttract;
         _bonusMultiplier = 1;
+        _playfieldX = 1;
+        _mysterySeed = 0x9E3779B9u;
+        _groupsDone = [NSMutableSet set];
         _pending = [NSMutableArray array];
         _displayTop = _table.name;
         _displayBottom = @"PRESS START";
@@ -84,6 +110,9 @@ static const double kBallAddDelay = 0.8;
             for (NSString *member in def.members) _groupByMember[member] = state;
         }
         _groups = groups;
+        _rolloverMembers = [NSMutableDictionary dictionary];
+        for (PBSpotDef *rollover in _table.rollovers) _rolloverMembers[rollover.identifier] = @YES;
+        for (PBRuleGroupDef *def in _rules.groups) if (!_rolloverMembers[def.members.firstObject]) _targetGroupCount++;
 
         _lampIndex = [NSMutableDictionary dictionary];
         [_table.lamps enumerateObjectsUsingBlock:^(PBLampDef *lamp, NSUInteger i, BOOL *stop) {
@@ -97,10 +126,14 @@ static const double kBallAddDelay = 0.8;
 - (void)dealloc { free(_lampModes); }
 
 - (PBLampMode)modeForLamp:(NSInteger)lampIndex { return _lampModes[lampIndex]; }
+- (BOOL)isMemberLit:(NSString *)member { return [_groupByMember[member].lit containsObject:member]; }
 
 #pragma mark - Game flow
 
 - (void)startGame {
+    _groupsDone = [NSMutableSet set];
+    _wizardPlayed = NO;
+    _mysteryLit = NO;
     _score = 0;
     _ballNumber = 0;
     _extraBalls = 0;
@@ -118,7 +151,7 @@ static const double kBallAddDelay = 0.8;
     _ballsPending = 0;
     [_pending removeAllObjects];
     [_world removeAllPlayBalls];
-    [self.delegate ruleEngine:self fanfare:@"start"];
+    [self fanfare:@"start"];
     [self startNextBall];
 }
 
@@ -129,8 +162,15 @@ static const double kBallAddDelay = 0.8;
 }
 
 - (void)beginBall {
-    _bonus = 0;
-    _bonusMultiplier = 1;
+    if (!_bonusHeld) {
+        _bonus = 0;
+        _bonusMultiplier = 1;
+    }
+    _bonusHeld = NO;
+    _playfieldX = 1;
+    _playfieldTime = 0;
+    _hurryUp = 0;
+    [self setStoppersUp:NO];
     _tilted = NO;
     _tiltWarnings = 0;
     _tiltDecay = 0;
@@ -155,7 +195,7 @@ static const double kBallAddDelay = 0.8;
     } else {
         [self showMessage:@"GAME OVER"];
     }
-    [self.delegate ruleEngine:self fanfare:@"gameOver"];
+    [self fanfare:@"gameOver"];
     [self after:3.5 do:^{ self->_phase = PBGamePhaseAttract; self->_attractClock = 0; }];
 }
 
@@ -188,7 +228,7 @@ static const double kBallAddDelay = 0.8;
 
 - (void)addScore:(int64_t)points {
     if (_tilted || _phase == PBGamePhaseAttract || _phase == PBGamePhaseGameOver) return;
-    _score += points;
+    _score += points * _playfieldX;
 }
 
 - (void)award:(NSString *)key {
@@ -223,23 +263,41 @@ static const double kBallAddDelay = 0.8;
     }
     switch (event->kind) {
         case PBEventBumper:
+            [self cue:@"bumper"];
             [self award:@"bumper"];
+            if (_superBumperTime > 0) [self award:@"bumper"];
+            if (++_bumperHits % kBumpersForSuper == 0) {
+                _superBumperGeneration++;
+                NSInteger generation = _superBumperGeneration;
+                _superBumperTime = 1;
+                [self showMessage:@"SUPER BUMPERS"];
+                __weak PBRuleEngine *weakSelf = self;
+                [self after:kSuperBumperSeconds do:^{
+                    PBRuleEngine *engine = weakSelf;
+                    if (engine && engine->_superBumperGeneration == generation) engine->_superBumperTime = 0;
+                }];
+            }
             _bonus += 1;
             _ringLit = (_ringLit + 1) % 13;
             break;
         case PBEventSling:
+            [self cue:@"sling"];
             [self award:@"sling"];
             break;
         case PBEventDropTarget: {
+            [self cue:@"drop"];
             NSString *identifier = _table.dropTargets[(NSUInteger)event->element].identifier;
             [self award:@"drop"];
             [self litMember:identifier];
             break;
         }
         case PBEventStandup: {
+            [self cue:@"standup"];
             NSString *identifier = _table.standups[(NSUInteger)event->element].identifier;
             if (_groupByMember[identifier]) {
-                [self award:@"standup"];
+                PBEdgeDef *standup = _table.standups[(NSUInteger)event->element];
+                // A vari-target scores by how hard it was hit, as far as five times over.
+                [self addScore:[_rules scoreFor:@"standup"] * (standup.vari ? 1 + MIN(4, (int64_t)(event->magnitude * 1.5f)) : 1)];
                 [self litMember:identifier];
             } else {
                 [self award:@"captive"];
@@ -252,13 +310,15 @@ static const double kBallAddDelay = 0.8;
             [self handleRollover:_table.rollovers[(NSUInteger)event->element].identifier];
             break;
         case PBEventSpinner:
+            [self cue:@"spinner"];
             [self award:@"spinner"];
             break;
         case PBEventSaucerCapture:
+            [self cue:@"saucer"];
             [self handleSaucer:event->element];
             break;
         case PBEventRampComplete:
-            [self handleRampComplete];
+            [self handleRampComplete:event->element];
             break;
         case PBEventKickback:
             [self award:@"kickback"];
@@ -270,11 +330,13 @@ static const double kBallAddDelay = 0.8;
             [self showMessage:@"MAGNET"];
             break;
         case PBEventDrain:
+            [self cue:@"drain"];
             [self handleDrain];
             break;
         case PBEventPlungerRelease:
             if (!_plunged && event->magnitude > 0.05f) {
                 _plunged = YES;
+                [self cue:@"launch"];
                 _ballSaveTimer = _rules.ballSaveSeconds;
             }
             break;
@@ -314,7 +376,7 @@ static const double kBallAddDelay = 0.8;
         _skillTimer = 0;
         [self award:@"skillShot"];
         [self showMessage:@"SKILL SHOT"];
-        [self.delegate ruleEngine:self fanfare:@"jackpot"];
+        [self fanfare:@"jackpot"];
     }
     [self litMember:identifier];
 }
@@ -328,6 +390,19 @@ static const double kBallAddDelay = 0.8;
     [self addScore:group.def.completeScore];
     if (group.def.message.length) [self showMessage:group.def.message];
     for (NSString *action in group.def.actions) [self perform:action group:group];
+    // Wizard mode wants every bank of targets finished; rollover lanes come round by themselves.
+    if (!_rolloverMembers[group.def.members.firstObject]) [_groupsDone addObject:group.def.identifier];
+    if (_rules.wizard && !_wizardPlayed && _groupsDone.count == _targetGroupCount) [self startWizardMode];
+}
+
+/// Something worth reacting to happened: the table's script says what, if anything, it does.
+- (void)cue:(NSString *)name {
+    for (NSString *action in _rules.script[name]) [self perform:action group:nil];
+}
+
+- (void)fanfare:(NSString *)name {
+    [self.delegate ruleEngine:self fanfare:name];
+    [self cue:name];
 }
 
 - (void)perform:(NSString *)action group:(PBGroupState *)group {
@@ -351,9 +426,58 @@ static const double kBallAddDelay = 0.8;
         for (NSUInteger i = 0; i < _table.magnets.count; i++) [_world setMagnet:(NSInteger)i armed:YES];
     } else if ([action isEqualToString:@"addBonus"]) {
         _bonus += 5;
+    } else if ([action isEqualToString:@"playfieldX"]) {
+        [self startPlayfieldX:2 seconds:kPlayfieldSeconds];
+    } else if ([action isEqualToString:@"lightMystery"]) {
+        _mysteryLit = YES;
+    } else if ([action isEqualToString:@"holdBonus"]) {
+        _bonusHeld = YES;
+    } else if ([action isEqualToString:@"hurryUp"]) {
+        _hurryUp = kHurryUpStart;
+    } else if ([action isEqualToString:@"armStopper"]) {
+        _stopperTime = kStopperSeconds;
+        [self setStoppersUp:YES];
     } else if ([action hasPrefix:@"flash:"]) {
         [self.delegate ruleEngine:self flash:[action substringFromIndex:6]];
     }
+}
+
+- (void)startPlayfieldX:(NSInteger)multiplier seconds:(double)seconds {
+    _playfieldX = MAX(_playfieldX, multiplier);
+    _playfieldTime = MAX(_playfieldTime, seconds);
+    [self showMessage:[NSString stringWithFormat:@"%ldX PLAYFIELD", (long)_playfieldX]];
+}
+
+- (void)setStoppersUp:(BOOL)up {
+    for (NSUInteger i = 0; i < _table.stoppers.count; i++) [_world setStopper:(NSInteger)i up:up];
+}
+
+- (void)startWizardMode {
+    _wizardPlayed = YES;
+    if (!_multiballActive) [self startMultiball];
+    [self startPlayfieldX:3 seconds:kWizardSeconds];
+    [self showMessage:@"WIZARD MODE"];
+    [self fanfare:@"wizard"];
+}
+
+/// What a lit scoop gives: a surprise, and always something the table can use.
+- (void)awardMystery {
+    _mysterySeed ^= _mysterySeed << 13; _mysterySeed ^= _mysterySeed >> 17; _mysterySeed ^= _mysterySeed << 5;
+    _mysteryLit = NO;
+    switch (_mysterySeed % 5) {
+        case 0: [self addScore:kMysteryPoints]; [self showMessage:@"MYSTERY POINTS"]; break;
+        case 1: [self perform:@"bonusX" group:nil]; [self showMessage:@"MYSTERY BONUS X"]; break;
+        case 2: _bonusHeld = YES; [self showMessage:@"BONUS HELD"]; break;
+        case 3: [self perform:@"armKickback" group:nil]; [self showMessage:@"KICKBACK ON"]; break;
+        default: [self startPlayfieldX:2 seconds:kPlayfieldSeconds]; break;
+    }
+}
+
+- (void)collectHurryUp {
+    if (_hurryUp <= 0) return;
+    [self addScore:(int64_t)_hurryUp];
+    [self showMessage:[@"HURRY UP " stringByAppendingString:[self.class formattedScore:(int64_t)_hurryUp]]];
+    _hurryUp = 0;
 }
 
 - (void)armKickbacks:(BOOL)armed {
@@ -362,6 +486,8 @@ static const double kBallAddDelay = 0.8;
 
 - (void)handleSaucer:(NSInteger)saucer {
     [self award:@"saucer"];
+    [self collectHurryUp];
+    if (_mysteryLit) [self awardMystery];
     NSTimeInterval hold = kSaucerHoldSeconds;
     if (_lockLit && !_multiballActive) {
         _lockLit = NO;
@@ -371,7 +497,7 @@ static const double kBallAddDelay = 0.8;
             hold = 2.0;
         } else {
             [self showMessage:[NSString stringWithFormat:@"BALL %ld LOCKED", (long)_locks]];
-            [self.delegate ruleEngine:self flash:@"flashTL"];
+            [self cue:@"lock"];
         }
     }
     [self after:hold do:^{ [self->_world ejectSaucer:saucer]; }];
@@ -383,17 +509,19 @@ static const double kBallAddDelay = 0.8;
     _locks = 0;
     _ballSaveTimer = MAX(_ballSaveTimer, 12.0);
     [self showMessage:@"MULTIBALL"];
-    [self.delegate ruleEngine:self fanfare:@"multiball"];
-    for (NSInteger i = 1; i < _rules.multiballBalls; i++) [self addBallAfter:kBallAddDelay * (double)i];
+    [self fanfare:@"multiball"];
+    for (NSInteger i = 1; i < _rules.multiballBalls; i++) [self addBallAfter:kBallAddDelay * (double)i plunge:YES];
 }
 
-- (void)addBallAfter:(double)delay {
+/// Serves a ball at the plunger. Multiball's extra balls launch themselves, since the player
+/// already has a ball in play; anything else waits for the player to pull the plunger.
+- (void)addBallAfter:(double)delay plunge:(BOOL)plunge {
     _ballsPending += 1;
     [self after:delay do:^{
         self->_ballsPending -= 1;
         if (self->_phase != PBGamePhasePlaying) return;
         [self->_world spawnBallAtPlunger];
-        [self after:0.45 do:^{ [self->_world autoPlunge]; }];
+        if (plunge) [self after:0.45 do:^{ [self->_world autoPlunge]; }];
     }];
 }
 
@@ -401,27 +529,43 @@ static const double kBallAddDelay = 0.8;
     if (_multiballActive) _jackpotLit = YES;
 }
 
-- (void)handleRampComplete {
+- (void)handleRampComplete:(NSInteger)ramp {
     [self award:@"ramp"];
+    [self collectHurryUp];
     _bonus += 3;
+    // Another ramp straight after the last one is a combo, and the chain grows.
+    if (_comboOpen && ramp != _lastRamp) {
+        _comboChain++;
+        [self addScore:[_rules scoreFor:@"rampCombo"] * _comboChain];
+        [self showMessage:[NSString stringWithFormat:@"RAMP COMBO X%ld", (long)_comboChain]];
+    } else {
+        _comboChain = 0;
+    }
+    _lastRamp = ramp;
+    _comboOpen = YES;
+    _comboGeneration++;
+    NSInteger generation = _comboGeneration;
+    __weak PBRuleEngine *weakSelf = self;
+    [self after:kRampComboSeconds do:^{
+        PBRuleEngine *engine = weakSelf;
+        if (engine && engine->_comboGeneration == generation) { engine->_comboOpen = NO; engine->_comboChain = 0; }
+    }];
     if (_multiballActive && _jackpotLit) {
         _jackpotLit = NO;
         [self award:@"jackpot"];
         [self showMessage:@"JACKPOT"];
-        [self.delegate ruleEngine:self fanfare:@"jackpot"];
-        [self.delegate ruleEngine:self flash:@"flashTL"];
-        [self.delegate ruleEngine:self flash:@"flashTR"];
+        [self fanfare:@"jackpot"];
         return;
     }
     [self showMessage:@"RAMP"];
-    [self.delegate ruleEngine:self flash:@"flashTR"];
+    [self cue:@"ramp"];
     _rampCount += 1;
     if (_rampCount >= _rules.rampsForExtraBall) {
         _rampCount = 0;
         _extraBalls += 1;
         _shootAgain = YES;
         [self showMessage:@"EXTRA BALL"];
-        [self.delegate ruleEngine:self fanfare:@"extraBall"];
+        [self fanfare:@"extraBall"];
     }
 }
 
@@ -429,8 +573,8 @@ static const double kBallAddDelay = 0.8;
     if (_phase != PBGamePhasePlaying) return;
     if (_ballSaveTimer > 0 && !_tilted) {
         [self showMessage:@"BALL SAVED"];
-        [self.delegate ruleEngine:self fanfare:@"ballSave"];
-        [self addBallAfter:0.5];
+        [self fanfare:@"ballSave"];
+        [self addBallAfter:0.5 plunge:NO];
         return;
     }
     NSInteger remaining = _world.activeBallCount;
@@ -450,7 +594,7 @@ static const double kBallAddDelay = 0.8;
         _ballSaveTimer = 0;
         [_world setFlippersEnabled:NO];
         [self showMessage:@"TILT"];
-        [self.delegate ruleEngine:self fanfare:@"tilt"];
+        [self fanfare:@"tilt"];
     } else {
         [self showMessage:@"DANGER"];
     }
@@ -483,6 +627,12 @@ static const double kBallAddDelay = 0.8;
         if (_tiltDecay <= 0 && !_tilted) _tiltWarnings = 0;
     }
     if (_messageTimer > 0) _messageTimer -= dt;
+    if (_playfieldTime > 0 && (_playfieldTime -= dt) <= 0) _playfieldX = 1;
+    if (_hurryUp > 0) {
+        _hurryUp -= dt * (kHurryUpStart - kHurryUpEnd) / kHurryUpSeconds;
+        if (_hurryUp < kHurryUpEnd) _hurryUp = 0;
+    }
+    if (_stopperTime > 0 && (_stopperTime -= dt) <= 0) [self setStoppersUp:NO];
 
     if (_phase == PBGamePhaseBonus) {
         _bonusTimer -= dt;
@@ -558,7 +708,8 @@ static const double kBallAddDelay = 0.8;
         bindings = @{ @"shootAgain": @0, @"bonusX2": @1, @"bonusX3": @2, @"bonusX5": @3, @"jackpot": @4,
                       @"magnet": @5, @"lockLit": @6, @"lock1": @7, @"lock2": @8, @"rampHot": @9,
                       @"ramp1": @10, @"ramp2": @11, @"ramp3": @12, @"extraBall": @13, @"orbitHot": @14,
-                      @"captiveHot": @15, @"kickback": @16, @"special": @17, @"skillShot": @18 };
+                      @"captiveHot": @15, @"kickback": @16, @"special": @17, @"skillShot": @18,
+                      @"playfieldX": @19, @"mystery": @20, @"hurryUp": @21, @"stopper": @22, @"bonusHeld": @23 };
     });
     switch (bindings[bind].integerValue) {
         case 0: return _ballSaveTimer > 0 ? PBLampFastBlink : (_shootAgain ? PBLampOn : PBLampOff);
@@ -580,6 +731,11 @@ static const double kBallAddDelay = 0.8;
         case 16: return _kickbackArmed ? PBLampOn : PBLampOff;
         case 17: return _specialLit ? PBLampBlink : PBLampOff;
         case 18: return (_skillTimer > 0 && !_plunged) ? PBLampFastBlink : PBLampOff;
+        case 19: return _playfieldX > 1 ? PBLampFastBlink : PBLampOff;
+        case 20: return _mysteryLit ? PBLampBlink : PBLampOff;
+        case 21: return _hurryUp > 0 ? PBLampFastBlink : PBLampOff;
+        case 22: return _stopperTime > 0 ? PBLampBlink : PBLampOff;
+        case 23: return _bonusHeld ? PBLampOn : PBLampOff;
     }
     return PBLampOff;
 }

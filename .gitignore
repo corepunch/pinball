@@ -3,5 +3,8 @@ Build/
 DerivedData/
 xcuserdata/
 *.xcuserstate
+*.profraw
 __pycache__/
-*.blend1
+reference/
+research_notes/
+reports/

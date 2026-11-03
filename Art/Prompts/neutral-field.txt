@@ -1,0 +1,3 @@
+Tool: built-in image_gen. Runtime playfield art, not a gameplay render.
+
+undefined

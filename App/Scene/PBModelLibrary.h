@@ -1,4 +1,4 @@
-// Blender-authored mesh kits with semantic materials rebound to the current skin.
+// Compiled mesh kits with semantic materials rebound to the current skin.
 #import <SceneKit/SceneKit.h>
 
 NS_ASSUME_NONNULL_BEGIN

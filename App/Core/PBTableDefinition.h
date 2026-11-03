@@ -14,6 +14,7 @@ typedef NS_OPTIONS(NSUInteger, PBLayerMask) {
     PBLayerPlayfield = 1 << 0,
     PBLayerRamp      = 1 << 1,
     PBLayerCaptive   = 1 << 2,
+    PBLayerDeck      = 1 << 3,  // The raised second level.
 };
 
 typedef NS_ENUM(NSInteger, PBWallStyle) {
@@ -42,12 +43,16 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) float radius;
 @property (nonatomic) BOOL closed;
 @property (nonatomic) PBLayerMask layers;
+/// The raised block of the second level.
+@property (nonatomic) BOOL isDeck;
 @property (nonatomic, strong) PBPointList *points;
 @end
 
 /// A point element: posts, bumpers, rollovers, saucers, kickbacks, magnets, captive balls, flashers.
 @interface PBSpotDef : PBElementDef
 @property (nonatomic) simd_float2 position;
+/// A rollover shows a grey plate. Set by the Pinball Rollover Bar modifier in the level file.
+@property (nonatomic) BOOL hasPlate;
 @property (nonatomic) float radius;
 @property (nonatomic) simd_float2 direction;
 @property (nonatomic) float speed;
@@ -56,13 +61,29 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, nullable) NSString *color;
 /// A post drawn as this kit part, rather than the plain post.
 @property (nonatomic, copy, nullable) NSString *model;
+/// Which level a saucer sits on.
+@property (nonatomic) PBLayerMask layers;
+/// A saucer with an exit is a drop hole: the ball goes underground, and comes up here.
+@property (nonatomic) BOOL hasExit;
+@property (nonatomic) simd_float2 exit;
+@property (nonatomic) float transitSeconds;
 @end
 
 /// A line element: slingshots, drop targets, stand-ups, spinners, gates.
+/// Capsule radius of every slingshot kicker. Physics, layout checks and the sprite share it.
+static const float PBSlingshotRadius = 0.008f;
+
 @interface PBEdgeDef : PBElementDef
+/// A vari-target, for a standup: the harder it is hit, the more it scores.
+@property (nonatomic) BOOL vari;
 @property (nonatomic) simd_float2 a;
 @property (nonatomic) simd_float2 b;
+/// Selects the permitted side of a one-way gate; passage is measured normal to a–b.
 @property (nonatomic) simd_float2 passDirection;
+@property (nonatomic) PBLayerMask layers;
+/// For a slingshot: the wall whose points are its body's corner-arc centres and whose radius is
+/// the corner radius. The body sprite and its corner bolts are drawn from that collider.
+@property (nonatomic, copy, nullable) NSString *body;
 @end
 
 @interface PBFlipperDef : PBElementDef
@@ -73,10 +94,23 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic) float tipRadius;
 @property (nonatomic) float restAngle;    // Radians.
 @property (nonatomic) float activeAngle;  // Radians.
+@property (nonatomic) PBLayerMask layers;
 @end
 
 @interface PBRampDef : PBElementDef
+/// The shared model drawn for it, as tables reuse the same ramps.
+@property (nonatomic, copy, nullable) NSString *model;
 @property (nonatomic) float width;
+/// The level a ball finishing the ramp lands on.
+@property (nonatomic) PBLayerMask exitLayer;
+@property (nonatomic) float wallHeight;
+@property (nonatomic) float railWidth;
+@property (nonatomic) float entranceFlare;
+@property (nonatomic) float exitFlare;
+@property (nonatomic) float transitionLength;
+@property (nonatomic, copy) NSArray<NSArray<NSNumber *> *> *supportColumns;
+@property (nonatomic) float supportRadius;
+@property (nonatomic) float supportBase;
 @property (nonatomic) simd_float2 mouthA;
 @property (nonatomic) simd_float2 mouthB;
 @property (nonatomic) NSInteger plasticUntil;
@@ -138,6 +172,10 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *scores;
 @property (nonatomic, copy) NSArray<PBRuleGroupDef *> *groups;
 @property (nonatomic, copy) NSString *skillShotTarget;
+/// Cue name to the actions it runs, as a group's actions: `flash:flashTR`, `playfieldX`...
+@property (nonatomic, copy) NSDictionary<NSString *, NSArray<NSString *> *> *script;
+/// Finishing every group in one game starts wizard mode.
+@property (nonatomic) BOOL wizard;
 - (NSInteger)scoreFor:(NSString *)key;
 @end
 
@@ -146,6 +184,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, readonly) NSString *name;
 @property (nonatomic, copy, readonly) NSString *defaultSkin;
 @property (nonatomic, readonly) simd_float2 size;
+/// Board shown past the table's sides, and below its bottom edge.
+@property (nonatomic, readonly) simd_float2 padding;
 
 @property (nonatomic, readonly) float gravity;
 @property (nonatomic, readonly) float rampGravity;
@@ -155,6 +195,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 
 /// Nothing but the drain lies below this line.
 @property (nonatomic, readonly) float apronY;
+/// How far the second level stands above the board. Zero when a table has none.
+@property (nonatomic, readonly) float deckHeight;
 
 @property (nonatomic, strong, readonly) PBPlungerDef *plunger;
 @property (nonatomic, copy, readonly) NSArray<PBWallDef *> *walls;
@@ -169,6 +211,8 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *saucers;
 @property (nonatomic, copy, readonly) NSArray<PBEdgeDef *> *gates;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *kickbacks;
+/// Centre posts: down until earned, then up for a while between the flippers.
+@property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *stoppers;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *magnets;
 @property (nonatomic, copy, readonly) NSArray<PBSpotDef *> *captiveBalls;
 @property (nonatomic, copy, readonly) NSArray<PBRampDef *> *ramps;

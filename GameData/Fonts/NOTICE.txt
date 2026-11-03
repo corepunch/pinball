@@ -1,0 +1,5 @@
+Luckiest Guy Regular
+Copyright (c) 2010 by Brian J. Bonislawsky DBA Astigmatic (AOETI).
+Licensed under Apache License 2.0; see LuckiestGuy-LICENSE.txt.
+Unmodified font from https://github.com/google/fonts/tree/main/apache/luckiestguy
+Source file: LuckiestGuy-Regular.ttf (downloaded 2026-11-02).

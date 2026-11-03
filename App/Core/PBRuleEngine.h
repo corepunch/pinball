@@ -60,6 +60,8 @@ typedef NS_ENUM(uint8_t, PBLampMode) {
 /// Lane-change: lit lamps in rotating groups shift with the flippers.
 - (void)flipperPressedLeft:(BOOL)left;
 - (PBLampMode)modeForLamp:(NSInteger)lampIndex;
+/// A group's member the player has already made, until the group resets.
+- (BOOL)isMemberLit:(NSString *)member;
 
 @end
 

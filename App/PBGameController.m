@@ -3,9 +3,10 @@
 //
 
 #import "PBGameController.h"
+#import "PBTablePresentation.h"
 #import "PBSkin.h"
 #import "PBSoundEngine.h"
-#import "PBTableScene.h"
+#import "PBTableSprites.h"
 #import "PBGameUI.h"
 #import "PBLevels.h"
 #import <stdatomic.h>
@@ -18,32 +19,27 @@ static NSString *const kHapticsEnabledKey = @"PBHapticsEnabled";
 @interface PBGameController () <PBGameObserver>
 @end
 
-/// UIKit has no public API for the display's corner radius, so it goes by screen size, in points.
-/// A home-button phone or an iPad frames the table without reaching its corners: no rounding.
-static CGFloat PBScreenCornerRadius(CGSize size) {
-    if (size.height / size.width < 1.9) return 0;
-    NSNumber *known = @{ @375: @39.0, @390: @47.33, @393: @55.0, @402: @62.0, @414: @41.5,
-                         @428: @53.33, @430: @55.0, @440: @62.0 }[@((NSInteger)size.width)];
-    return known ? known.doubleValue : size.width * 0.15;
-}
-
 @implementation PBGameController {
-    __weak SCNView *_view;
+    __weak SKView *_view;
+    NSRecursiveLock *_gameLock;
     PBTableDefinition *_table;
-    PBTableScene *_tableScene;
+    PBTableSprites *_tableScene;
     PBSoundEngine *_sound;
     NSTimeInterval _lastTime;
     NSArray<NSString *> *_skins;
     NSString *_skinName;
     PBSkin *_skin;
-    NSLock *_lightingInputLock;
-    simd_quatf _lightingAttitude;
     PBGameCenter *_gameCenter;
     _Atomic(BOOL) _applicationActive, _gameCenterPresented, _resetFrameClock, _menuPaused, _hapticsEnabled;
     PBMenuFlow *_menuFlow;
     PBGameUI *_interface;
     NSTimeInterval _lastUISnapshot;
     int64_t _startingHighScore;
+    simd_float2 _impactPosition;
+    PBEventKind _impactKind;
+    NSInteger _impactSparks;
+    BOOL _hasImpact;
+    int64_t _shownScore;
     NSMutableArray<id<PBGameObserver>> *_gameObservers;
     PBLevelCatalog *_catalog;   // Nil in free play: a table chosen at launch, or autopilot.
     PBLevelProgress *_progress;
@@ -53,9 +49,10 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     PBLevelSession *_previousSession;
 }
 
-- (instancetype)initWithView:(SCNView *)view {
+- (instancetype)initWithView:(SKView *)view {
     if ((self = [super init])) {
         _view = view;
+        _gameLock = [NSRecursiveLock new];
         _applicationActive = YES;
         _gameCenter = [[PBGameCenter alloc] initWithBundle:NSBundle.mainBundle];
         _gameCenter.showsAccessPoint = NO;
@@ -63,8 +60,6 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
         _gameCenter.presentationChanged = ^(BOOL presented) {
             [weakSelf setGameCenterPresented:presented];
         };
-        _lightingInputLock = [NSLock new];
-        _lightingAttitude = simd_quaternion(0.0f, 0.0f, 0.0f, 1.0f);
         NSBundle *bundle = NSBundle.mainBundle;
         NSUserDefaults *launch = NSUserDefaults.standardUserDefaults;
         NSDictionary *arguments = [launch volatileDomainForName:NSArgumentDomain];
@@ -100,21 +95,25 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
         _menuFlow = [PBMenuFlow new];
         _menuFlow.usesLevelMap = _catalog != nil;
         _interface = [[PBGameUI alloc] initWithBundle:bundle];
-        _interface.hidden = _game.autopilot;
+        _interface.hidesInterface = _game.autopilot;
         _interface.actionHandler = ^(PBUIAction action) { [weakSelf performUIAction:action]; };
+        _interface.popupHandler = ^(BOOL shown) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf setBackdropBlurred:shown]; });
+        };
         [self configureInterface];
         [_interface updateScore:0 best:_game.rules.highScore ball:0 ballCount:_table.rules.balls];
         [_interface showScreen:PBMenuHome];
         _menuPaused = !_game.autopilot;
-        view.overlaySKScene = _interface;
+        _interface.frameHandler = ^(NSTimeInterval time) { [weakSelf updateAtTime:time]; };
+        _tableScene.zPosition = -100;
+        [_interface addChild:_tableScene];
+        [view presentScene:_interface];
+        _interface.deferChanges = YES;
         [self viewDidResize];
 
-        view.delegate = self;
-        view.antialiasingMode = SCNAntialiasingModeMultisampling4X;
+        view.ignoresSiblingOrder = NO;
         view.preferredFramesPerSecond = 60;
-        view.rendersContinuously = YES;
-        view.playing = YES;
-        view.showsStatistics = [NSUserDefaults.standardUserDefaults boolForKey:@"PBStats"];
+        view.showsFPS = [NSUserDefaults.standardUserDefaults boolForKey:@"PBStats"];
     }
     return self;
 }
@@ -124,7 +123,7 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     [_game addObserver:observer];
 }
 
-/// Replaces the game when the table changes. The render thread reads it, hence the lock.
+/// Serialize table replacement with the SpriteKit game update.
 - (void)useTableNamed:(NSString *)name {
     if ([_table.identifier isEqualToString:name] && _game) return;
     NSError *error;
@@ -135,10 +134,10 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     [game addObserver:self];
     [game addObserver:_sound];
     for (id<PBGameObserver> observer in _gameObservers) [game addObserver:observer];
-    [SCNTransaction lock];
+    [_gameLock lock];
     _table = table;
     _game = game;
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 /// Makes this level the one on the table, behind whichever menu is showing.
@@ -150,12 +149,12 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     NSString *skin = _forcedSkin ?: level.skin;
     if (_table != previous || ![_skinName isEqualToString:skin]) [self loadSkin:skin];
     PBLevelSession *session = [[PBLevelSession alloc] initWithLevel:level];
-    [SCNTransaction lock];
+    [_gameLock lock];
     _session = session;
     [_game removeObserver:_previousSession];
     _previousSession = session;
     [_game addObserver:session];
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 - (void)loadSkin:(NSString *)name {
@@ -163,16 +162,21 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     NSAssert(skin, @"No valid skin available for %@", _table.identifier);
     _skinName = skin.identifier;
     _skin = skin;
-    PBTableScene *scene = [[PBTableScene alloc] initWithTable:_table skin:skin];
-    // The render thread reads _tableScene; the transaction lock keeps the swap atomic.
-    [SCNTransaction lock];
-    if (_tableScene) [_game removeObserver:_tableScene];
-    [_game addObserver:scene];
+    PBTableSprites *scene = [[PBTableSprites alloc] initWithTable:_table];
+    scene.zPosition = -100;
+    if (![skin.identifier isEqualToString:@"orbital"]) {
+        simd_float3 tint = skin.accentColor;
+        [scene setPlayfieldColor:[SKColor colorWithRed:.025+tint.x*.10 green:.065+tint.y*.16 blue:.08+tint.z*.18 alpha:1]];
+    }
+    [_gameLock lock];
+    [scene syncWithGame:_game];
+    PBTableSprites *previous = _tableScene;
     _tableScene = scene;
-    SCNView *view = _view;
-    view.scene = scene.scene;
-    view.pointOfView = scene.cameraNode;
-    [SCNTransaction unlock];
+    [_gameLock unlock];
+    if (_interface) [_interface applyChange:^{
+        [previous removeFromParent];
+        [self->_interface addChild:scene];
+    }];
     [self viewDidResize];
 }
 
@@ -187,7 +191,12 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     [_interface showScreen:_menuFlow.screen];
 }
 
+- (void)setBackdropBlurred:(BOOL)blurred {
+    [_interface applyChange:^{ self->_tableScene.alpha = blurred ? .45 : 1; }];
+}
+
 - (void)configureInterface {
+    _interface.tableDefinition = _table;
     _interface.skinName = _skinName.capitalizedString;
     _interface.tableName = _table.name;
     simd_float3 message = _skin.dmdColor;
@@ -206,6 +215,9 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
     _interface.currentLevel = [_progress currentLevelIndexInCatalog:_catalog];
     _interface.levelName = level.name;
     _interface.levelGoal = level.goalText;
+    _interface.levelGoalKind = level.goal;
+    _interface.levelTarget = level.goalCount;
+    _interface.levelProgress = _session ? _session.progress : 0;
     _interface.levelTwoStarScore = level.twoStarScore;
     _interface.levelThreeStarScore = level.threeStarScore;
     _interface.levelBest = [_progress bestScoreForLevel:level];
@@ -279,6 +291,7 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
 }
 
 - (void)releaseInputs {
+    [_game cancelPrimaryInput];
     [_game setLeftPressed:NO];
     [_game setRightPressed:NO];
     [_game setPlungerPressed:NO];
@@ -302,57 +315,92 @@ static CGFloat PBScreenCornerRadius(CGSize size) {
 
 - (void)viewDidResize {
     CGSize size = _view.bounds.size;
-    if (size.width > 0) {
-        [_tableScene fitCameraToAspect:size.height / size.width];
-        [_tableScene fitBorderToCornerRadius:PBScreenCornerRadius(size) / size.width];
-    }
     UIEdgeInsets insets = _view.safeAreaInsets;
+    // Always acquire the UI queue before the game lock, including during resize.
+    [_interface applyChange:^{
+        [self->_gameLock lock];
+        [self->_game.world fitDisplayBoundaryToViewSize:size topInset:insets.top bottomInset:insets.bottom];
+        [self->_tableScene layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
+        [self->_gameLock unlock];
+    }];
     [_interface layoutForViewSize:size topInset:insets.top bottomInset:insets.bottom];
 }
 
-- (void)setLightingAttitude:(simd_quatf)attitude {
-    float lengthSquared = simd_length_squared(attitude.vector);
-    if (!isfinite(lengthSquared) || lengthSquared < 1e-6f) return;
-    [_lightingInputLock lock];
-    _lightingAttitude = simd_normalize(attitude);
-    [_lightingInputLock unlock];
-}
+#pragma mark - Frame update
 
-#pragma mark - SCNSceneRendererDelegate
-
-- (void)renderer:(id<SCNSceneRenderer>)renderer updateAtTime:(NSTimeInterval)time {
+- (void)updateAtTime:(NSTimeInterval)time {
     if (self.isPaused) { _lastTime = 0; return; }
     BOOL resetClock = atomic_exchange(&_resetFrameClock, NO);
     double elapsed = _lastTime > 0 && !resetClock ? time - _lastTime : 1.0 / 60.0;
     _lastTime = time;
-    [_lightingInputLock lock];
-    simd_quatf attitude = _lightingAttitude;
-    [_lightingInputLock unlock];
-    [SCNTransaction lock];
-    [_tableScene updateLightingForAttitude:attitude elapsed:elapsed];
+    [_gameLock lock];
     [_game update:elapsed];
-    [_tableScene syncWithGame:_game elapsed:elapsed];
+    [_tableScene syncWithGame:_game];
+    [self showImpacts];
     if (!_game.autopilot && time - _lastUISnapshot > 0.1) {
         _lastUISnapshot = time;
         int64_t score = _game.rules.score, best = _game.rules.highScore;
         NSInteger ball = _game.rules.ballNumber;
         NSInteger bonus = _game.rules.bonusMultiplier;
+        int64_t progress = _session.progress;
         NSString *message = _game.rules.displayIsMessage ? _game.rules.displayTop : nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             // A queued live snapshot must not overwrite the frozen game-over result.
             if (self->_menuFlow.screen == PBMenuPlaying) {
                 self->_interface.bonusMultiplier = bonus;
+                self->_interface.levelProgress = progress;
                 [self->_interface updateScore:score best:best ball:ball ballCount:self->_table.rules.balls];
                 [self->_interface showMessage:message];
             }
         });
     }
-    [SCNTransaction unlock];
+    [_gameLock unlock];
 }
 
 #pragma mark - PBGameObserver
 
-- (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {}
+- (void)game:(PBGame *)game didReceiveEvent:(const PBEvent *)event {
+    NSInteger sparks = 0;
+    switch (event->kind) {
+        case PBEventBumper: sparks = 26; break;
+        case PBEventSling: sparks = 16; break;
+        case PBEventDropTarget: sparks = 22; break;
+        case PBEventStandup: sparks = 20; break;
+        case PBEventRampComplete: sparks = 30; break;
+        case PBEventSaucerCapture: case PBEventKickback: sparks = 24; break;
+        case PBEventRollover: case PBEventSpinner: sparks = 6; break;
+        case PBEventWallHit: sparks = event->magnitude > 2.2f ? 7 : 0; break;
+        default: return;
+    }
+    // Scoring runs just before this, in the same frame; the frame's score difference is shown once.
+    _impactPosition = event->position;
+    _impactKind = event->kind;
+    _impactSparks = MAX(_impactSparks, sparks);
+    _hasImpact = YES;
+}
+
+/// Sparks and a flying number at the frame's last hit, in place of a HUD-only score change.
+- (void)showImpacts {
+    int64_t score = _game.rules.score;
+    int64_t gained = score - _shownScore;
+    _shownScore = score;
+    if (!_hasImpact) return;
+    _hasImpact = NO;
+    NSInteger sparks = _impactSparks;
+    _impactSparks = 0;
+    if (_game.autopilot || _game.rules.phase != PBGamePhasePlaying) return;
+    CGSize size = _view.bounds.size;
+    UIEdgeInsets insets = _view.safeAreaInsets;
+    CGPoint screen = PBTableScreenPoint(_table.size, size, insets.top, insets.bottom, _impactPosition, 0);
+    SKColor *color = SKColor.orangeColor;
+    // Spinners and passing rollovers score too often for every number to be worth showing.
+    int64_t points = gained >= 250 ? gained : 0;
+    if (sparks == 0 && points == 0) return;
+    CGPoint point = screen;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self->_interface showImpactAtPoint:point color:color sparks:sparks points:points];
+    });
+}
 - (void)game:(PBGame *)game flash:(NSString *)flasherIdentifier {}
 - (void)game:(PBGame *)game fanfare:(NSString *)name {
     if ([name isEqualToString:@"start"] && !game.autopilot) {

@@ -4,7 +4,7 @@
 //  table ships no model files; this is what keeps many tables small.
 //
 //  Table space maps to SceneKit as: x -> +X, height -> +Y, table y -> -Z.
-//  Camera looks down -Y. All builders here take table-space input.
+//  Camera looks down toward -Y from the near/flipper end. All builders take table-space input.
 //
 
 #import <SceneKit/SceneKit.h>

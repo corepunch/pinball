@@ -11,8 +11,11 @@
   <!-- Reference full-screen contour. Runtime fits these invisible bounds to the display, never the Dynamic Island. -->
   <wall id="outer" style="none" height="0.12" radius="0.006" points="1.006,-0.01 1.006,1.99975124 1.00533506,2.01328639 1.00334665,2.02669118 1.00005391,2.03983652 0.995488559,2.05259583 0.98969456,2.06484621 0.982727714,2.07646969 0.974655115,2.08735433 0.965554507,2.0973953 0.955513532,2.10649591 0.944628892,2.11456851 0.933005412,2.12153536 0.920755032,2.12732935 0.907995729,2.13189471 0.894850383,2.13518744 0.881445591,2.13717586 0.867910448,2.1378408 0.132089552,2.1378408 0.118554409,2.13717586 0.105149617,2.13518744 0.0920042711,2.13189471 0.0792449684,2.12732935 0.0669945879,2.12153536 0.0553711075,2.11456851 0.0444864677,2.10649591 0.0344454934,2.0973953 0.0253448849,2.08735433 0.0172722858,2.07646969 0.0103054397,2.06484621 0.00451144127,2.05259583 -5.39102417e-05,2.03983652 -0.00334664797,2.02669118 -0.00533506106,2.01328639 -0.006,1.99975124 -0.006,-0.01" />
   <wall id="shooterInner" style="wall" height="0.03" radius="0.008" points="0.922,-0.01 0.922,1.232" />
-  <wall id="slingBackL" style="none" height="0.022" radius="0.006" points="0.1905,0.585 0.1905,0.3636 dir(-slope,0.12689)" />
-  <wall id="slingBackR" style="none" height="0.022" radius="0.006" points="0.7235,0.585 0.7235,0.3636 dir(180+slope,0.12689)" />
+  <!-- Slingshot bodies: the centres of the rounded triangle's corner arcs, swept by the corner radius. The straight
+       faces sit where the earlier 0.006 backing and 0.008 kicker put them (vertical face x = 0.1845, as the inlane
+       clearance requires); only the corners are rounded. The sprite and its corner bolts are drawn from these. -->
+  <wall id="slingBackL" style="none" height="0.022" radius="0.012" points="0.1965,0.562676 0.1965,0.367422 dir(-slope,0.111916)" />
+  <wall id="slingBackR" style="none" height="0.022" radius="0.012" points="0.7175,0.562676 0.7175,0.367422 dir(180+slope,0.111916)" />
   <!-- Steel inlane guides, drawn as outlines: a narrow upright with a round top, a wide elbow, and a wide diagonal down
        the flipper's slope. Its end is cut concave round the flipper's base, concentric with the pivot. The top edge runs
        in line with the top of the bat, so a ball rolls straight on, and the plate is as high as the bat so the lens
@@ -27,8 +30,10 @@
   <flipper id="flipperR" side="right" pivot="0.6415 0.21" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="180+slope" activeAngle="152.0" />
  </flippers>
  <slingshots>
-  <slingshot id="slingL" a="0.1915 0.585" b="0.3065 0.31" />
-  <slingshot id="slingR" a="0.6075 0.31" b="0.7225 0.585" />
+  <!-- Each kicker lies on its body's long face, 0.004 outside the corner centres, so its 0.008 capsule
+       ends inside the 0.012 corner arcs. -->
+  <slingshot id="slingL" a="0.20019 0.564219" b="0.301621 0.321668" body="slingBackL" />
+  <slingshot id="slingR" a="0.612379 0.321668" b="0.71381 0.564219" body="slingBackR" />
  </slingshots>
  <rollovers>
   <rollover id="inlaneLeft" r="0.025" />

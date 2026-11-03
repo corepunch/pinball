@@ -301,7 +301,7 @@ static inline BOOL PBSegmentsCross(simd_float2 p0, simd_float2 p1, simd_float2 a
         add(b.position, b.position, b.radius, 0.3f, PBLayerPlayfield, PBColliderBumper, (NSInteger)i);
     }];
     [t.slingshots enumerateObjectsUsingBlock:^(PBEdgeDef *s, NSUInteger i, BOOL *stop) {
-        add(s.a, s.b, 0.008f, 0.6f, PBLayerPlayfield, PBColliderSling, (NSInteger)i);
+        add(s.a, s.b, PBSlingshotRadius, 0.6f, PBLayerPlayfield, PBColliderSling, (NSInteger)i);
     }];
     _dropColliderBase = n;
     [t.dropTargets enumerateObjectsUsingBlock:^(PBEdgeDef *d, NSUInteger i, BOOL *stop) {

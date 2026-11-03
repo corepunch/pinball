@@ -16,7 +16,9 @@ make sprites TABLE=tide SPRITE_OUT=/tmp/tide-sprites
 
 Each export writes `sprites.png` and `sprites.json` under `Art/Sprites/<table>/`. The PNG is one
 transparent rectangular atlas containing complete assemblies: a bumper includes its rings, and
-a flipper includes its hinge detail. The long shooter divider remains one intact image, suitable
+a flipper includes its hinge detail, and a slingshot includes its rounded body, kicker band and corner bolts.
+The slingshot body is the outline of its `body` collider wall swept by that wall's radius, so its rounded
+corners are exactly what the ball hits; each bolt sits on the centre of a corner arc. The long shooter divider remains one intact image, suitable
 for a future themed treatment such as a candy cane. Other sprites pack alongside it.
 
 Packing trims fully transparent pixels, deduplicates byte-identical images, then searches rectangular

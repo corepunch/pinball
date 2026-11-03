@@ -61,6 +61,29 @@ static CGMutablePathRef Line(simd_float2 a, simd_float2 b, float radius) {
     return result;
 }
 
+/// The outline of a convex polyline swept by a disc: straight faces offset by `radius`, joined by
+/// arcs centred on the points. For a slingshot body this is exactly its collider's outer boundary.
+static CGMutablePathRef RoundedPolygon(const simd_float2 *points, NSInteger count, float radius) {
+    float area = 0;
+    for (NSInteger i = 0; i < count; i++) {
+        simd_float2 p = points[i], q = points[(i + 1) % count];
+        area += p.x * q.y - q.x * p.y;
+    }
+    CGMutablePathRef path = CGPathCreateMutable();
+    for (NSInteger k = 0; k < count; k++) {
+        // Walk anticlockwise, so each outward normal is the edge direction turned clockwise.
+        NSInteger i = area >= 0 ? k : count - 1 - k;
+        NSInteger prev = area >= 0 ? (i + count - 1) % count : (i + 1) % count;
+        NSInteger next = area >= 0 ? (i + 1) % count : (i + count - 1) % count;
+        simd_float2 v = points[i], entering = simd_normalize(v - points[prev]), leaving = simd_normalize(points[next] - v);
+        float start = atan2f(-entering.x, entering.y), end = atan2f(-leaving.x, leaving.y);
+        while (end < start) end += 2 * M_PI;
+        CGPathAddArc(path, NULL, v.x, v.y, radius, start, end, NO);
+    }
+    CGPathCloseSubpath(path);
+    return path;
+}
+
 @implementation PBTableSprites {
     PBTableDefinition *_table;
     SKNode *_world;
@@ -97,15 +120,36 @@ static CGMutablePathRef Line(simd_float2 a, simd_float2 b, float radius) {
             [self add:Sprite(shape, color, .003, YES) name:wall.identifier position:0 z:2];
             CGPathRelease(shape); CGPathRelease(path);
         }
-        for (PBPlasticDef *plastic in table.plastics) {
-            CGMutablePathRef path = CGPathCreateMutable();
-            for (NSInteger i = 0; i < plastic.points.count; i++) {
-                simd_float2 p = plastic.points.points[i];
-                if (!i) CGPathMoveToPoint(path, NULL, p.x,p.y); else CGPathAddLineToPoint(path, NULL,p.x,p.y);
+        // Plastics are the retained 3D kit's sharp lens outlines. Sprite slingshots draw their
+        // bodies from the colliders below instead, so nothing visible extends past what the ball hits.
+        for (PBEdgeDef *sling in table.slingshots) {
+            SKNode *assembly = [SKNode node];
+            PBWallDef *body = nil;
+            for (PBWallDef *wall in table.walls) if ([wall.identifier isEqualToString:sling.body]) body = wall;
+            const CGFloat stroke = .005;
+            if (body) {
+                // Inset by half the ink line, so the line's outer edge is the collider's face.
+                CGMutablePathRef path = RoundedPolygon(body.points.points, body.points.count, body.radius - stroke * .5);
+                SKSpriteNode *plate = Sprite(path, Tone(@"amber"), stroke, YES);
+                [assembly addChild:plate];
+                CGPathRelease(path);
             }
-            CGPathCloseSubpath(path);
-            [self add:Sprite(path, Tone(@"amber"), .007, YES) name:plastic.identifier position:0 z:3];
-            CGPathRelease(path);
+            CGMutablePathRef rubber = Line(sling.a, sling.b, PBSlingshotRadius - .0015);
+            SKSpriteNode *band = Sprite(rubber, Tone(@"cyan"), .003, YES);
+            band.zPosition = .1; [assembly addChild:band];
+            CGPathRelease(rubber);
+            // A bolt at the centre of each rounded corner's arc, concentric with it.
+            for (NSInteger i = 0; body && i < body.points.count; i++) {
+                float r = body.radius * .42;
+                CGPathRef head = CGPathCreateWithEllipseInRect(CGRectMake(-r, -r, r*2, r*2), NULL);
+                SKSpriteNode *bolt = Sprite(head, [SKColor colorWithRed:1 green:.88 blue:.62 alpha:1], .002, YES);
+                CGPathRelease(head);
+                SKSpriteNode *socket = Disc(r * .3, Ink(), NO);
+                socket.zPosition = .1; [bolt addChild:socket];
+                bolt.position = CGPointMake(body.points.points[i].x, body.points.points[i].y);
+                bolt.zPosition = .2; [assembly addChild:bolt];
+            }
+            [self add:assembly name:sling.identifier position:0 z:3];
         }
         for (PBSpotDef *post in table.posts) [self add:Disc(post.radius, Tone(@"cyan"), YES) name:post.identifier position:post.position z:3];
         for (PBSpotDef *bumper in table.bumpers) {
@@ -122,9 +166,9 @@ static CGMutablePathRef Line(simd_float2 a, simd_float2 b, float radius) {
             [node addChild:Disc(saucer.radius*.73, Ink(), NO)];
             [self add:node name:saucer.identifier position:saucer.position z:2];
         }
-        NSArray *groups = @[table.dropTargets, table.standups, table.spinners, table.gates, table.slingshots];
+        NSArray *groups = @[table.dropTargets, table.standups, table.spinners, table.gates];
         for (NSUInteger group = 0; group < groups.count; group++) for (PBEdgeDef *edge in groups[group]) {
-            CGMutablePathRef path = Line(0, edge.b-edge.a, group == 4 ? .006 : .009);
+            CGMutablePathRef path = Line(0, edge.b-edge.a, .009);
             SKSpriteNode *node = Sprite(path, Tone(group == 0 ? @"green" : group == 1 ? @"amber" : @"cyan"), .003, YES);
             CGPathRelease(path);
             [self add:node name:edge.identifier position:edge.a z:5];

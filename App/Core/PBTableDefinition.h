@@ -70,6 +70,9 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 @end
 
 /// A line element: slingshots, drop targets, stand-ups, spinners, gates.
+/// Capsule radius of every slingshot kicker. Physics, layout checks and the sprite share it.
+static const float PBSlingshotRadius = 0.008f;
+
 @interface PBEdgeDef : PBElementDef
 /// A vari-target, for a standup: the harder it is hit, the more it scores.
 @property (nonatomic) BOOL vari;
@@ -78,6 +81,9 @@ typedef NS_ENUM(NSInteger, PBWallStyle) {
 /// Selects the permitted side of a one-way gate; passage is measured normal to a–b.
 @property (nonatomic) simd_float2 passDirection;
 @property (nonatomic) PBLayerMask layers;
+/// For a slingshot: the wall whose points are its body's corner-arc centres and whose radius is
+/// the corner radius. The body sprite and its corner bolts are drawn from that collider.
+@property (nonatomic, copy, nullable) NSString *body;
 @end
 
 @interface PBFlipperDef : PBElementDef

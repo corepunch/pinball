@@ -13,11 +13,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Shot playtest per commit
+      - name: Shot playtest per commit (summaries only)
         run: |
           for commit in db85bd4 7ce6e37 8791d3f 3468c0d; do
             echo "=================== $commit: $(git log -1 --format=%s $commit)"
             rm -rf /tmp/probe && git worktree add -f /tmp/probe $commit >/dev/null 2>&1
-            (cd /tmp/probe && python3 tools/playtest/run_shots.py --fan aurora meridian tide) || echo "RESULT $commit: some shot unreachable"
+            (cd /tmp/probe && python3 tools/playtest/run_shots.py aurora meridian tide) || echo "RESULT $commit: some shot unreachable"
             git worktree remove --force /tmp/probe
           done

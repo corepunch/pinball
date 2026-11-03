@@ -22,8 +22,10 @@
        leans both alike and they line up on screen. -->
   <wall id="inlaneL" style="rail" closed="true" height="0.038" radius="0.004" points="0.11657,0.30477981 dir(-slope,0.14471544) arc(0.24604,0.23999,0.004,65,-48.578,4) arc(0.2725,0.21,0.036,131.422,195.542,12) arc(0.23396,0.19928,0.004,15.542,-115,4) 0.23227,0.19566 dir(180-slope,0.12718544) arc(0.14025,0.29924981,0.055,245,180,8) arc(0.09225,0.484,0.007,180,0,6) arc(0.12925,0.33196981,0.03,180,245,6)" />
   <wall id="inlaneR" style="rail" closed="true" height="0.038" radius="0.004" points="0.79743,0.30477981 dir(180+slope,0.14471544) arc(0.66796,0.23999,0.004,115,228.578,4) arc(0.6415,0.21,0.036,48.578,-15.542,12) arc(0.68004,0.19928,0.004,164.458,295,4) 0.68173,0.19566 dir(slope,0.12718544) arc(0.77375,0.29924981,0.055,-65,0,8) arc(0.82175,0.484,0.007,0,180,6) arc(0.78475,0.33196981,0.03,0,-65,6)" />
-  <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.344,0.004 dir(180-slope,0.41708) -0.034,-0.03 0.344,-0.03" />
-  <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.005" closed="true" points="0.57,0.004 dir(slope,0.38838903) 0.922,-0.03 0.57,-0.03" />
+  <!-- Aprons: corner-arc centres swept by a 0.012 corner radius, so the sprite's rounded corners are the collider's.
+       Their faces are where the earlier 0.005-radius outline put them. -->
+  <wall id="apronL" style="plastic" part="slide" height="0.018" radius="0.012" closed="true" points="0.337,-0.000459 dir(180-slope,0.40163254) -0.027,-0.023 0.337,-0.023" />
+  <wall id="apronR" style="plastic" part="slide" height="0.018" radius="0.012" closed="true" points="0.577,-0.000459 dir(slope,0.37294174) 0.915,-0.023 0.577,-0.023" />
  </walls>
  <flippers>
   <flipper id="flipperL" side="left" pivot="0.2725 0.21" length="0.15" baseRadius="0.024" tipRadius="0.0135" restAngle="-slope" activeAngle="28.0" />

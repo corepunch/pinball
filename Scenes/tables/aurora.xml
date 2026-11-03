@@ -13,10 +13,10 @@
   <bumper id="bumperC" x="0.63" y="1.0" r="0.068" />
  </bumpers>
  <standups>
-  <!-- Three separate angled stand-ups on the left; the centre remains an open aiming fan. -->
-  <standup id="standC" a="0.18 1.22" rotation="-guide" length="0.085" arrow="green" />
-  <standup id="standD" a="0.27 1.10" rotation="-guide" length="0.085" arrow="green" />
-  <standup id="standE" a="0.36 0.98" rotation="-guide" length="0.085" arrow="green" />
+  <!-- An angled bank of three stand-ups on the left, a ball-width apart; the centre remains an open aiming fan. -->
+  <standup id="standC" a="0.15 1.28" rotation="-guide" length="0.085" arrow="green" />
+  <standup id="standD" a="0.259502 1.144777" rotation="-guide" length="0.085" arrow="green" />
+  <standup id="standE" a="0.369003 1.009553" rotation="-guide" length="0.085" arrow="green" />
   <standup id="standA" a="0.46 0.81" b="0.54 0.83" arrow="amber" />
   <standup id="standB" a="0.63 0.83" b="0.71 0.81" arrow="amber" />
  </standups>

@@ -15,30 +15,31 @@ section = fan.split('flipperR')[0]
 for line in section.splitlines():
     m = re.search(r'heading +(\d+)', line)
     if m and 30 <= int(m.group(1)) <= 75: print('DIAG', line.strip())
-SB = '<standup id="standB" a="0.71 0.83" b="0.79 0.81" arrow="amber" />'
-BB = '<bumper id="bumperB" x="0.74" y="1.2" r="0.068" />'
-SP = '<spinner id="spinnerR" a="0.75 0.67" b="0.83 0.67" arrow="cyan" />'
-def sb(ax, ay, bx, by): return f'<standup id="standB" a="{ax} {ay}" b="{bx} {by}" arrow="amber" />'
-def sp(ax, ay, bx, by): return f'<spinner id="spinnerR" a="{ax} {ay}" b="{bx} {by}" arrow="cyan" />'
-def bb(x, y): return f'<bumper id="bumperB" x="{x}" y="{y}" r="0.068" />'
+SA = '<standup id="standA" a="0.51 0.81" b="0.59 0.83" arrow="amber" />'
+SB = '<standup id="standB" a="0.63 0.83" b="0.71 0.81" arrow="amber" />'
+def sa(ax, bx): return f'<standup id="standA" a="{ax} 0.81" b="{bx} 0.83" arrow="amber" />'
+def sb(ax, bx, ay=.83, by=.81): return f'<standup id="standB" a="{ax} {ay}" b="{bx} {by}" arrow="amber" />'
 variants = {
-    'base': {},
-    'sbL08': {SB: sb(.63, .83, .71, .81)},
-    'sbUp': {SB: sb(.69, .95, .77, .93)},
-    'spUp': {SP: sp(.78, .80, .86, .80)},
-    'spUp_sbL08': {SP: sp(.78, .80, .86, .80), SB: sb(.63, .83, .71, .81)},
-    'bbL': {BB: bb(.70, 1.22)},
-    'bbL_sbL08': {BB: bb(.70, 1.22), SB: sb(.63, .83, .71, .81)},
-    'all': {BB: bb(.70, 1.22), SB: sb(.63, .83, .71, .81), SP: sp(.78, .80, .86, .80)},
-    'spR': {SP: sp(.80, .70, .88, .70)},
-    'spR_sbL08_bbL': {SP: sp(.80, .70, .88, .70), SB: sb(.63, .83, .71, .81), BB: bb(.70, 1.22)},
+    'current': {},
+    'sb68': {SB: sb(.68, .76)},
+    'sb675': {SB: sb(.675, .755)},
+    'sa46_sb63': {SA: sa(.46, .54)},
+    'sa46_sb64': {SA: sa(.46, .54), SB: sb(.64, .72)},
+    'sa45_sb65': {SA: sa(.45, .53), SB: sb(.65, .73)},
+    'sa47_sb66': {SA: sa(.47, .55), SB: sb(.66, .74)},
+    'sbHigh': {SB: sb(.64, .72, .95, .93)},
 }
+suite = {'scenarios': [{'id': 'probe', 'mode': 'fixture', 'position': [0.5, 1.0], 'velocity': [0, 0], 'seconds': 0.1, 'seeds': [1]}]}
+Path('/tmp/probe-suite.json').write_text(json.dumps(suite))
 for name, subs in variants.items():
     text = orig
     for a, b in subs.items(): text = text.replace(a, b)
     xml.write_text(text)
     out = Path('/tmp/var') / name
     subprocess.run([sys.executable, 'tools/scene/compile_scenes.py', '--tables-only', '--out', str(out)], check=True, stdout=subprocess.DEVNULL)
-    r = shots(out / 'GameData/Tables/aurora.json')
-    print('VARIANT', name, ' | '.join(f"{f}: orbitR {fan['reached'].get('orbit right', 0)} orbitL {fan['reached'].get('orbit left', 0)} stand {fan['reached'].get('standups', 0)}" for f, fan in sorted(r.items())))
+    table = out / 'GameData/Tables/aurora.json'
+    r = shots(table)
+    subprocess.run([sys.executable, 'tools/analyze_table.py', str(table), '--suite', '/tmp/probe-suite.json', '--out', f'/tmp/rep-{name}'], capture_output=True)
+    issues = json.loads(Path(f'/tmp/rep-{name}/report.json').read_text())['layoutIssues']
+    print('VARIANT', name, ' | '.join(f"{f}: orbitR {fan['reached'].get('orbit right', 0)} stand {fan['reached'].get('standups', 0)}" for f, fan in sorted(r.items())), '| issues', json.dumps(issues))
 xml.write_text(orig)

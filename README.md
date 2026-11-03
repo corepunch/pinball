@@ -1,21 +1,18 @@
 # Pinball
 
-3D pinball in Objective-C and SceneKit, for iPhone. Tilted orthographic camera, almost full-width board, with a separate 2D UI scene.
+Mini-pinball in Objective-C and SpriteKit for iPhone. A compact, flat playfield uses readable
+textured sprites, with a ball about 1/15 of the screen width and large targets inspired by match-3 sizing.
+
+![Mini-pinball — software capture of the shipping sprites](Art/Previews/mini-pinball.png)
 
 For contributors and agents, start with [AGENTS.md](AGENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md),
 and [CONTRIBUTING.md](CONTRIBUTING.md). The [documentation map](docs/README.md) links specialist guides.
 
-Runtime tables are JSON; skins contain a hardware atlas, palette, and optionally a separate playfield painting.
-Tables and every hardware part are written as XML in `Scenes/` and compiled to JSON and SceneKit models by `make scenes`; see [Art/SCENES.md](Art/SCENES.md). All sound is synthesized.
-
-The default **Orbital** skin pairs a dark navy/petrol field that emphasizes glowing lamps with ivory/vermilion enamel and champagne trim.
-**Abyss** uses deep-sea illustration, seafoam enamel and brass. The hardware kits support channels,
-jewelled bumpers, guide housings, and authored insert states, and First Light uses bumpers, bonus lanes, a spinner and targets above the
-shared lower kit. Earlier concepts under `Art/Concepts/` are visual research, not the current layout.
-Ball mesh and physics share one radius; the visible ball is 15% smaller than the previous version.
-Backgrounds are full-bleed illustrations without printed rulers, compasses, borders or title panels.
-Classic and Neon remain available.
-The hardware's look, materials and lighting are described in [Art/MODEL_GUIDE.md](Art/MODEL_GUIDE.md).
+Author tables in `Scenes/` XML, then run `make scenes` to compile runtime JSON. The shipping game
+uses custom physics and SpriteKit for both board and HUD. First Light has three bumpers, three bonus
+lanes, three drop targets, two stand-ups, a spinner and a timed scoop above the shared lower kit.
+Ramps, locks and multiball are absent. Sound is synthesized. The SceneKit renderer and its models
+remain available as reference tools through `make models`; the app does not instantiate them.
 
 ```bash
 open Pinball.xcodeproj
@@ -55,34 +52,26 @@ Use the iPhone Simulator for gameplay checks and a real iPhone for motion, hapti
 Launch arguments: `-PBAutopilot 1` plays itself, `-PBSkin classic`, `-PBTable aurora`, `-PBStats 1`.
 Use `-PBSkin orbital` or `-PBSkin abyss` to preview either new set directly.
 
-Lighting and reflections stay fixed when the phone tilts. Deliberate shoves still trigger nudges.
-Shadows use one 4096×2048 map with 32 samples. The light's orthographic projection is fitted
-from the visible screen and highest caster, with explicit depth bounds; resizing refits it.
-The shadow map has a hard 4096×2048 cap (32 MiB for a 32-bit depth texture).
-The coral ball uses uncoated rubber (roughness 0.68, metalness 0, no clear coat, fine mould grain).
-It compresses along real contact normals, bulges sideways and recovers over roughly 0.14 seconds
-with a short elastic recoil, so the squeeze reads during normal play. Its mesh preserves volume;
-elastic strain does not change the spherical collision shape or bounce tuning.
+The coral sprite ball deforms from actual physics contacts and recovers with a short rubber recoil.
+Rendering uses texture shading without runtime 3D lights, shadow maps or reflections. The ball's
+physical radius and visible silhouette share the authored size. Phone motion supplies nudges only.
 
 ## Game interface
 
-The app uses a transparent SpriteKit UI scene over the SceneKit world. **Peggle Blast is the
+The app uses one SpriteKit scene containing the textured playfield and transparent interface. **Peggle Blast is the
 primary presentation reference**: a continuous illustrated background, clean unframed board edges,
 and a compact gradient HUD, with no 3D cabinet or decorative side columns.
 `PBGameHUD` draws this gameplay layer; `PBGameUI` owns the scene, menus, effects and touch routing.
 A single Luckiest Guy row shows score / target below the device's safe area, with a cream-to-amber gradient and sage outline. A vertical progress gauge fills along the shooter channel. Ball/Save/event captions are omitted; there is no panel or reserved top strip.
 The background reaches every edge; the display's own rounded corners replace the inset Roman arch.
-The ball's mesh and collision radius both use the authored 0.03417 radius, 15% smaller than the
-previous visible ball; there is no separate visual size multiplier.
+The ball sprite silhouette and collider share radius 0.03417, about 1/15 of screen width in diameter.
 The pause button has a finger-sized hit area and stays clear of the Dynamic Island or notch.
 Existing menus include home, levels, pause, settings, help, results and restart/end confirmations.
 
-The orthographic camera looks from the flipper end up-table, 20 degrees from overhead, giving
-pieces visible depth without perspective size changes. Camera and HUD share `PBTablePresentation`
-for safe-area framing and projection. The complete board and right shooter lane fit on small phones;
-on a modern tall phone the board uses almost the entire width. Apron pieces and walls are opaque.
-The approved lower-kit layout is preserved. See [agent instructions](AGENTS.md) for art direction
-and [UI guide](Art/UI_GUIDE.md) for verification.
+The flat overhead projection and HUD share `PBTablePresentation` for safe-area framing and
+projection. The compact 1.0 × 1.6 board fills the display width on small and large portrait phones.
+The approved lower collision kit remains shared. See [agent instructions](AGENTS.md) for art direction
+and [UI guide](Art/UI_GUIDE.md) for interface ownership.
 
 Settings persist between launches. App inactivity pauses a live run and returns to the pause screen;
 the player explicitly resumes. Results remain visible until choosing replay or the main menu. Autopilot
@@ -130,16 +119,18 @@ cover the account-side configuration.
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, dependency boundaries, frame/thread
 model, casual input, coordinate transforms, rendering, and asset generation. The custom 960 Hz
 simulation is reused by the iPhone app, headless tests, shot probes, and analysis tools.
-SceneKit provides rendering; it does not run the ball physics.
+SpriteKit provides rendering; it does not run the ball physics.
 
 ## Levels
 
 `GameData/Levels.json` is the level list: each entry pairs a table and skin with a goal and two star scores.
 There is one level, First Light (`aurora`): three upper-right bumpers, three bonus
-lanes, a right spinner and two stand-up targets, above the unchanged shared lower kit.
+lanes, a right spinner, two stand-up targets, a left three-drop bank and a catch-and-release
+scoop, above the unchanged shared lower kit. Clear the bank for a bonus; the scoop briefly
+holds the ball and returns it toward the right flipper without a lock or multiball.
 The level stays on one plane; ramps are deferred.
 [The shot plan](docs/aurora.md) describes routes, returns and verification. `Tests/Fixtures/features.json`
-keeps advanced mechanisms (deck, drops, scoops, magnets) exercised independently of the shipped level.
+keeps advanced mechanisms (deck, ramps, magnets) exercised independently of the shipped level.
 The goal (`score`, or a count of `ramps`, `bumpers`, `drops`, `saucers`, `spinners`, `multiballs` or `jackpots`)
 earns the first star and unlocks the next level; the two scores earn the others. Progress is saved by level id,
 so levels can be reordered or added. `testEveryGoalIsReachableAndThreeStarsAreNotAutomatic` plays autopilot games
@@ -149,10 +140,10 @@ Run with `-PBLevel <n>` to show that level's table behind the menus. `-PBTable <
 ## Adding a table
 
 1. Plan the shots and returns using [the level-design workflow](docs/level-design-workflow.ru.md), then add a file in `Scenes/tables` ([Art/SCENES.md](Art/SCENES.md)) and list it in `GameData/Levels.json`. No code or project changes are needed.
-2. `make scenes` compiles its JSON and meshes, for every table. A test fails if any are missing.
+2. `make scenes` compiles runtime JSON for every table; sprites use those definitions directly.
 3. Run `PinballCoreTests`, which covers every table automatically. An autopilot plays 25 simulated minutes
    and fails if a feature can't be reached or balls get trapped. This caught real layout bugs in Aurora.
-4. Run the app with `-PBTable <id>` to play it, or `PB_PREVIEW_TABLE=<id> tools/render_preview.sh` for a render.
+4. Run the app with `-PBTable <id>` to play it, or `PB_PREVIEW_TABLE=<id> tools/render_ui_preview.sh - /tmp/pinball-ui` for a software sprite capture.
 
 `testNoTableHasOverlappingElements` runs on every JSON in `GameData/Tables`, with no setup. It projects each
 drawn part through the table camera, at its drawn size, and fails on parts covering each other (flipper

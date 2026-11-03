@@ -5,7 +5,7 @@
 NS_ASSUME_NONNULL_BEGIN
 @class PBPointList;
 
-/// Degrees from overhead, viewed from the flippers toward the far end of the board.
+/// Shipping sprite projection is overhead (zero). Retained 3D tools share this framing.
 extern const float PBTableCameraTilt;
 
 /// Screen-space rectangles have a top-left origin, in view points.
@@ -24,7 +24,7 @@ typedef struct {
 PBGameViewLayout PBGameViewLayoutMake(CGSize view, CGFloat topInset, CGFloat bottomInset);
 PBTableCameraFrame PBTableCameraFrameMake(simd_float2 tableSize, CGSize view,
                                          CGFloat topInset, CGFloat bottomInset);
-/// Orthographic projection into view points. Raised pieces shift up without growing.
+/// Flat projection into view points. Height does not change sprite position or scale.
 CGPoint PBTableScreenPoint(simd_float2 tableSize, CGSize view, CGFloat topInset,
                            CGFloat bottomInset, simd_float2 point, float height);
 simd_float2 PBTablePointFromScreen(simd_float2 tableSize, CGSize view, CGFloat topInset,

@@ -139,6 +139,54 @@
 
 #pragma mark - Features earned in play
 
+- (void)testAuroraDropBankScoresAndResetsForAnotherRound {
+    PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0 seed:17];
+    [game requestNewGame]; [game update:1.0 / 60.0];
+    XCTAssertEqual(game.table.dropTargets.count, 3u);
+    for (int round = 0; round < 2; round++) {
+        int64_t before = game.rules.score;
+        for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) {
+            PBEdgeDef *target = game.table.dropTargets[i];
+            simd_float2 edge = target.b - target.a;
+            simd_float2 normal = simd_normalize(simd_make_float2(-edge.y, edge.x));
+            [game.world placeBall:0 at:(target.a + target.b) * .5f + normal * .055f velocity:-normal * 2];
+            for (int frame = 0; frame < 2; frame++) [game update:1.0 / 60.0];
+            XCTAssertFalse([game.world isDropTargetUp:(NSInteger)i]);
+        }
+        XCTAssertEqual(game.rules.score - before, 9750, @"three hits plus one bank completion");
+        // Wait on the shooter spring while the real rules timer raises the bank.
+        [game.world placeBall:0 at:game.table.plunger.position velocity:0];
+        for (int frame = 0; frame < 60; frame++) [game update:1.0 / 60.0];
+        for (NSUInteger i = 0; i < game.table.dropTargets.count; i++) XCTAssertTrue([game.world isDropTargetUp:(NSInteger)i]);
+    }
+    XCTAssertFalse(game.rules.multiballActive, @"First Light's scoop is a return shot, without a lock");
+}
+
+- (void)testAuroraScoopAutomaticallyEjectsToRightFlipperFeed {
+    for (NSNumber *seed in @[ @17, @41, @73 ]) {
+        PBGame *game = [[PBGame alloc] initWithTable:[self loadTable:@"aurora"] highScore:0 seed:seed.unsignedIntValue];
+        PBStatsObserver *stats = [PBStatsObserver new]; [game addObserver:stats];
+        [game requestNewGame]; [game update:1.0 / 60.0];
+        PBSpotDef *scoop = game.table.saucers[0];
+        [game.world placeBall:0 at:scoop.position velocity:0];
+        [game update:1.0 / 60.0];
+        XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer);
+        XCTAssertEqual(game.rules.score, 2500);
+        for (int frame = 0; frame < 55; frame++) [game update:1.0 / 60.0];
+        XCTAssertEqual(game.world.balls[0].state, PBBallInSaucer, @"readable pause before ejecting");
+        BOOL fedRight = NO;
+        for (int frame = 0; frame < 120; frame++) {
+            [game update:1.0 / 60.0];
+            PBBall ball = game.world.balls[0];
+            if (ball.state == PBBallFree && ball.velocity.y < 0 && ball.position.x >= .49 && ball.position.x <= .72 && ball.position.y >= .19 && ball.position.y <= .35) fedRight = YES;
+        }
+        XCTAssertTrue(fedRight, @"seed %@: scoop eject reaches the descending right-flipper feed", seed);
+        XCTAssertEqual([stats.hits countForObject:@"saucer:scoopL"], 1u, @"no immediate recapture");
+        XCTAssertEqual([stats.hits countForObject:@"saucerEject:scoopL"], 1u);
+        XCTAssertEqual([stats.hits countForObject:@"stuck"], 0u);
+    }
+}
+
 - (PBRuleEngine *)rulesFor:(NSMutableDictionary *)json world:(PBPhysicsWorld **)outWorld {
     PBTableDefinition *table = [[PBTableDefinition alloc] initWithJSONData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] error:NULL];
     PBPhysicsWorld *world = [[PBPhysicsWorld alloc] initWithTable:table];
@@ -367,15 +415,15 @@
     XCTAssertTrue(found);
 }
 
-- (void)testValidatorFindsRaisedHardwareProjectingIntoTheHeader {
+- (void)testValidatorFindsHardwareOutsideTheDisplay {
     NSMutableDictionary *json = [self tableJSON:@"aurora"];
-    // Its foot fits inside the board, but the tilted view shifts its top into the HUD.
-    json[@"bumpers"] = [@[ @{ @"id": @"tooHigh", @"x": @0.5, @"y": @1.88, @"r": @0.015 } ] mutableCopy];
+    // Flat sprites must still remain inside the fitted display boundary.
+    json[@"bumpers"] = [@[ @{ @"id": @"tooHigh", @"x": @0.5, @"y": @2.3, @"r": @0.015 } ] mutableCopy];
     BOOL found = NO;
     for (PBLayoutIssue *issue in [self issuesForJSON:json]) {
         if (issue.kind == PBLayoutIssueOutOfBounds && [issue.first isEqualToString:@"tooHigh"]) found = YES;
     }
-    XCTAssertTrue(found, @"raised hardware must clear the compact gameplay header");
+    XCTAssertTrue(found, @"hardware must remain inside the physical display");
 }
 
 // Footprints are only honest if they cover the models actually drawn.

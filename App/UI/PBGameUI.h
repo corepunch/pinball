@@ -6,6 +6,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Explicit input forwarding keeps menu touches out of the flipper controls.
 @interface PBGameUI : SKScene
+/// Runs after queued changes, on the same SpriteKit update as the table.
+@property (nonatomic, copy, nullable) void (^frameHandler)(NSTimeInterval time);
+@property (nonatomic) BOOL hidesInterface;
 /// Geometry is read only to align the 2D boundary with the world camera.
 @property (nonatomic, strong, nullable) PBTableDefinition *tableDefinition;
 @property (nonatomic, copy, nullable) void (^actionHandler)(PBUIAction action);
@@ -33,7 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL newRecord;
 @property (nonatomic, readonly) PBMenuScreen screen;
 - (instancetype)initWithBundle:(NSBundle *)bundle;
-/// Set once SceneKit is drawing this overlay: changes then wait for -update: on its render thread.
+/// Set once SpriteKit is drawing this scene: changes then wait for -update: on its render thread.
 @property (nonatomic) BOOL deferChanges;
 - (void)applyChange:(dispatch_block_t)change;
 - (BOOL)onRenderThread;

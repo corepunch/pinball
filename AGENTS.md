@@ -1,7 +1,7 @@
 # Agent guide: Pinball
 
-Pinball is an Objective-C iPhone game with custom physics, SceneKit rendering, and a
-transparent SpriteKit interface. Current user instructions take precedence over these defaults.
+Pinball is an Objective-C iPhone game with custom physics and SpriteKit sprites for both the playfield
+and interface. Current user instructions take precedence over these defaults.
 When an agreed change replaces a decision, update its documentation and regression checks.
 
 ## Read first
@@ -18,13 +18,14 @@ chat history, machine-specific paths, and unverified test results as project pol
 
 - `Scenes/base.xml` defines shared hardware and physics; `Scenes/tables/*.xml` define table
   additions; `Scenes/kit.xml` defines prefabs; `Scenes/ramps.xml` defines ramp kits.
-- Edit XML, then run `make scenes`. Never hand-edit `GameData/Tables/*.json`,
+- Edit XML, then run `make scenes` (runtime JSON only). `make models` regenerates the retained
+  legacy 3D kit when explicitly needed. Never hand-edit `GameData/Tables/*.json`,
   `Art/Models/premium/*.dae`, `Art/Models/manifest.json`, or `GameData/Models/premium/*.scn`.
 - Author `GameData/Levels.json`, skin JSON, atlas layout, UI control metadata, and Game Center
   mappings directly. `Tests/Fixtures/features.json` is a test fixture, not a shipped level.
 - Xcode source folders are synchronized: new source files normally need no project edit.
   Change `tools/make_xcodeproj.py` and regenerate when target configuration changes.
-- The current shipped level is `aurora` (First Light), with Orbital: three upper-right bumpers, three bonus lanes, a spinner and two stand-ups, all on one plane. Ramps are deferred for now. See
+- The current shipped level is `aurora` (First Light), with Orbital: three upper-right bumpers, three bonus lanes, a right spinner, two stand-ups, a left three-drop bank and a catch-and-release scoop, all on one plane. The scoop has no lock/multiball. Ramps are deferred for now. See
   [the shot plan](docs/aurora.md). Do not restore historical mechanisms from concepts or fixtures.
 
 ## Ownership and behavior
@@ -38,19 +39,18 @@ chat history, machine-specific paths, and unverified test results as project pol
   lowest free, non-captive ball. Cancellation/interruption discards charge without launching.
 - `PBGameUI` owns the overlay, menus, effects, and input capture; `PBGameHUD` owns gameplay
   presentation. Decorative nodes pass touches through. Queue live SpriteKit mutations through
-  `applyChange:`; a SceneKit transaction lock alone does not protect SpriteKit writes.
-- `PBTablePresentation` owns shared orthographic framing, safe-area layout, projection, and
+  `applyChange:`; the game lock alone does not protect SpriteKit writes.
+- `PBTablePresentation` owns shared flat overhead framing, safe-area layout, projection, and
   fitted display bounds. Camera changes must update preview tools and projected checks together.
-- Ball mesh and physical sphere share radius **0.03417** from source. No mesh-only enlargement
-  or static centre lift. Preserve contact-driven, volume-preserving rubber strain and floor support.
+- Ball sprite and physical sphere share radius **0.03417** from source, about 1/15 of screen width
+  in diameter. No visual-only enlargement. Preserve contact-driven rubber strain.
   Verify readability at normal speed, not only in an enlarged slow-motion capture.
-- The shooter gate rotates in the table plane around endpoint `a`. Solver and mesh share
-  `PBGateGeometry`; it must not levitate. Triangle tops are level, bolts sit at rounded-corner
-  arc centres, and trim is concentric. Preserve their geometry regressions.
-- Return-lane guides are two thin plates at 50% and 100% height, supported by three hollow
-  screw tubes; do not turn them back into solid blocks. Keep the shared collision outline.
-  Flippers have a small, flat, contrasted detail centred on the hinge with a real shadow;
-  there is no tip screw or large domed hub.
+- The shooter gate rotates in the table plane around endpoint `a`. Solver and sprite share
+  `PBGateGeometry`. Retained 3D geometry regressions still cover level triangle tops,
+  concentric trim and correctly positioned bolts.
+- Sprite guides keep the shared collision outline. Flippers keep a small contrasted hinge detail.
+  The archived 3D guides retain their two plates and three hollow screw tubes; there is no
+  requirement to recreate those assemblies in the sprite renderer.
 - Do not add mechanisms or change physics during a visual pass unless requested. Preserve the
   approved lower kit, centred left of the phone because the shooter lane occupies the right side.
 - The four lower straight channels share **0.08125 clear width** between physical faces, with
@@ -71,19 +71,17 @@ chat history, machine-specific paths, and unverified test results as project pol
   busy starfields, painted glowing lamps, neon overload and dot-matrix HUD readouts.
 - Decorative surrounds belong in the 2D overlay, outside ball paths. Backgrounds extend behind
   the notch; readable text and finger-sized pause controls respect safe areas.
-- Use a close orthographic camera, currently 20 degrees from overhead, looking from flippers
-  toward the upper board. Blossom Blast Saga is the reference for readable angled presentation.
-  Keep the complete playable boundary, shooter lane, and flippers visible across phone sizes.
+- Use flat overhead sprites on a compact 1.0 × 1.6 board. Match-3 scale is the reference:
+  major targets around 10% of screen width and the ball around 1/15. Keep the whole shooter
+  lane and flippers visible. Do not restore a tilted 3D camera as the shipping renderer.
 - The compact HUD has one score/target row at top left, pause at top right, and a progress gauge
   along the shooter channel. Do not restore Ball/Save/event rows. Retain the bundled Luckiest Guy
   font's licence/notice files.
-- The opaque coral-orange ball is **uncoated rubber**: metalness 0, roughness 0.68, clear coat 0,
-  and subtle mould grain. No chrome or playfield-mirroring ball shader.
-- Lighting stays fixed under phone tilt; motion supplies deliberate nudges only. Shadows have a
-  hard **4096 × 2048** limit, one manually fitted projection, and 32 samples. Fit the projection
-  to the visible screen; never raise resolution to 8K/16K or substitute square maps as a quick fix.
-- Playfield reflections are disabled. Keep their retained implementation/settings available for
-  future levels; do not delete them or globally restore reflections without a request.
+- The opaque coral-orange sprite ball reads as uncoated rubber, with a broad soft highlight.
+  No chrome or playfield-mirroring treatment. Retain the legacy material settings for reference.
+- Sprite presentation uses baked texture shading and no 3D lighting or reflection passes.
+  The retained SceneKit renderer keeps reflections disabled and its 4096 × 2048, 32-sample
+  shadow cap; do not raise those settings while maintaining reference tools.
 - Display collisions follow rounded screen corners, with no Dynamic Island/notch obstacle.
   Public UIKit APIs do not expose exact corner radii; the current fit estimates from safe areas.
 
@@ -105,9 +103,10 @@ chat history, machine-specific paths, and unverified test results as project pol
 
 - For code changes: `make test`, then `make iphone`. For scene edits: `make scenes` first.
   Run Xcode tests and app builds sequentially to avoid shared build-database contention.
-- For visuals, use `tools/render_preview.sh` and/or `tools/render_ui_preview.sh`. Use isometry
-  for geometry and normal-speed captures for motion. `make ui-check` without a GPU checks real
-  nodes/input/projection, but does not produce screenshots.
+- For shipping visuals, use `tools/render_ui_preview.sh`; it captures the real sprite graph in
+  software and verifies live positions and input. Label that evidence accurately. `make ui-check`
+  checks nodes/input/projection without screenshots. Use normal-speed captures for motion.
+  `tools/render_preview.sh` and isometry are retained only for legacy 3D reference work.
 - Run analysis tests when changing analysis tools. Documentation-only edits need link, command,
   and consistency checks rather than an app build.
 - Report changes, evidence, and limitations. Distinguish builds, installation, and physical-device
